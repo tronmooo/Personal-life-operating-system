@@ -3,11 +3,20 @@
  * Search for businesses using Google Places API with caching
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const googleApiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+// Lazy-load env vars to prevent build-time errors
+function getSupabaseUrl() {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+}
+
+function getSupabaseKey() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+}
+
+function getGoogleApiKey() {
+  return process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+}
 
 export interface Location {
   latitude: number
@@ -50,12 +59,20 @@ export interface PricingInfo {
 }
 
 export class BusinessSearchService {
-  private supabase: ReturnType<typeof createClient>
+  private _supabase: SupabaseClient | null = null
   private cacheEnabled = true
   private cacheDurationDays = 7
 
-  constructor() {
-    this.supabase = createClient(supabaseUrl, supabaseKey)
+  private get supabase(): SupabaseClient {
+    if (!this._supabase) {
+      const url = getSupabaseUrl()
+      const key = getSupabaseKey()
+      if (!url) {
+        throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured')
+      }
+      this._supabase = createClient(url, key)
+    }
+    return this._supabase
   }
 
   /**
@@ -88,6 +105,7 @@ export class BusinessSearchService {
     }
 
     // Search Google Places
+    const googleApiKey = getGoogleApiKey()
     if (!googleApiKey) {
       const errorMsg = '⚠️  Google Places API key not configured. Please set GOOGLE_PLACES_API_KEY in .env.local'
       console.error(errorMsg)
@@ -167,6 +185,7 @@ export class BusinessSearchService {
    * Geocode an address to get coordinates
    */
   async geocode(address: string): Promise<Location | null> {
+    const googleApiKey = getGoogleApiKey()
     if (!googleApiKey) {
       console.warn('Google Places API key not configured for geocoding')
       return null
@@ -240,6 +259,7 @@ export class BusinessSearchService {
     }
 
     // Fetch from Google Places
+    const googleApiKey = getGoogleApiKey()
     if (!googleApiKey) {
       return null
     }
@@ -363,6 +383,7 @@ export class BusinessSearchService {
     // Use nearbysearch with rankby=distance for closest results
     // Note: When using rankby=distance, we can't specify radius (per Google API rules)
     // So we'll use rankby=prominence with radius, then sort by distance ourselves
+    const googleApiKey = getGoogleApiKey()
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/place/nearbysearch/json?keyword=${encodeURIComponent(query)}&location=${location.latitude},${location.longitude}&radius=${radiusMeters}&key=${googleApiKey}`
     )
