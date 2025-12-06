@@ -3,11 +3,17 @@
  * Aggregates all user data for AI context
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Domain } from '@/types/domains'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Lazy-load env vars to prevent build-time errors
+function getSupabaseUrl() {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+}
+
+function getSupabaseKey() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+}
 
 export interface UserContext {
   user: {
@@ -53,10 +59,18 @@ export interface UserContext {
 }
 
 export class UserContextBuilder {
-  private supabase: ReturnType<typeof createClient>
+  private _supabase: SupabaseClient | null = null
 
-  constructor() {
-    this.supabase = createClient(supabaseUrl, supabaseKey)
+  private get supabase(): SupabaseClient {
+    if (!this._supabase) {
+      const url = getSupabaseUrl()
+      const key = getSupabaseKey()
+      if (!url) {
+        throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured')
+      }
+      this._supabase = createClient(url, key)
+    }
+    return this._supabase
   }
 
   /**
