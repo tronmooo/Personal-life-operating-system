@@ -545,7 +545,10 @@ export default function AnalyticsV2Page() {
             <AchievementSystem achievements={achievements} />
 
             {/* Voice Summary */}
-            <VoiceSummary analyticsData={metrics} />
+            <VoiceSummary analyticsData={{
+              ...metrics,
+              activeDomains: metrics.activeDomainsList
+            }} />
           </TabsContent>
 
           {/* Share Tab */}

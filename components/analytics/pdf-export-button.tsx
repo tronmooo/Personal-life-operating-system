@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 
 interface PDFExportButtonProps {
   analyticsData: any
