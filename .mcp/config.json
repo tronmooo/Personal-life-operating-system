@@ -1,0 +1,119 @@
+{
+  "mcpServers": {
+    "google-calendar": {
+      "name": "Google Calendar",
+      "description": "Create, read, and manage Google Calendar events",
+      "enabled": true,
+      "type": "oauth",
+      "icon": "📅",
+      "capabilities": [
+        "create_event",
+        "read_events",
+        "update_event",
+        "delete_event",
+        "search_events"
+      ],
+      "config": {
+        "scopes": [
+          "https://www.googleapis.com/auth/calendar",
+          "https://www.googleapis.com/auth/calendar.events"
+        ]
+      }
+    },
+    "supabase-database": {
+      "name": "Supabase Database",
+      "description": "Query and manage Supabase database tables",
+      "enabled": true,
+      "type": "api",
+      "icon": "🗄️",
+      "capabilities": [
+        "query_table",
+        "insert_data",
+        "update_data",
+        "delete_data",
+        "execute_rpc"
+      ],
+      "config": {
+        "useEnvKey": true
+      }
+    },
+    "file-system": {
+      "name": "File System",
+      "description": "Read and write files in the workspace",
+      "enabled": false,
+      "type": "local",
+      "icon": "📁",
+      "capabilities": [
+        "read_file",
+        "write_file",
+        "list_directory",
+        "search_files"
+      ],
+      "config": {
+        "restrictedPaths": [
+          "/Users/robertsennabaum/new project/public",
+          "/Users/robertsennabaum/new project/docs"
+        ]
+      }
+    },
+    "github": {
+      "name": "GitHub",
+      "description": "Manage GitHub repositories, issues, and pull requests",
+      "enabled": false,
+      "type": "oauth",
+      "icon": "🐙",
+      "capabilities": [
+        "create_issue",
+        "list_repositories",
+        "create_pr",
+        "commit_files"
+      ],
+      "config": {
+        "scopes": [
+          "repo",
+          "read:user"
+        ]
+      }
+    },
+    "web-search": {
+      "name": "Web Search",
+      "description": "Search the web for real-time information",
+      "enabled": true,
+      "type": "api",
+      "icon": "🔍",
+      "capabilities": [
+        "web_search",
+        "fetch_url",
+        "summarize_content"
+      ],
+      "config": {
+        "provider": "tavily",
+        "useEnvKey": true
+      }
+    }
+  },
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-19T00:00:00.000Z"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

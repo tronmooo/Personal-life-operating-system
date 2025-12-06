@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Document Categories</title>
+    <style>
+        body { font-family: Arial; max-width: 700px; margin: 50px auto; padding: 20px; background: #f0f0f0; }
+        .box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        button { padding: 15px 30px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { padding: 20px; margin: 20px 0; border-radius: 8px; white-space: pre-wrap; font-family: monospace; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .loading { color: #666; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🔧 Fix Document Categories</h1>
+        <p>This will update your existing documents to have the correct categories:</p>
+        <ul>
+            <li>Driver Licenses → "ID & Licenses" tab</li>
+            <li>Passports → "ID & Licenses" tab</li>
+            <li>Vehicle Registration → "Vehicle" tab</li>
+            <li>Insurance Cards → "Insurance" tab</li>
+            <li>etc.</li>
+        </ul>
+        
+        <button onclick="fixCategories()" id="fixBtn">Fix My Document Categories Now</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function fixCategories() {
+            const result = document.getElementById('result');
+            const btn = document.getElementById('fixBtn');
+            
+            btn.disabled = true;
+            result.innerHTML = '<div class="result loading">Fixing categories... Please wait...</div>';
+
+            try {
+                const response = await fetch('/api/fix-categories');
+                const data = await response.json();
+
+                if (data.error) {
+                    result.innerHTML = `<div class="result error">❌ Error: ${data.error}</div>`;
+                    btn.disabled = false;
+                    return;
+                }
+
+                let html = '<div class="result success">';
+                html += `✅ SUCCESS!\n\n`;
+                html += `Total documents: ${data.totalDocuments}\n`;
+                html += `Fixed: ${data.fixedCount} documents\n\n`;
+                
+                if (data.updates && data.updates.length > 0) {
+                    html += '📝 Changes made:\n\n';
+                    data.updates.forEach(u => {
+                        html += `"${u.name}"\n`;
+                        html += `   ${u.oldCategory} → ${u.newCategory}\n\n`;
+                    });
+                } else {
+                    html += 'All categories were already correct!\n';
+                }
+                
+                html += '\n🎉 Done! Now:\n';
+                html += '1. Go to http://localhost:3000/insurance\n';
+                html += '2. Refresh the page (Cmd+R)\n';
+                html += '3. Click "ID & Licenses" tab\n';
+                html += '4. Your ID should be there now!\n';
+                html += '</div>';
+
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+

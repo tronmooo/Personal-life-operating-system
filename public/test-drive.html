@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Drive Upload Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 15px 0;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        #output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Google Drive Upload Diagnostic Test</h1>
+        <p class="subtitle">This will help us figure out exactly why uploads aren't working</p>
+
+        <div class="step">
+            <h3>Step 1: Check Your Session</h3>
+            <p>First, let's verify you're signed in and have the right permissions:</p>
+            <button onclick="checkSession()">Check Session Status</button>
+            <div id="sessionResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Upload a Test File</h3>
+            <p>Select any small image or PDF to test:</p>
+            <input type="file" id="fileInput" accept="image/*,.pdf">
+            <br>
+            <button onclick="testUpload()" id="uploadBtn">Upload to Google Drive</button>
+            <div id="uploadResult"></div>
+        </div>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function showResult(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+        }
+
+        async function checkSession() {
+            const container = document.getElementById('sessionResult');
+            container.innerHTML = '<div class="result info">Checking session... <span class="loading">⏳</span></div>';
+
+            try {
+                const response = await fetch('/api/debug/session-check');
+                const data = await response.json();
+
+                console.log('Session data:', data);
+                container.innerHTML = '';
+
+                if (data.status === 'not_authenticated') {
+                    showResult('sessionResult', 
+                        '❌ NOT SIGNED IN\n\n' +
+                        'Please sign in to your app first:\n' +
+                        '👉 <a href="http://localhost:3000/auth/signin" target="_blank">Sign In Here</a>\n\n' +
+                        'Make sure to use "Sign in with Google"!',
+                        'error'
+                    );
+                    return;
+                }
+
+                if (data.provider_token && data.provider_token.includes('EXISTS')) {
+                    showResult('sessionResult',
+                        '✅ SESSION LOOKS GOOD!\n\n' +
+                        `Email: ${data.user.email}\n` +
+                        `Provider: ${data.provider}\n` +
+                        `Google OAuth: ${data.is_google_oauth ? 'Yes ✅' : 'No ❌'}\n` +
+                        `Provider Token: ${data.provider_token}\n\n` +
+                        'You can proceed to Step 2!',
+                        'success'
+                    );
+                } else {
+                    showResult('sessionResult',
+                        '⚠️ PROBLEM FOUND: No Google Provider Token\n\n' +
+                        `You're signed in as: ${data.user.email}\n` +
+                        `Provider: ${data.provider || 'unknown'}\n` +
+                        `Google OAuth: ${data.is_google_oauth ? 'Yes' : 'No'}\n\n` +
+                        '🔧 FIX:\n' +
+                        '1. Sign out of your app\n' +
+                        '2. Sign back in using "Sign in with Google"\n' +
+                        '3. Make sure you accept all permissions\n' +
+                        '4. Come back and run this test again',
+                        'warning'
+                    );
+                }
+            } catch (error) {
+                container.innerHTML = '';
+                showResult('sessionResult',
+                    '❌ ERROR checking session:\n\n' + error.message,
+                    'error'
+                );
+            }
+        }
+
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const container = document.getElementById('uploadResult');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                showResult('uploadResult', '❌ Please select a file first!', 'error');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            container.innerHTML = '<div class="result info">Uploading to Google Drive... <span class="loading">⏳</span></div>';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                console.log('Uploading file:', file.name, file.size, 'bytes');
+                
+                const response = await fetch('/api/test-drive-direct', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+                console.log('Upload response:', data);
+
+                container.innerHTML = '';
+
+                if (response.ok && data.success) {
+                    showResult('uploadResult',
+                        '🎉 SUCCESS! File uploaded to Google Drive!\n\n' +
+                        `File: ${data.file.name}\n` +
+                        `Drive File ID: ${data.file.id}\n\n` +
+                        `📎 View in Drive:\n<a href="${data.file.viewLink}" target="_blank">${data.file.viewLink}</a>\n\n` +
+                        `Check your Google Drive now:\n<a href="https://drive.google.com" target="_blank">https://drive.google.com</a>\n\n` +
+                        `Look for: LifeHub → Miscellaneous → ${file.name}`,
+                        'success'
+                    );
+                } else {
+                    let errorMsg = '❌ UPLOAD FAILED\n\n';
+                    
+                    if (data.error) {
+                        errorMsg += `Error: ${data.error}\n`;
+                    }
+                    if (data.message) {
+                        errorMsg += `Message: ${data.message}\n`;
+                    }
+                    if (data.details) {
+                        errorMsg += `\nDetails: ${JSON.stringify(data.details, null, 2)}\n`;
+                    }
+
+                    if (data.error?.includes('No Google access token')) {
+                        errorMsg += '\n🔧 FIX:\n';
+                        errorMsg += '1. Sign out of your app\n';
+                        errorMsg += '2. Sign in with "Sign in with Google"\n';
+                        errorMsg += '3. Accept all permissions (including Drive)\n';
+                        errorMsg += '4. Try uploading again';
+                    }
+
+                    showResult('uploadResult', errorMsg, 'error');
+                }
+            } catch (error) {
+                container.innerHTML = '';
+                showResult('uploadResult',
+                    '❌ UNEXPECTED ERROR:\n\n' + error.message,
+                    'error'
+                );
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // Auto-check session on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Auto-checking session...');
+                checkSession();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+

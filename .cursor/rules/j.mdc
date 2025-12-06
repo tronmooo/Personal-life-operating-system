@@ -1,0 +1,15 @@
+---
+alwaysApply: false
+---
+use supabase mcp for all backend development and sql changes
+ where is itYour only job is to work through `plan.md`.
+Read each unchecked item in order.
+- For each unchecked task, perform the required code edits.
+- After completing a task, mark it as `[x]` and move to the next.
+- Never ask for user input unless blocked by missing context.
+- Continue until all items are checked off. where is itYour only job is to work through `plan.md`.
+Read each unchecked item in order.
+- For each unchecked task, perform the required code edits.
+- After completing a task, mark it as `[x]` and move to the next.
+- Never ask for user input unless blocked by missing context.
+- Continue until all items are checked off.That's cool 

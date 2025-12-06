@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Categories Debug</title>
+    <style>
+        body { font-family: Arial; max-width: 900px; margin: 30px auto; padding: 20px; background: #f5f5f5; }
+        .box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-weight: bold; }
+        .category { display: inline-block; padding: 4px 12px; background: #e3f2fd; color: #1976d2; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>📊 Document Categories Debugger</h1>
+        <button onclick="loadDocs()">Load My Documents</button>
+    </div>
+    
+    <div id="output"></div>
+
+    <script>
+        async function loadDocs() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<div class="box">Loading...</div>';
+
+            try {
+                const response = await fetch('/api/debug/check-documents');
+                const data = await response.json();
+
+                if (data.error) {
+                    output.innerHTML = `<div class="box"><h2 style="color: red;">Error: ${data.error}</h2><p>Please sign in to your app first!</p></div>`;
+                    return;
+                }
+
+                let html = '<div class="box">';
+                html += `<h2>📊 Category Breakdown</h2>`;
+                html += `<p><strong>Total Documents:</strong> ${data.total}</p>`;
+                html += '<table><tr><th>Category in Database</th><th>Count</th></tr>';
+                
+                for (const [category, count] of Object.entries(data.categoryCounts)) {
+                    html += `<tr><td><span class="category">${category}</span></td><td>${count}</td></tr>`;
+                }
+                
+                html += '</table></div>';
+
+                html += '<div class="box">';
+                html += '<h2>📄 Recent Documents (with actual categories)</h2>';
+                html += '<table><tr><th>Document Name</th><th>Type</th><th>Category in DB</th><th>Domain</th></tr>';
+                
+                data.allDocuments.slice(0, 15).forEach(doc => {
+                    html += `<tr>
+                        <td>${doc.name}</td>
+                        <td>${doc.type}</td>
+                        <td><span class="category">${doc.metadata_category || 'none'}</span></td>
+                        <td>${doc.domain}</td>
+                    </tr>`;
+                });
+                
+                html += '</table></div>';
+
+                html += '<div class="box" style="background: #fff3cd; border-left: 4px solid #ffc107;">';
+                html += '<h3>🔍 What This Means:</h3>';
+                html += '<p><strong>The "Category in DB" column shows what\'s actually saved.</strong></p>';
+                html += '<p>If your ID shows category "Vehicle" but you want it in "ID & Licenses" tab, that\'s the mismatch!</p>';
+                html += '<p><strong>Looking for:</strong> Driver License, ID Card, Passport should have category = "ID & Licenses"</p>';
+                html += '</div>';
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="box"><h2 style="color: red;">Error: ${error.message}</h2></div>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+

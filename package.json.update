@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "qa:generate-data": "ts-node scripts/generate-test-data.ts",
+    "qa:test": "playwright test",
+    "qa:test:ui": "playwright test --ui",
+    "qa:test:headed": "playwright test --headed",
+    "qa:test:debug": "playwright test --debug",
+    "qa:report": "playwright show-report",
+    "qa:full": "./scripts/run-qa-tests.sh"
+  }
+}
+
+
+
+
+

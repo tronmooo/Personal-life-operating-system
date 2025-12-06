@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Google Drive Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .error { background: #fee; color: #c00; }
+        .success { background: #efe; color: #060; }
+        .info { background: #eef; color: #006; }
+        .warning { background: #ffe; color: #c60; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        #fileInput {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Google Drive Upload Debugger</h1>
+    
+    <div class="info status">
+        <strong>Step 1:</strong> Check your session status below
+    </div>
+
+    <button onclick="checkSession()">1. Check Session & Provider Token</button>
+    <button onclick="testDriveAPI()">2. Test Drive API Access</button>
+    
+    <br><br>
+    
+    <div class="info status">
+        <strong>Step 2:</strong> Try uploading a test file
+    </div>
+    
+    <input type="file" id="fileInput" accept="image/*,.pdf">
+    <br>
+    <button onclick="testUpload('/api/documents/upload')">3a. Upload via /api/documents/upload</button>
+    <button onclick="testUpload('/api/drive/upload')">3b. Upload via /api/drive/upload</button>
+    <button onclick="testUpload('/api/upload')">3c. Upload via /api/upload</button>
+
+    <div id="output"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            output.appendChild(div);
+            console.log(message);
+        }
+
+        async function checkSession() {
+            log('Checking session...', 'info');
+            
+            try {
+                const response = await fetch('/api/debug/session-check');
+                const data = await response.json();
+                
+                console.log('Full session data:', data);
+                
+                if (data.status === 'not_authenticated') {
+                    log('❌ NOT AUTHENTICATED - Please sign in first!', 'error');
+                    return;
+                }
+                
+                if (data.status === 'authenticated') {
+                    log(`✅ Authenticated as: ${data.user.email}`, 'success');
+                    
+                    if (data.provider_token && data.provider_token.includes('EXISTS')) {
+                        log('✅ Provider token EXISTS - Google Drive should work!', 'success');
+                        log(`Token preview: ${data.token_preview || 'N/A'}`, 'info');
+                        log(`Provider: ${data.provider}`, 'info');
+                        log(`Is Google OAuth: ${data.is_google_oauth}`, 'info');
+                    } else {
+                        log('❌ Provider token MISSING - Google Drive will NOT work', 'error');
+                        log('🔧 FIX: Sign out and sign back in with Google', 'warning');
+                        log('Make sure you grant Google Drive permissions when prompted', 'warning');
+                    }
+                    
+                    log('<pre>' + JSON.stringify(data, null, 2) + '</pre>', 'info');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDriveAPI() {
+            log('Testing Google Drive API access...', 'info');
+            
+            try {
+                const response = await fetch('/api/drive/list?domain=misc');
+                const data = await response.json();
+                
+                console.log('Drive API response:', data);
+                
+                if (response.ok) {
+                    log('✅ Google Drive API is accessible!', 'success');
+                    log(`Files found: ${data.files?.length || 0}`, 'info');
+                } else {
+                    log(`❌ Google Drive API error: ${data.error}`, 'error');
+                    
+                    if (data.error?.includes('access token') || data.error?.includes('Unauthorized')) {
+                        log('🔧 FIX: No Google access token found', 'warning');
+                        log('Solution: Sign out and sign back in with Google', 'warning');
+                    }
+                }
+                
+                log('<pre>' + JSON.stringify(data, null, 2) + '</pre>', 'info');
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpload(endpoint) {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                log('❌ Please select a file first!', 'error');
+                return;
+            }
+            
+            log(`📤 Testing upload to ${endpoint}...`, 'info');
+            log(`File: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'info');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Add required fields based on endpoint
+            if (endpoint === '/api/drive/upload') {
+                formData.append('domain', 'misc');
+                formData.append('recordId', '');
+            } else if (endpoint === '/api/documents/upload') {
+                formData.append('domain', 'misc');
+                formData.append('domain_id', '');
+                formData.append('metadata', JSON.stringify({
+                    name: file.name,
+                    category: 'test'
+                }));
+            }
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const data = await response.json();
+                console.log('Upload response:', data);
+                
+                if (response.ok) {
+                    log('✅ Upload successful!', 'success');
+                    
+                    if (data.file?.webViewLink || data.driveLink || data.drive_link) {
+                        const driveUrl = data.file?.webViewLink || data.driveLink || data.drive_link;
+                        log(`✅ File uploaded to Google Drive!`, 'success');
+                        log(`<a href="${driveUrl}" target="_blank">View in Google Drive</a>`, 'success');
+                    } else if (data.data?.uploaded_to_drive) {
+                        log(`✅ Uploaded to Drive: ${data.data.drive_link}`, 'success');
+                    } else {
+                        log(`⚠️ Uploaded to Supabase only (not Drive)`, 'warning');
+                    }
+                    
+                    if (data.url || data.data?.file_path) {
+                        const supabaseUrl = data.url || data.data?.file_path;
+                        log(`✅ Supabase URL: <a href="${supabaseUrl}" target="_blank">${supabaseUrl}</a>`, 'info');
+                    }
+                    
+                    log('<pre>' + JSON.stringify(data, null, 2) + '</pre>', 'info');
+                } else {
+                    log(`❌ Upload failed: ${data.error}`, 'error');
+                    
+                    if (data.error?.includes('access token')) {
+                        log('🔧 FIX: Sign out and sign back in with Google', 'warning');
+                    }
+                    
+                    log('<pre>' + JSON.stringify(data, null, 2) + '</pre>', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run session check on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('🚀 Auto-checking session...', 'info');
+                checkSession();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+

@@ -1,0 +1,226 @@
+
+> lifehub@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 984ms
+ ○ Compiling /domains/[domainId] ...
+(node:43698) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Compiled /domains/[domainId] in 12.5s (2727 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /domains/appliances 200 in 12907ms
+ GET /_next/static/webpack/5517e91db1b880af.webpack.hot-update.json 404 in 13422ms
+ ✓ Compiled in 1194ms (1357 modules)
+ GET /domains/appliances 200 in 251ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /domains/appliances 200 in 37ms
+ GET /_next/static/webpack/5517e91db1b880af.webpack.hot-update.json 404 in 52ms
+ GET /domains/appliances 200 in 28ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 49ms
+ ✓ Compiled /middleware in 403ms (212 modules)
+ ✓ Compiled /api/auth/[...nextauth] in 441ms (1550 modules)
+ ✓ Compiled (1768 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 1186ms
+ GET /api/auth/session 200 in 20ms
+✅ GET /api/domains - Returned 9 domains
+ GET /api/domains 200 in 1310ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 9 domains
+ GET /api/domains 200 in 232ms
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (114kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 9 domains
+ GET /api/domains 200 in 332ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1047ms (3406 modules)
+ ✓ Compiled /api/gmail/suggestions in 296ms (1907 modules)
+ ○ Compiling /domains ...
+ GET /api/gmail/suggestions 200 in 1367ms
+ ✓ Compiled /domains in 1088ms (3399 modules)
+ GET /api/gmail/suggestions 200 in 590ms
+ ✓ Compiled /insurance in 355ms (3419 modules)
+ ○ Compiling /home ...
+ ✓ Compiled /home in 604ms (2890 modules)
+ ✓ Compiled / in 459ms (1526 modules)
+ ✓ Compiled /api/gmail/suggestions in 150ms (1715 modules)
+ GET /api/gmail/suggestions 200 in 1012ms
+ GET /api/gmail/suggestions 200 in 309ms
+ ○ Compiling /nutrition ...
+ ✓ Compiled /nutrition in 1111ms (3236 modules)
+ GET /api/gmail/suggestions 200 in 533ms
+ GET /api/gmail/suggestions 200 in 325ms
+ ✓ Compiled /api/zillow-scrape in 481ms (1731 modules)
+
+==================== ZILLOW API REQUEST ====================
+🕐 Timestamp: 2025-10-20T15:58:12.551Z
+📍 Input Address: 2103 alexis ct, tarpon springs, Florida 34689
+🔑 API Key found: 2657638a72mshdc...
+🔐 Encoded Address: 2103%20alexis%20ct%2C%20tarpon%20springs%2C%20Florida%2034689
+🌐 Full API URL: https://zillow-com1.p.rapidapi.com/propertyExtendedSearch?location=2103%20alexis%20ct%2C%20tarpon%20springs%2C%20Florida%2034689&status_type=ForSale&home_type=Houses
+📡 Request Headers: {
+  'X-RapidAPI-Key': '2657638a72mshdc...',
+  'X-RapidAPI-Host': 'zillow-com1.p.rapidapi.com'
+}
+⏳ Calling RapidAPI...
+⚡ API Response Time: 851ms
+📥 HTTP Status: 200 OK
+📊 RapidAPI Raw Response (first 1000 chars): {"zpid":46960445}
+📊 Response Keys: [ 'zpid' ]
+🔍 Searching for property value in response...
+🔑 Got zpid: 46960445 - Making follow-up call for property details...
+📡 Calling property details API: https://zillow-com1.p.rapidapi.com/property?zpid=46960445
+📊 Property details response keys: [
+  'buildingPermits',
+  'contact_recipients',
+  'longitude',
+  'countyFIPS',
+  'imgSrc',
+  'livingAreaValue',
+  'streetAddress',
+  'county',
+  'monthlyHoaFee',
+  'timeZone',
+  'taxHistory',
+  'dateSold',
+  'annualHomeownersInsurance',
+  'state',
+  'listed_by',
+  'yearBuilt',
+  'brokerageName',
+  'description',
+  'climate',
+  'latitude',
+  'nearbyHomes',
+  'priceHistory',
+  'neighborhoodMapThumb',
+  'schools',
+  'rentZestimate',
+  'city',
+  'providerListingID',
+  'currency',
+  'listingProvider',
+  'propertyTaxRate',
+  'isShowcaseListing',
+  'openHouseSchedule',
+  'mortgageRates',
+  'address',
+  'cityId',
+  'timeOnZillow',
+  'priceChange',
+  'zestimate',
+  'zpid',
+  'countyId',
+  'homeType',
+  'livingAreaUnits',
+  'pageViewCount',
+  'homeInsights',
+  'bathrooms',
+  'neighborhoodRegion',
+  'zipcode',
+  'building',
+  'zestimateLowPercent',
+  'brokerId',
+  'stateId',
+  'url',
+  'solarPotential',
+  'attributionInfo',
+  'priceChangeDateString',
+  'photoCount',
+  'homeStatus',
+  'homeFacts',
+  'resoFacts',
+  'datePosted',
+  'bedrooms',
+  'propertyTypeDimension',
+  'mortgageZHLRates',
+  'comingSoonOnMarketDate',
+  'favoriteCount',
+  'livingArea',
+  'zestimateHighPercent',
+  'mlsid',
+  'isListedByOwner',
+  'listingSubType',
+  'buildingId',
+  'country',
+  'price',
+  'priceChangeDate',
+  'contingentListingType'
+]
+💡 Extracted value from details: 1932200
+✅ SUCCESS! Property value: $1,932,200
+==================== END REQUEST ====================
+
+ POST /api/zillow-scrape 200 in 2702ms
+ ✓ Compiled /api/domains in 234ms (1733 modules)
+🔐 POST /api/domains - Session: tronmoooo@gmail.com
+✅ POST /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ POST /api/domains - Saved domain: home
+ POST /api/domains 200 in 551ms
+ ○ Compiling /home/[homeId] ...
+ ✓ Compiled /home/[homeId] in 1066ms (3266 modules)
+ ✓ Compiled in 1479ms (2849 modules)
+ ✓ Compiled in 643ms (1519 modules)
+ ✓ Compiled in 552ms (2849 modules)
+ GET /home/a081dfd2-826d-4ce2-b75d-bcba232fa003 200 in 322ms
+ ✓ Compiled /api/domains in 382ms (1624 modules)
+ ✓ Compiled (1737 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 767ms
+ GET /api/auth/session 200 in 11ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 920ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 188ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 193ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 163ms
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 742ms (1831 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 506ms (1961 modules)
+ ○ Compiling /fitness ...
+ ✓ Compiled /fitness in 549ms (3506 modules)
+ ✓ Compiled /api/gmail/suggestions in 311ms (1977 modules)
+ GET /api/gmail/suggestions 200 in 1059ms
+ GET /api/gmail/suggestions 200 in 298ms
+ GET /api/gmail/suggestions 200 in 658ms
+ GET /api/gmail/suggestions 200 in 274ms
+ GET /insurance 200 in 275ms
+ GET /api/auth/session 200 in 69ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 11ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 707ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 179ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 196ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 180ms
+ ✓ Compiled in 1177ms (2873 modules)
+ ✓ Compiled in 890ms (1545 modules)
+[?25h

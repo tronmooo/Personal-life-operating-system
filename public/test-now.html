@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Test</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        button { padding: 15px 30px; font-size: 18px; background: #ff6600; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 10px; }
+        button:hover { background: #cc5200; }
+        .box { padding: 20px; margin: 20px 0; border-radius: 8px; font-family: monospace; white-space: pre-wrap; }
+        .good { background: #d4edda; color: #155724; }
+        .bad { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🎯 ONE-CLICK TEST</h1>
+    
+    <button onclick="test()">RUN TEST NOW</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function test() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<div class="box">Testing...</div>';
+
+            try {
+                // Check session
+                const sessionRes = await fetch('/api/debug/session-check');
+                const session = await sessionRes.json();
+
+                let html = '';
+                let className = 'bad';
+
+                if (session.status === 'not_authenticated') {
+                    html = `❌ NOT SIGNED IN!
+
+Go to: http://localhost:3000/auth/signin
+Sign in with Google
+Then come back here`;
+                } else if (!session.provider_token || !session.provider_token.includes('EXISTS')) {
+                    html = `❌ WRONG SIGN-IN METHOD!
+
+You're signed in as: ${session.user.email}
+But you're NOT using Google OAuth
+
+FIX:
+1. Sign OUT
+2. Sign in with "Sign in with Google"
+3. Come back here`;
+                } else {
+                    className = 'good';
+                    html = `✅ READY TO UPLOAD!
+
+Email: ${session.user.email}
+Provider Token: EXISTS
+Google OAuth: ${session.is_google_oauth}
+
+NOW DO THIS:
+1. Go to http://localhost:3000
+2. Click orange upload button (top right)
+3. Upload any photo
+4. Wait for it to finish
+5. Check your Google Drive: https://drive.google.com
+   Look for: LifeHub folder
+
+It WILL work now!`;
+                }
+
+                result.innerHTML = `<div class="box ${className}">${html}</div>`;
+            } catch (error) {
+                result.innerHTML = `<div class="box bad">ERROR: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+

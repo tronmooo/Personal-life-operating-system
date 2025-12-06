@@ -1,0 +1,26 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "react/no-unescaped-entities": "warn",
+    "no-restricted-globals": [
+      "error",
+      { "name": "localStorage", "message": "Use Supabase or DataProvider instead of localStorage" },
+      { "name": "sessionStorage", "message": "Use Supabase or DataProvider instead of sessionStorage" }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "paths": [
+          {
+            "name": "@/lib/providers/data-provider",
+            "importNames": ["useData"],
+            "message": "❌ DEPRECATED: Use useDomainCRUD() from '@/lib/hooks/use-domain-crud' instead of useData(). See CLAUDE.md for migration guide."
+          }
+        ]
+      }
+    ]
+  }
+}
+

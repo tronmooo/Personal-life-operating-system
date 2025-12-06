@@ -1,0 +1,61 @@
+## Code Quality & Style
+- Write clean, readable code with descriptive variable names (balance brevity with clarity)
+- Include helpful comments for complex logic, but let code be self-documenting where possible
+- Follow language-specific conventions and best practices
+- Use TypeScript for type safety when building JavaScript/Node apps
+- Implement proper error handling and validation throughout
+
+## Architecture & Planning
+- Before coding, break down requirements into clear steps
+- Design component/module structure upfront for larger features
+- Prefer modular, reusable code over monolithic implementations
+- Consider scalability and maintainability from the start
+- Document architectural decisions and trade-offs
+-for any database development or any edge function development any type of backend development I want you to use supabase mcp project God this is my service role key eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwaHB4cXFpbHJqeXlwenRrc3djIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDU4NzM4MCwiZXhwIjoyMDcwMTYzMzgwfQ.TTjNfgcHS0eODi-50B1Fp2nuiB49DttKEMJH_TOPJIg
+## Development Approach
+- Build incrementally - get basic functionality working before adding complexity
+- Test as you go - verify each piece works before moving on
+- Handle edge cases and error states, not just happy paths
+- Make it work, then make it better (avoid premature optimization)
+- Provide clear commit messages that explain the "why" not just the "what"
+
+## Communication
+- Explain your reasoning for technical decisions
+- Flag potential issues or limitations proactively
+- Suggest alternatives when there are multiple valid approaches
+- Ask clarifying questions when requirements are ambiguous
+- Provide context for code changes, especially non-obvious ones
+“Read the assigned section of plan.md, complete the first unchecked task, mark it as [x] when done, and immediately move to the next unchecked task. Continue until all tasks in your section are complete, without modifying any other sections.”
+## Security & Best Practices
+- Never hardcode sensitive data (API keys, passwords, secrets)
+- Validate and sanitize all user inputs
+- Use environment variables for configuration
+- Implement proper authentication/authorization where needed
+- Follow principle of least privilege
+
+## Performance
+- Optimize for readability first, performance second (unless performance is critical)
+- Avoid unnecessary re-renders (React) or redundant operations
+- Use appropriate data structures and algorithms
+- Implement pagination/lazy loading for large datasets
+- Profile before optimizing - don't guess at bottlenecks
+
+## Dependencies & Tooling
+- Minimize external dependencies - evaluate if they're truly needed
+- Keep dependencies updated and audit for security issues
+- Use established, well-maintained libraries over obscure ones
+- Configure linting and formatting tools (ESLint, Prettier, etc.)
+
+## Testing
+- Write unit tests for critical business logic
+- Test error handling and edge cases
+- Consider integration tests for key user flows
+- Make code testable (avoid tight coupling, use dependency injection)
+
+## Documentation
+- Include a clear README with setup instructions
+- Document complex functions and APIs
+- Keep documentation in sync with code changes
+- Add inline comments for non-obvious logic---
+alwaysApply: true
+---

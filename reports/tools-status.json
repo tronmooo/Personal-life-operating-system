@@ -1,0 +1,2417 @@
+{
+  "generatedAt": "2025-11-27T00:43:21.311Z",
+  "summary": {
+    "totalComponents": 88,
+    "aiComponents": 35,
+    "calculatorComponents": 53,
+    "toolsMappedViaAllTools": 83,
+    "apiRoutes": 10
+  },
+  "tools": [
+    {
+      "id": "age",
+      "name": "Age Calculator",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/age-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "advanced-receipt-scanner",
+      "name": "AdvancedReceiptScanner",
+      "category": "AI Tools",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/advanced-receipt-scanner.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Not mapped in ALL_TOOLS configuration",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "bill-automation",
+      "name": "✨ Bill Pay Automation",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/bill-automation.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/budgets",
+          "/api/ai-tools/ocr",
+          "/api/ai-tools/budgets?id=${id}"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "bill-reminders",
+      "name": "✨ Bill Reminder System",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/bill-reminder-system.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": true,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": true,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "calendar-optimizer",
+      "name": "✨ Calendar Optimizer",
+      "category": "AI Tools - Planning",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/calendar-optimizer.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "chatbot-builder",
+      "name": "✨ Customer Service Chatbot",
+      "category": "AI Tools - Communication",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/chatbot-builder.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "checklist-generator",
+      "name": "✨ Smart Checklist Generator",
+      "category": "AI Tools - Admin",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/checklist-generator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "coming-soon-tool",
+      "name": "ComingSoonTool",
+      "category": "AI Tools",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/coming-soon-tool.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Marked as coming soon",
+          "Not mapped in ALL_TOOLS configuration",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "contract-reviewer",
+      "name": "✨ Contract Reviewer AI",
+      "category": "AI Tools - Documents",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/contract-reviewer.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/ocr"
+        ],
+        "flags": []
+      }
+    },
+    {
+      "id": "data-entry-ai",
+      "name": "✨ AI Data Entry Assistant",
+      "category": "AI Tools - Documents",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/data-entry-ai.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/ocr"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "deadline-tracker",
+      "name": "✨ Deadline Tracker Pro",
+      "category": "AI Tools - Research",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/deadline-tracker.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "document-organizer",
+      "name": "✨ Smart Document Organizer",
+      "category": "AI Tools - Documents",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/document-organizer.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/ocr"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "document-scanner-ai",
+      "name": "✨ AI Document Scanner",
+      "category": "AI Tools - Documents",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/document-scanner.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/ocr"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "document-summarizer",
+      "name": "✨ Document Summarizer AI",
+      "category": "AI Tools - Documents",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/document-summarizer.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/analyze"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "eligibility-checker",
+      "name": "✨ Eligibility Checker",
+      "category": "AI Tools - Research",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/eligibility-checker.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "email-assistant",
+      "name": "✨ AI Email Assistant",
+      "category": "AI Tools - Communication",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/email-assistant.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/analyze"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "expense-analytics",
+      "name": "✨ Expense Analytics Dashboard",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/expense-analytics.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/receipts"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "expense-tracker-ai",
+      "name": "✨ Smart Expense Tracker",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/expense-tracker-ai.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/receipts",
+          "/api/ai-tools/ocr",
+          "/api/ai-tools/receipts?id=${id}"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "financial-reports",
+      "name": "✨ Financial Report Generator",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/financial-report-generator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "invoice-generator",
+      "name": "✨ AI Invoice Generator",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/invoice-generator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/invoices",
+          "/api/ai-tools/generate-pdf",
+          "/api/ai-tools/invoices?id=${id}"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "meal-planner-ai",
+      "name": "✨ AI Meal Planner",
+      "category": "AI Tools - Planning",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/meal-planner-ai.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/meals",
+          "/api/ai-tools/analyze",
+          "/api/ai-tools/meals?id=${id}"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "meeting-summarizer",
+      "name": "✨ Meeting Notes AI",
+      "category": "AI Tools - Communication",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/meeting-notes.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "price-tracker",
+      "name": "✨ Price Tracker AI",
+      "category": "AI Tools - Research",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/price-tracker.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "receipt-scanner-pro",
+      "name": "✨ Receipt Scanner Pro",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/receipt-scanner-pro.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/receipts",
+          "/api/ai-tools/ocr",
+          "/api/ai-tools/receipts?id=${id}"
+        ],
+        "flags": []
+      }
+    },
+    {
+      "id": "renewal-reminder",
+      "name": "✨ Renewal Reminder System",
+      "category": "AI Tools - Admin",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/renewal-reminder.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "service-comparator",
+      "name": "✨ Service Comparator",
+      "category": "AI Tools - Research",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/service-comparator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "smart-budget-creator",
+      "name": "✨ Smart Budget Creator",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/smart-budget-creator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "smart-form-filler",
+      "name": "✨ Smart Form Filler",
+      "category": "AI Tools - Documents",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/smart-form-filler.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/ocr"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "smart-scheduler-ai",
+      "name": "✨ Smart Scheduler AI",
+      "category": "AI Tools - Planning",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/smart-scheduler.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "status-tracker",
+      "name": "✨ Application Status Tracker",
+      "category": "AI Tools - Admin",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/status-tracker.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "task-prioritizer",
+      "name": "✨ Task Prioritizer AI",
+      "category": "AI Tools - Planning",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/task-prioritizer.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "tax-prep-ai",
+      "name": "✨ AI Tax Prep Assistant",
+      "category": "AI Tools - Financial",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/tax-prep-assistant.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/ocr"
+        ],
+        "flags": []
+      }
+    },
+    {
+      "id": "template-generator",
+      "name": "✨ Document Template Generator",
+      "category": "AI Tools - Admin",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/template-generator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "needs-backend",
+        "aiIntegration": "missing",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "AI tool missing backend integration (detected)"
+        ]
+      }
+    },
+    {
+      "id": "translator-pro",
+      "name": "✨ AI Translator Pro",
+      "category": "AI Tools - Communication",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/translator-pro.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/analyze"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "travel-planner-ai",
+      "name": "✨ AI Travel Planner",
+      "category": "AI Tools - Planning",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/travel-planner-ai.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [
+          "/api/ai-tools/travel",
+          "/api/ai-tools/analyze",
+          "/api/ai-tools/travel?id=${id}"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "universal-ai-tool",
+      "name": "UniversalAITool",
+      "category": "AI Tools",
+      "type": "AI Tool",
+      "componentPath": "components/tools/ai-tools/universal-ai-tool.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "present",
+        "autoFill": "missing"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": true,
+        "fetchEndpoints": [
+          "/api/ai-tools/analyze"
+        ],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "Not mapped in ALL_TOOLS configuration"
+        ]
+      }
+    },
+    {
+      "id": "auto-loan",
+      "name": "Auto Loan Calculator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/auto-loan-calculator.tsx",
+      "routes": [
+        "/tools/auto-loan-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "bmi",
+      "name": "BMI Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/bmi-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "body-age",
+      "name": "Body Age Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/body-age-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "body-fat",
+      "name": "Body Fat Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/body-fat-calculator.tsx",
+      "routes": [
+        "/tools/body-fat-percentage"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "break-even",
+      "name": "Break-Even Analysis",
+      "category": "Business",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/break-even-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "budget-ai",
+      "name": "✨ Budget Optimizer AI",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/budget-optimizer-ai.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "not-applicable",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": true,
+        "usesCallAIUtility": false,
+        "usesDataProvider": true,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Uses deprecated useData provider",
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "budget",
+      "name": "Budget Planner",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/budget-planner.tsx",
+      "routes": [
+        "/tools/budget-planner"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "calculator-ai-insights",
+      "name": "CalculatorAIInsightsComponent",
+      "category": "Calculator/Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/calculator-ai-insights.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Not mapped in ALL_TOOLS configuration"
+        ]
+      }
+    },
+    {
+      "id": "calorie",
+      "name": "Calorie Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/calorie-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "color-picker",
+      "name": "Color Picker",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/color-picker.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "compound",
+      "name": "Compound Interest",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/compound-interest-calculator.tsx",
+      "routes": [
+        "/tools/[toolId]"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "currency",
+      "name": "Currency Converter",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/currency-converter.tsx",
+      "routes": [
+        "/tools/currency-converter"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "date-diff",
+      "name": "Date Difference",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/date-difference-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "debt",
+      "name": "Debt Payoff",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/debt-payoff-calculator.tsx",
+      "routes": [
+        "/tools/debt-payoff-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "emergency",
+      "name": "Emergency Fund",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/emergency-fund-calculator.tsx",
+      "routes": [
+        "/tools/emergency-fund-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "energy",
+      "name": "Energy Cost Calculator",
+      "category": "Home",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/energy-cost-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "heart-rate",
+      "name": "Heart Rate Zones",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/heart-rate-zones.tsx",
+      "routes": [
+        "/tools/heart-rate-zones"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "home-afford",
+      "name": "Home Affordability",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/home-affordability.tsx",
+      "routes": [
+        "/tools/home-affordability-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "hourly-rate",
+      "name": "Hourly Rate Calculator",
+      "category": "Business",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/hourly-rate-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "ideal-weight",
+      "name": "Ideal Weight Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/ideal-weight-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "investment",
+      "name": "Investment Calculator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/investment-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "loan",
+      "name": "Loan Amortization",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/loan-amortization-calculator.tsx",
+      "routes": [
+        "/tools/loan-amortization"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "macro",
+      "name": "Macro Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/macro-calculator.tsx",
+      "routes": [
+        "/tools/macro-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "markup",
+      "name": "Markup Calculator",
+      "category": "Business",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/markup-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "meal-plan",
+      "name": "Meal Planner",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/meal-planner.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "mortgage",
+      "name": "Mortgage Calculator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/mortgage-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "net-worth",
+      "name": "✨ Net Worth Calculator AI",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/net-worth-calculator.tsx",
+      "routes": [
+        "/tools/net-worth-calculator"
+      ],
+      "status": {
+        "implementation": "backend-connected",
+        "aiIntegration": "not-applicable",
+        "autoFill": "present"
+      },
+      "signals": {
+        "usesAutoFillData": true,
+        "usesAISuggestions": true,
+        "usesCallAIUtility": false,
+        "usesDataProvider": true,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Uses deprecated useData provider",
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "paint",
+      "name": "Paint Calculator",
+      "category": "Home",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/paint-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "password",
+      "name": "Password Generator",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/password-generator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "paycheck",
+      "name": "Paycheck Calculator",
+      "category": "Business",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/paycheck-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "pomodoro",
+      "name": "Pomodoro Timer",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/pomodoro-timer.tsx",
+      "routes": [
+        "/tools/pomodoro-timer"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "pregnancy",
+      "name": "Pregnancy Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/pregnancy-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "project-cost",
+      "name": "Project Cost Estimator",
+      "category": "Business",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/project-cost-estimator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "protein",
+      "name": "Protein Intake Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/protein-intake-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "qr-code",
+      "name": "QR Code Generator",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/qr-code-generator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "renovation",
+      "name": "Renovation Cost Estimator",
+      "category": "Home",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/renovation-cost-estimator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "retirement-calculator-enhanced",
+      "name": "RetirementCalculatorEnhanced",
+      "category": "Calculator/Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/retirement-calculator-enhanced.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)",
+          "Not mapped in ALL_TOOLS configuration"
+        ]
+      }
+    },
+    {
+      "id": "retirement",
+      "name": "Retirement Calculator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/retirement-calculator.tsx",
+      "routes": [
+        "/tools/retirement-planning"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "roi",
+      "name": "ROI Calculator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/roi-calculator.tsx",
+      "routes": [
+        "/tools/roi-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "roofing",
+      "name": "Roofing Calculator",
+      "category": "Home",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/roofing-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "pace",
+      "name": "Running Pace Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/running-pace-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "salary",
+      "name": "Salary Calculator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/salary-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "savings",
+      "name": "Savings Goal",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/savings-goal-calculator.tsx",
+      "routes": [
+        "/tools/savings-goal-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "sleep",
+      "name": "Sleep Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/sleep-calculator.tsx",
+      "routes": [
+        "/tools/sleep-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "tax",
+      "name": "Tax Estimator",
+      "category": "Financial",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/tax-estimator.tsx",
+      "routes": [
+        "/tools/tax-estimator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "tile",
+      "name": "Tile Calculator",
+      "category": "Home",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/tile-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "timezone",
+      "name": "Time Zone Converter",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/time-zone-converter.tsx",
+      "routes": [
+        "/tools/time-zone-converter"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    },
+    {
+      "id": "tip",
+      "name": "Tip Calculator",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/tip-calculator.tsx",
+      "routes": [
+        "/tools/tip-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "unit",
+      "name": "Unit Converter",
+      "category": "Utility",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/unit-converter.tsx",
+      "routes": [
+        "/tools/unit-converter"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "vo2max",
+      "name": "VO2 Max Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/vo2max-calculator.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "water",
+      "name": "Water Intake Calculator",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/water-intake-calculator.tsx",
+      "routes": [
+        "/tools/water-intake-calculator"
+      ],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": [
+          "Contains mock/placeholder keyword (manual review)"
+        ]
+      }
+    },
+    {
+      "id": "workout",
+      "name": "Workout Planner",
+      "category": "Health",
+      "type": "Calculator/Utility",
+      "componentPath": "components/tools/workout-planner.tsx",
+      "routes": [],
+      "status": {
+        "implementation": "client-only",
+        "aiIntegration": "not-applicable",
+        "autoFill": "not-applicable"
+      },
+      "signals": {
+        "usesAutoFillData": false,
+        "usesAISuggestions": false,
+        "usesCallAIUtility": false,
+        "usesDataProvider": false,
+        "usesDomainCRUD": false,
+        "usesSupabaseClient": false,
+        "fetchEndpoints": [],
+        "flags": []
+      }
+    }
+  ],
+  "apiRoutes": [
+    {
+      "id": "ai-tools-analyze",
+      "path": "/ai-tools/analyze",
+      "filePath": "app/api/ai-tools/analyze/route.ts",
+      "methods": [],
+      "usesOpenAI": true,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": []
+    },
+    {
+      "id": "ai-tools-budgets",
+      "path": "/ai-tools/budgets",
+      "filePath": "app/api/ai-tools/budgets/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-generate-pdf",
+      "path": "/ai-tools/generate-pdf",
+      "filePath": "app/api/ai-tools/generate-pdf/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-invoices",
+      "path": "/ai-tools/invoices",
+      "filePath": "app/api/ai-tools/invoices/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-meals",
+      "path": "/ai-tools/meals",
+      "filePath": "app/api/ai-tools/meals/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-ocr",
+      "path": "/ai-tools/ocr",
+      "filePath": "app/api/ai-tools/ocr/route.ts",
+      "methods": [],
+      "usesOpenAI": true,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": []
+    },
+    {
+      "id": "ai-tools-receipts",
+      "path": "/ai-tools/receipts",
+      "filePath": "app/api/ai-tools/receipts/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-tax-documents",
+      "path": "/ai-tools/tax-documents",
+      "filePath": "app/api/ai-tools/tax-documents/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-travel",
+      "path": "/ai-tools/travel",
+      "filePath": "app/api/ai-tools/travel/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": true,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    },
+    {
+      "id": "ai-tools-universal",
+      "path": "/ai-tools/universal",
+      "filePath": "app/api/ai-tools/universal/route.ts",
+      "methods": [],
+      "usesOpenAI": false,
+      "usesSupabase": false,
+      "hasTodoComment": false,
+      "notes": [
+        "No OpenAI/Gemini usage detected (manual verification)"
+      ]
+    }
+  ]
+}

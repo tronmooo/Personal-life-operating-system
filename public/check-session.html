@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .result {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Quick Session Check</h1>
+    <button onclick="check()">Check My Session Now</button>
+    <div id="output"></div>
+
+    <script>
+        async function check() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<div class="result">Checking...</div>';
+
+            try {
+                const response = await fetch('/api/debug/session-check');
+                const data = await response.json();
+
+                let html = '';
+                let className = 'error';
+
+                if (data.status === 'not_authenticated') {
+                    html = `❌ YOU ARE NOT SIGNED IN!
+
+Please sign in to your app first:
+→ http://localhost:3000/auth/signin
+
+Make sure to use "Sign in with Google"!`;
+                } else if (data.provider_token && data.provider_token.includes('EXISTS')) {
+                    className = 'success';
+                    html = `✅ EVERYTHING LOOKS GOOD!
+
+✅ Signed in as: ${data.user.email}
+✅ Provider: ${data.provider}
+✅ Google OAuth: ${data.is_google_oauth}
+✅ Provider Token: EXISTS
+
+🎉 Google Drive uploads SHOULD work!
+
+Now:
+1. Go to http://localhost:3000
+2. Click the orange upload button
+3. Upload a photo
+4. Open console (F12) and look for:
+   "✅ File also uploaded to Google Drive!"
+
+If you don't see that message, copy ALL the console logs and share them.`;
+                } else {
+                    className = 'warning';
+                    html = `⚠️ PROBLEM FOUND!
+
+You're signed in as: ${data.user.email}
+But provider token is: ${data.provider_token}
+Provider: ${data.provider || 'unknown'}
+Google OAuth: ${data.is_google_oauth || false}
+
+🔧 THE FIX:
+1. Go to http://localhost:3000
+2. Sign OUT completely
+3. Sign back in using "Sign in with Google"
+4. Come back here and check again
+
+You MUST use Google OAuth (not email/password) for Drive uploads to work!`;
+                }
+
+                output.innerHTML = `<div class="result ${className}">${html}</div>`;
+            } catch (error) {
+                output.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(check, 500);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+

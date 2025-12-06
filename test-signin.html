@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Auth</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Quick Auth Test</h1>
+    <button onclick="testAuth()">Test Sign In</button>
+    <button onclick="checkSession()">Check Session</button>
+    <pre id="output"></pre>
+
+    <script>
+        const supabaseUrl = 'https://jphpxqqilrjyypztkswc.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwaHB4cXFpbHJqeXlwenRrc3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1ODczODAsImV4cCI6MjA3MDE2MzM4MH0.wl5UqVIj9XLGQc_lWlpUn9FD8BVX9o8CZQwFJtTXZAo'
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+
+        async function testAuth() {
+            const output = document.getElementById('output')
+            output.textContent = 'Testing auth...\n'
+            
+            try {
+                // Try to sign in with test credentials
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'test@example.com',
+                    password: 'test123456'
+                })
+                
+                if (error) {
+                    output.textContent += 'ERROR: ' + error.message + '\n'
+                    output.textContent += 'Try creating account first!\n'
+                } else {
+                    output.textContent += 'SUCCESS! Signed in as: ' + data.user.email + '\n'
+                }
+            } catch (e) {
+                output.textContent += 'EXCEPTION: ' + e.message
+            }
+        }
+
+        async function checkSession() {
+            const output = document.getElementById('output')
+            const { data, error } = await supabase.auth.getSession()
+            
+            if (error) {
+                output.textContent = 'Session error: ' + error.message
+            } else if (data.session) {
+                output.textContent = 'LOGGED IN as: ' + data.session.user.email
+            } else {
+                output.textContent = 'NOT LOGGED IN'
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,523 @@
+
+> lifehub@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1463ms
+ ○ Compiling /insurance ...
+(node:60541) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Compiled /insurance in 3.8s (1522 modules)
+ GET /insurance 200 in 4184ms
+ ✓ Compiled in 444ms (754 modules)
+ ✓ Compiled /middleware in 290ms (212 modules)
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/documents in 1127ms (948 modules)
+ ✓ Compiled (1168 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1836ms
+ GET /api/documents 200 in 1303ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (114kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ GET /api/auth/session 200 in 2021ms
+ GET /api/documents 200 in 144ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 221ms
+ GET /api/auth/session 200 in 35ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 135ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 130ms
+ GET /api/documents 200 in 126ms
+ GET /api/documents 200 in 135ms
+ GET /api/documents 200 in 229ms
+ GET /api/documents 200 in 155ms
+ ○ Compiling /api/drive/delete ...
+ ✓ Compiled /api/drive/delete in 3.6s (2243 modules)
+ DELETE /api/drive/delete?fileId=872de1d8-7d02-4f1d-8bb6-858bb43e8848 401 in 2306ms
+ DELETE /api/drive/delete?fileId=872de1d8-7d02-4f1d-8bb6-858bb43e8848 401 in 4617ms
+ DELETE /api/drive/delete?fileId=fb6219a4-f854-4b12-8951-58622070cb97 401 in 35ms
+ GET /api/documents 200 in 254ms
+ GET /api/documents 200 in 157ms
+ ○ Compiling /domains ...
+ ✓ Compiled /domains in 673ms (3021 modules)
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 2.5s (4235 modules)
+ ✓ Compiled /home in 410ms (4249 modules)
+ ○ Compiling /home/[homeId] ...
+ ✓ Compiled /home/[homeId] in 916ms (4277 modules)
+ ○ Compiling /nutrition ...
+ ✓ Compiled /nutrition in 597ms (4300 modules)
+ ○ Compiling /digital ...
+ ✓ Compiled /digital in 630ms (2853 modules)
+ ○ Compiling /finance ...
+ ✓ Compiled /finance in 705ms (2923 modules)
+ ✓ Compiled /health in 495ms (2945 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 1249ms (3191 modules)
+ ○ Compiling /api/gmail/suggestions ...
+ ✓ Compiled /api/gmail/suggestions in 1672ms (1776 modules)
+ GET /api/gmail/suggestions 200 in 2793ms
+ GET /api/gmail/suggestions 200 in 286ms
+ ✓ Compiled /insurance in 396ms (1773 modules)
+ ✓ Compiled in 1777ms (1591 modules)
+ ✓ Compiled in 1694ms (3076 modules)
+ ✓ Compiled in 806ms (3076 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 1665ms (1679 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 2298ms
+💰 Unified Net Worth Calculation: {
+  totalAssets: 0,
+  totalLiabilities: 0,
+  netWorth: 0,
+  breakdown: {
+    homeValue: 0,
+    vehicleValue: 0,
+    collectiblesValue: 0,
+    miscValue: 0,
+    financialAssets: 0,
+    financialLiabilities: 0,
+    cashIncome: 0
+  }
+}
+🏠 Home Stats: { properties: 0, tasks: 0, projects: 0, maint: 0, totalItems: 0 }
+🔔 Checking insurance alerts: {
+  totalInsurance: 0,
+  today: '2025-10-20T16:42:04.768Z',
+  dataType: 'undefined',
+  isArray: false
+}
+📅 GoogleCalendarCard - Render: { isAuthenticated: false, eventsCount: 0, loading: false, error: null }
+ GET / 200 in 317ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 550ms (1897 modules)
+ GET /api/auth/session 200 in 852ms
+ GET /api/auth/session 200 in 26ms
+ ✓ Compiled /auth/callback in 301ms (1899 modules)
+ GET /auth/callback?code=59a824ea-a4f7-4f2f-b6c3-914148789fdf 307 in 631ms
+💰 Unified Net Worth Calculation: {
+  totalAssets: 0,
+  totalLiabilities: 0,
+  netWorth: 0,
+  breakdown: {
+    homeValue: 0,
+    vehicleValue: 0,
+    collectiblesValue: 0,
+    miscValue: 0,
+    financialAssets: 0,
+    financialLiabilities: 0,
+    cashIncome: 0
+  }
+}
+🏠 Home Stats: { properties: 0, tasks: 0, projects: 0, maint: 0, totalItems: 0 }
+🔔 Checking insurance alerts: {
+  totalInsurance: 0,
+  today: '2025-10-20T16:42:19.267Z',
+  dataType: 'undefined',
+  isArray: false
+}
+📅 GoogleCalendarCard - Render: { isAuthenticated: false, eventsCount: 0, loading: false, error: null }
+ GET / 200 in 270ms
+ GET /api/auth/session 200 in 70ms
+ ○ Compiling /api/gmail/suggestions ...
+ ✓ Compiled /api/gmail/suggestions in 782ms (1901 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 942ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1142ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/gmail/suggestions 200 in 1352ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 160ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 155ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/gmail/suggestions 200 in 273ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 164ms
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 920ms (1973 modules)
+ ○ Compiling /home ...
+ ✓ Compiled /home in 1055ms (1570 modules)
+ ✓ Compiled /home/[homeId] in 422ms (1552 modules)
+ ✓ Compiled in 1399ms (3043 modules)
+ ✓ Compiled in 639ms (3043 modules)
+ ✓ Compiled in 617ms (3043 modules)
+ ✓ Compiled in 1921ms (3043 modules)
+ ✓ Compiled in 1337ms (3043 modules)
+ ✓ Compiled in 686ms (3043 modules)
+ ✓ Compiled in 695ms (3043 modules)
+ ✓ Compiled in 1133ms (3043 modules)
+ ✓ Compiled in 1987ms (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 1286ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 2366ms
+ ✓ Compiled /api/gmail/suggestions in 408ms (1648 modules)
+ GET /api/gmail/suggestions 200 in 871ms
+ GET /api/gmail/suggestions 200 in 313ms
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 539ms (1726 modules)
+ ✓ Compiled in 1219ms (3043 modules)
+ ✓ Compiled in 1079ms (3043 modules)
+ ✓ Compiled in 715ms (3043 modules)
+ ✓ Compiled in 972ms (3043 modules)
+ ✓ Compiled in 1458ms (3043 modules)
+ ✓ Compiled in 696ms (3043 modules)
+ ✓ Compiled in 656ms (3043 modules)
+ ✓ Compiled in 774ms (3043 modules)
+ GET /insurance 200 in 279ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2.3s (1751 modules)
+ GET /api/auth/session 200 in 3455ms
+ GET /api/auth/session 200 in 21ms
+ ✓ Compiled in 1180ms (3043 modules)
+ ✓ Compiled in 626ms (3043 modules)
+ GET /insurance 200 in 227ms
+ ✓ Compiled /api/auth/[...nextauth] in 252ms (1751 modules)
+ GET /api/auth/session 200 in 394ms
+ GET /api/auth/session 200 in 16ms
+ GET /home 200 in 273ms
+ GET /api/auth/session 200 in 29ms
+ GET /api/auth/session 200 in 37ms
+ GET /insurance 200 in 197ms
+ GET /api/auth/session 200 in 38ms
+ GET /api/auth/session 200 in 36ms
+ ✓ Compiled in 2.9s (3337 modules)
+ GET /insurance 200 in 196ms
+ GET /api/auth/session 200 in 77ms
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 561ms (1864 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 883ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1372ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 228ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 170ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 148ms
+ ✓ Compiled in 1117ms (3043 modules)
+ GET /insurance 200 in 392ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 633ms (1751 modules)
+ GET /api/auth/session 200 in 813ms
+ GET /api/auth/session 200 in 19ms
+ ✓ Compiled in 1444ms (3043 modules)
+ ✓ Compiled in 1196ms (3043 modules)
+ ✓ Compiled in 1108ms (3043 modules)
+ ✓ Compiled in 775ms (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 824ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1791ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 804ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1438ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 575ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 513ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 374ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 630ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 310ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1027ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 620ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 527ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 519ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 346ms
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 1843ms (1724 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 529ms
+ ✓ Compiled in 1429ms (3043 modules)
+ ✓ Compiled in 743ms (3043 modules)
+ ✓ Compiled /api/domains in 291ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 853ms
+ ○ Compiling /api/gmail/suggestions ...
+ ✓ Compiled /api/gmail/suggestions in 529ms (1648 modules)
+ GET /api/gmail/suggestions 200 in 1289ms
+ GET /api/gmail/suggestions 200 in 1059ms
+ ✓ Compiled in 1395ms (3234 modules)
+ ✓ Compiled in 1068ms (3043 modules)
+ ✓ Compiled in 594ms (3043 modules)
+ ✓ Compiled in 748ms (3043 modules)
+ ✓ Compiled in 706ms (3043 modules)
+ ✓ Compiled in 1053ms (3043 modules)
+ ✓ Compiled in 1010ms (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 759ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1842ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1526ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 446ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 282ms
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 1044ms (1724 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 329ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 318ms
+ ✓ Compiled in 1394ms (3043 modules)
+ ✓ Compiled in 1825ms (3255 modules)
+ ✓ Compiled in 658ms (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 636ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1827ms
+ ✓ Compiled in 8.4s (3043 modules)
+ ✓ Compiled in 1817ms (1586 modules)
+ ✓ Compiled in 755ms (1586 modules)
+ ✓ Compiled in 564ms (1586 modules)
+ ✓ Compiled in 2.8s (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 785ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 2244ms
+ GET /domains 200 in 272ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/notifications/generate in 3s (1864 modules)
+ ✓ Compiled (1867 modules)
+ GET /api/auth/session 200 in 3893ms
+🔔 Generating notifications for user: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+🔔 Generating notifications for user: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+🔔 Generating notifications for user: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+🔔 Generating notifications for user: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+❌ Error generating notifications: TypeError: Failed to parse URL from /api/user/data
+    at new Request (node:internal/deps/undici/undici:9580:19)
+    at /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:49260
+    ... 31 lines matching cause stack trace ...
+    at async Server.requestListener (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  [cause]: TypeError: Invalid URL
+      at new URL (node:internal/url:819:25)
+      at new Request (node:internal/deps/undici/undici:9578:25)
+      at /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:49260
+      at N (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54215)
+      at /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:56535
+      at /Users/robertsennabaum/new project/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+      at NoopContextManager.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+      at ContextAPI.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+      at NoopTracer.startActiveSpan (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+      at ProxyTracer.startActiveSpan (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854)
+      at /Users/robertsennabaum/new project/node_modules/next/dist/server/lib/trace/tracer.js:122:103
+      at NoopContextManager.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+      at ContextAPI.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+      at NextTracerImpl.trace (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/trace/tracer.js:122:28)
+      at n (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:50330)
+      at NotificationGenerator.generateNotifications (webpack-internal:///(rsc)/./lib/notifications/notification-generator.ts:18:36)
+      at POST (webpack-internal:///(rsc)/./app/api/notifications/generate/route.ts:39:47)
+      at async /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+      at async eT.execute (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+      at async eT.handle (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+      at async doRender (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1366:42)
+      at async cacheEntry.responseCache.get.routeKind (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1588:28)
+      at async DevServer.renderToResponseWithComponentsImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1496:28)
+      at async DevServer.renderPageComponent (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1924:24)
+      at async DevServer.renderToResponseImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1962:32)
+      at async DevServer.pipeImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:922:25)
+      at async NextNodeServer.handleCatchallRenderRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/next-server.js:272:17)
+      at async DevServer.handleRequestImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:818:17)
+      at async /Users/robertsennabaum/new project/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+      at async Span.traceAsyncFn (/Users/robertsennabaum/new project/node_modules/next/dist/trace/trace.js:154:20)
+      at async DevServer.handleRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+      at async invokeRender (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:179:21)
+      at async handleRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:359:24)
+      at async requestHandlerImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:383:13)
+      at async Server.requestListener (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/start-server.js:141:13) {
+    code: 'ERR_INVALID_URL',
+    input: '/api/user/data'
+  }
+}
+❌ Error generating notifications: TypeError: Failed to parse URL from /api/user/data
+    at new Request (node:internal/deps/undici/undici:9580:19)
+    at /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:49260
+    ... 31 lines matching cause stack trace ...
+    at async Server.requestListener (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  [cause]: TypeError: Invalid URL
+      at new URL (node:internal/url:819:25)
+      at new Request (node:internal/deps/undici/undici:9578:25)
+      at /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:49260
+      at N (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54215)
+      at /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:56535
+      at /Users/robertsennabaum/new project/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+      at NoopContextManager.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+      at ContextAPI.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+      at NoopTracer.startActiveSpan (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+      at ProxyTracer.startActiveSpan (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854)
+      at /Users/robertsennabaum/new project/node_modules/next/dist/server/lib/trace/tracer.js:122:103
+      at NoopContextManager.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+      at ContextAPI.with (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+      at NextTracerImpl.trace (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/trace/tracer.js:122:28)
+      at n (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:50330)
+      at NotificationGenerator.generateNotifications (webpack-internal:///(rsc)/./lib/notifications/notification-generator.ts:18:36)
+      at POST (webpack-internal:///(rsc)/./app/api/notifications/generate/route.ts:39:47)
+      at async /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+      at async eT.execute (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+      at async eT.handle (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+      at async doRender (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1366:42)
+      at async cacheEntry.responseCache.get.routeKind (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1588:28)
+      at async DevServer.renderToResponseWithComponentsImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1496:28)
+      at async DevServer.renderPageComponent (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1924:24)
+      at async DevServer.renderToResponseImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1962:32)
+      at async DevServer.pipeImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:922:25)
+      at async NextNodeServer.handleCatchallRenderRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/next-server.js:272:17)
+      at async DevServer.handleRequestImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:818:17)
+      at async /Users/robertsennabaum/new project/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+      at async Span.traceAsyncFn (/Users/robertsennabaum/new project/node_modules/next/dist/trace/trace.js:154:20)
+      at async DevServer.handleRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+      at async invokeRender (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:179:21)
+      at async handleRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:359:24)
+      at async requestHandlerImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:383:13)
+      at async Server.requestListener (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/start-server.js:141:13) {
+    code: 'ERR_INVALID_URL',
+    input: '/api/user/data'
+  }
+}
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 22ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 3999ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+🧹 Cleaned up old notifications older than 30 days
+ POST /api/notifications/generate 200 in 4132ms
+🧹 Cleaned up old notifications older than 30 days
+ POST /api/notifications/generate 200 in 4216ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 228ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 441ms
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 1420ms (1945 modules)
+ ✓ Compiled in 4.1s (3029 modules)
+ ✓ Compiled in 2.4s (3043 modules)
+ ✓ Compiled in 1808ms (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 1141ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 5529ms
+ ✓ Compiled in 2.1s (3043 modules)
+ ✓ Compiled in 931ms (3043 modules)
+ ✓ Compiled in 658ms (3043 modules)
+ ✓ Compiled in 962ms (3043 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 966ms (1646 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 2269ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/domains 200 in 1044ms
+✅ GET /api/domains - Returned 10 domains
+ ✓ Compiled in 2.8s (3043 modules)
+ ✓ Compiled in 2.3s (3043 modules)
+ ✓ Compiled in 1567ms (3043 modules)
+ ✓ Compiled in 812ms (3043 modules)
+ ✓ Compiled in 2.2s (3043 modules)
+ ✓ Compiled in 2.4s (3029 modules)
+ ✓ Compiled in 2.5s (3029 modules)
+ ✓ Compiled in 773ms (1586 modules)
+ ✓ Compiled in 3.1s (3043 modules)
+ ✓ Compiled in 2.2s (1586 modules)
+ ✓ Compiled in 1744ms (1586 modules)
+ ✓ Compiled in 1606ms (1586 modules)
+ ✓ Compiled in 723ms (1586 modules)
+ ✓ Compiled in 1143ms (1586 modules)
+ ✓ Compiled in 555ms (1586 modules)
+ ✓ Compiled in 970ms (1586 modules)
+ ✓ Compiled in 3.8s (3043 modules)
+[?25h

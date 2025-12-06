@@ -1,0 +1,73 @@
+
+> lifehub@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1175ms
+ ✓ Compiled /middleware in 373ms (212 modules)
+ ✓ Compiled /api/domains in 354ms (229 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 949ms
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (114kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ○ Compiling /home/[homeId] ...
+(node:58760) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Compiled / in 5.4s (2988 modules)
+ GET /home/a081dfd2-826d-4ce2-b75d-bcba232fa003 200 in 6245ms
+ ○ Compiling /api/gmail/suggestions ...
+ ✓ Compiled /api/auth/[...nextauth] in 3s (1581 modules)
+ ✓ Compiled (1799 modules)
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 2727ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 2839ms
+ GET /api/auth/session 200 in 11ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 225ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 139ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 178ms
+ GET /api/gmail/suggestions 200 in 414ms
+ GET /api/gmail/suggestions 200 in 298ms
+ ✓ Compiled /domains in 455ms (3188 modules)
+ ○ Compiling /domains/[domainId] ...
+ ✓ Compiled /domains/[domainId] in 1287ms (3422 modules)
+ ✓ Compiled /home in 393ms (3436 modules)
+ ○ Compiling /insurance ...
+ ✓ Compiled /insurance in 873ms (3456 modules)
+ ✓ Compiled in 981ms (3061 modules)
+ ✓ Compiled in 608ms (3061 modules)
+ ✓ Compiled in 907ms (3061 modules)
+ ✓ Compiled in 615ms (3061 modules)
+ ✓ Compiled in 909ms (2976 modules)
+ ○ Compiling /api/domains ...
+ ✓ Compiled /api/domains in 543ms (1749 modules)
+ ✓ Compiled (1862 modules)
+ GET /api/auth/session 200 in 1029ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+ GET /api/auth/session 200 in 29ms
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 1595ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 204ms
+🔐 GET /api/domains - Session: tronmoooo@gmail.com
+✅ GET /api/domains - Authenticated as: 713c0e33-31aa-4bb8-bf27-476b5eba942e
+✅ GET /api/domains - Returned 10 domains
+ GET /api/domains 200 in 124ms

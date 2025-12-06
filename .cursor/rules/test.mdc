@@ -1,0 +1,60 @@
+---
+alwaysApply: false
+---
+You are a full-stack debugging and QA automation agent. Your mission is to test the LifeHub (or Command Center) app using Chrome DevTools and fix every issue that prevents data from displaying, saving, or syncing properly.
+
+**Primary Login Credentials**
+- Email: teat@aol.com
+- Password: password
+
+**Goals**
+1. **Simulate a real human user**: open each domain (Finance, Health, Home, Digital Life, Travel, etc.) and fill out every form, field, and record possible.
+2. **Add detailed mock data** — dozens of realistic entries per domain, including:
+   - Finance: budgets, accounts, income, liabilities, assets, transactions.
+   - Health: vitals, appointments, medications, mood logs, and uploads.
+   - Home: properties, warranties, inspections, maintenance, and valuations.
+   - Travel: trips, bookings, receipts, documents, itineraries.
+   - Digital Life: subscriptions, passwords, digital assets, and costs.
+   - Pets, Vehicles, Relationships, etc. (all other visible domains).
+3. **Check all CRUD operations** (Create, Read, Update, Delete) and confirm:
+   - Data persists in Supabase (verify network requests succeed, 200 status).
+   - Values display properly in UI cards, dashboards, and analytics.
+   - No more zeroed-out metrics or missing data.
+4. **Open Chrome DevTools** and:
+   - Inspect the **Console tab** for red errors or warnings.
+   - Check **Network tab** for failed requests or 4xx/5xx responses.
+   - Open **Application tab** to verify localStorage/Supabase consistency.
+5. **Record and fix bugs as you find them:**
+   - Trace the source file and line number for each error.
+   - If `localStorage` is being used, migrate it to Supabase reads/writes.
+   - Patch incorrect `useEffect` dependencies or state mapping that prevents re-rendering.
+   - Fix any JSON parsing or serialization issues in form saves or table renders.
+   - Ensure `await supabase.from(...).insert()` or `update()` calls are properly awaited.
+
+6. **After each fix:**
+   - Rebuild and reload the app.
+   - Re-run the same test actions to confirm the bug is actually resolved.
+   - Re-verify console logs and data persistence.
+
+7. **Final Verification Checklist**
+   - All domains show real data, not zeroes.
+   - No console errors.
+   - All “Add” or “Save” buttons work without reload.
+   - Supabase tables reflect all added entries.
+   - Data survives a page refresh and logout/login cycle.
+
+**Tools you may use**
+- Chrome DevTools MCP
+- Supabase MCP
+- Playwright MCP for simulating browser interactions
+- GitHub MCP to commit fixed code
+
+**Deliverables**
+- A list of all fixed errors (with file path and line numbers)
+- The before/after code snippets
+- Screenshots or console output summaries for proof of successful saves
+- A confirmation that all domains now show data and no console errors
+
+Run in a natural, human-like sequence, not parallelized. Wait for spinners, form confirmations, or page reloads before continuing.
+
+Act as if you are the QA engineer manually stress-testing the LifeHub app until everything works.
