@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
-import OpenAI from 'openai'
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+import { getOpenAI } from '@/lib/openai/client'
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +29,7 @@ export async function POST(request: Request) {
     const imageUrl = `data:${file.type};base64,${base64Image}`
 
     // Use GPT-4 Vision to extract text and data from the image
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

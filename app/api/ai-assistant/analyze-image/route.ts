@@ -4,9 +4,16 @@ import { cookies } from 'next/headers'
 import OpenAI from 'openai'
 import { randomUUID } from 'crypto'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Lazy-initialize OpenAI client to prevent build-time errors
+let _openai: OpenAI | null = null
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+  return _openai
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +33,7 @@ export async function POST(request: NextRequest) {
     console.log('🖼️ [IMAGE ANALYSIS] Starting analysis for user:', user.id)
 
     // Use GPT-4 Vision to analyze the image
-    const visionResponse = await openai.chat.completions.create({
+    const visionResponse = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

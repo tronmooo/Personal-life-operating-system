@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-})
+import { getOpenAI } from '@/lib/openai/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,7 +96,7 @@ Respond with valid JSON in this exact format:
 
 Base your estimate on REAL market data accounting for ALL factors.`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
