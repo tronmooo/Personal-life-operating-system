@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * List Orders API
  * Get user's order history
@@ -51,19 +52,3 @@ export async function GET(request: Request) {
     }, { status: 500 })
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

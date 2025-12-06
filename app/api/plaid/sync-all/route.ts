@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -340,6 +341,3 @@ function getDateDaysAgo(days: number): string {
 function getToday(): string {
   return new Date().toISOString().split('T')[0]
 }
-
-
-

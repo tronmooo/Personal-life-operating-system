@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
@@ -45,35 +46,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

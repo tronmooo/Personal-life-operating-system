@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { NotificationGenerator } from '@/lib/notifications/notification-generator'
@@ -191,6 +192,3 @@ async function sendWeeklySummaries(supabase: any): Promise<void> {
     console.log(`📊 Would send weekly summary to user ${user.user_id}`)
   }
 }
-
-
-

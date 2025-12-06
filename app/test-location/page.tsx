@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MapPin, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useUserPreferences } from '@/lib/hooks/use-user-preferences'
+
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic'
 
 interface LocationData {
   latitude: number
@@ -20,12 +23,18 @@ export default function TestLocationPage() {
   const [location, setLocation] = useState<LocationData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [permissionState, setPermissionState] = useState<string>('unknown')
+  const [isClient, setIsClient] = useState(false)
   
   // Use Supabase-backed preferences for clearing stored address
   const { deleteValue: clearStoredAddress } = useUserPreferences<string>('concierge_manual_address', '')
 
+  useEffect(() => {
+    setIsClient(true)
+    checkPermission()
+  }, [])
+
   const checkPermission = async () => {
-    if ('permissions' in navigator) {
+    if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
       try {
         const result = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
         setPermissionState(result.state)
@@ -44,7 +53,7 @@ export default function TestLocationPage() {
     setError(null)
     setLocation(null)
 
-    if (!navigator.geolocation) {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setError('❌ Geolocation is not supported by your browser')
       setLoading(false)
       return
@@ -138,10 +147,9 @@ export default function TestLocationPage() {
     }
   }
 
-  // Check permission on mount
-  useState(() => {
-    checkPermission()
-  })
+  if (!isClient) {
+    return <div className="p-8">Loading diagnostics...</div>
+  }
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">
@@ -174,7 +182,7 @@ export default function TestLocationPage() {
             <h3 className="font-semibold mb-2">Browser Information</h3>
             <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
               <li>✅ Geolocation API: {navigator.geolocation ? 'Supported' : '❌ Not Supported'}</li>
-              <li>✅ Secure Context (HTTPS): {window.isSecureContext ? 'Yes' : '⚠️ No (required in production)'}</li>
+              <li>✅ Secure Context (HTTPS): {typeof window !== 'undefined' && window.isSecureContext ? 'Yes' : '⚠️ No (required in production)'}</li>
               <li>✅ User Agent: {navigator.userAgent.slice(0, 80)}...</li>
             </ul>
           </div>
@@ -271,14 +279,3 @@ export default function TestLocationPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
