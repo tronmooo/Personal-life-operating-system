@@ -1,72 +1,83 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { useData } from '@/lib/providers/data-provider'
+export const dynamic = 'force-dynamic'
+
+import { useMemo, useState } from 'react'
 import {
   DollarSign, Heart, Briefcase, Home, Car, Shield,
   Plus, Edit, Trash2, Calendar,
   Clock, Filter, Download, Search
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { Input } from '@/components/ui/input'
+
+type Activity = {
+  id: string
+  type: 'created' | 'updated' | 'deleted'
+  domain: string
+  title: string
+  description: string
+  timestamp: string
+  metadata?: Record<string, string | number>
+}
+
+const sampleActivities: Activity[] = [
+  {
+    id: '1',
+    type: 'created',
+    domain: 'financial',
+    title: 'Checking Account',
+    description: 'Created in financial',
+    timestamp: new Date().toISOString(),
+    metadata: { bank: 'Chase', account: 'Checking' },
+  },
+  {
+    id: '2',
+    type: 'updated',
+    domain: 'health',
+    title: 'Annual Physical',
+    description: 'Updated in health',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    metadata: { provider: 'Kaiser', status: 'Scheduled' },
+  },
+  {
+    id: '3',
+    type: 'created',
+    domain: 'vehicles',
+    title: 'Oil Change',
+    description: 'Created in vehicles',
+    timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+    metadata: { vehicle: 'Tesla Model Y', mileage: '21,450' },
+  },
+]
+
+const domainOptions = [
+  { value: 'all', label: 'All Domains' },
+  { value: 'financial', label: 'Financial' },
+  { value: 'health', label: 'Health' },
+  { value: 'career', label: 'Career' },
+  { value: 'home', label: 'Home' },
+  { value: 'vehicles', label: 'Vehicles' },
+  { value: 'insurance', label: 'Insurance' },
+]
 
 export default function ActivityFeedPage() {
-  const { data } = useData()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDomain, setFilterDomain] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
 
-  // Generate activity feed from all domain data
   const activities = useMemo(() => {
-    const allActivities: Activity[] = []
-
-    // Extract activities from all domains
-    Object.entries(data).forEach(([domain, items]) => {
-      if (Array.isArray(items)) {
-        items.forEach(item => {
-          // Created activity
-          allActivities.push({
-            id: `${item.id}-created`,
-            type: 'created',
-            domain: domain as any,
-            title: String(item.title || item.metadata?.accountName || item.metadata?.name || 'Item'),
-            description: `Created in ${domain}`,
-            timestamp: item.createdAt,
-            metadata: item.metadata
-          })
-
-          // Updated activity (if different from created)
-          if (item.updatedAt !== item.createdAt) {
-            allActivities.push({
-              id: `${item.id}-updated`,
-              type: 'updated',
-              domain: domain as any,
-              title: String(item.title || item.metadata?.accountName || item.metadata?.name || 'Item'),
-              description: `Updated in ${domain}`,
-              timestamp: item.updatedAt,
-              metadata: item.metadata
-            })
-          }
-        })
-      }
-    })
-
-    // Sort by timestamp (newest first)
-    return allActivities.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    return [...sampleActivities].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
-  }, [data])
+  }, [])
 
-  // Filter activities
   const filteredActivities = useMemo(() => {
-    return activities.filter(activity => {
-      const matchesSearch = searchQuery === '' || 
+    return activities.filter((activity) => {
+      const matchesSearch =
+        searchQuery === '' ||
         activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.description.toLowerCase().includes(searchQuery.toLowerCase())
-      
+
       const matchesDomain = filterDomain === 'all' || activity.domain === filterDomain
       const matchesType = filterType === 'all' || activity.type === filterType
 
@@ -74,177 +85,117 @@ export default function ActivityFeedPage() {
     })
   }, [activities, searchQuery, filterDomain, filterType])
 
-  // Activity stats
   const stats = useMemo(() => {
     const today = new Date()
-    const todayActivities = activities.filter(a => 
-      new Date(a.timestamp).toDateString() === today.toDateString()
+    const todayActivities = activities.filter(
+      (a) => new Date(a.timestamp).toDateString() === today.toDateString()
     )
-    const thisWeek = activities.filter(a => {
+    const thisWeek = activities.filter((a) => {
       const diff = today.getTime() - new Date(a.timestamp).getTime()
       return diff < 7 * 24 * 60 * 60 * 1000
     })
-    const thisMonth = activities.filter(a => {
+    const thisMonth = activities.filter((a) => {
       const activityDate = new Date(a.timestamp)
-      return activityDate.getMonth() === today.getMonth() &&
-             activityDate.getFullYear() === today.getFullYear()
+      return activityDate.getMonth() === today.getMonth() && activityDate.getFullYear() === today.getFullYear()
     })
 
     return {
       today: todayActivities.length,
       week: thisWeek.length,
       month: thisMonth.length,
-      total: activities.length
+      total: activities.length,
     }
   }, [activities])
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Activity Feed
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time timeline of all your life domains
-          </p>
+          <p className="text-gray-500 mt-1">Realtime timeline of all your life domains</p>
         </div>
-        <Button variant="outline">
-          <Download className="h-4 w-4 mr-2" />
+        <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800">
+          <Download className="h-4 w-4" />
           Export Timeline
-        </Button>
+        </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.today}</div>
-            <p className="text-xs text-muted-foreground">activities</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">This Week</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.week}</div>
-            <p className="text-xs text-muted-foreground">activities</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.month}</div>
-            <p className="text-xs text-muted-foreground">activities</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">All Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">activities</p>
-          </CardContent>
-        </Card>
+        {[
+          { label: 'Today', value: stats.today },
+          { label: 'This Week', value: stats.week },
+          { label: 'This Month', value: stats.month },
+          { label: 'All Time', value: stats.total },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+            <p className="text-sm text-gray-500">{stat.label}</p>
+            <p className="text-3xl font-bold mt-1">{stat.value}</p>
+            <p className="text-xs text-gray-400">activities</p>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search activities..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 space-y-4">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Filter className="h-5 w-5" />
+          Filters
+        </div>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                placeholder="Search activities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+              />
             </div>
-
-            {/* Domain Filter */}
-            <select
-              value={filterDomain}
-              onChange={(e) => setFilterDomain(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">All Domains</option>
-              <option value="financial">Financial</option>
-              <option value="health">Health</option>
-              <option value="career">Career</option>
-              <option value="home">Home</option>
-              <option value="vehicles">Vehicles</option>
-              <option value="insurance">Insurance</option>
-            </select>
-
-            {/* Type Filter */}
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-3 py-2 border rounded-md bg-background"
-            >
-              <option value="all">All Types</option>
-              <option value="created">Created</option>
-              <option value="updated">Updated</option>
-              <option value="deleted">Deleted</option>
-            </select>
           </div>
-          
-          <div className="text-sm text-muted-foreground">
-            Showing {filteredActivities.length} of {activities.length} activities
-          </div>
-        </CardContent>
-      </Card>
+          <select
+            value={filterDomain}
+            onChange={(e) => setFilterDomain(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+          >
+            {domainOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+          >
+            <option value="all">All Types</option>
+            <option value="created">Created</option>
+            <option value="updated">Updated</option>
+            <option value="deleted">Deleted</option>
+          </select>
+        </div>
+        <div className="text-sm text-gray-500">Showing {filteredActivities.length} of {activities.length} activities</div>
+      </div>
 
-      {/* Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Timeline</CardTitle>
-          <CardDescription>Your complete activity history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredActivities.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No activities found
-              </div>
-            ) : (
-              filteredActivities.map((activity, index) => (
-                <ActivityItem key={activity.id} activity={activity} isLast={index === filteredActivities.length - 1} />
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+        <div className="mb-2">
+          <h2 className="text-lg font-semibold">Timeline</h2>
+          <p className="text-sm text-gray-500">Your complete activity history</p>
+        </div>
+        <div className="space-y-4">
+          {filteredActivities.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No activities found</div>
+          ) : (
+            filteredActivities.map((activity, index) => (
+              <ActivityItem key={activity.id} activity={activity} isLast={index === filteredActivities.length - 1} />
+            ))
+          )}
+        </div>
+      </div>
     </div>
   )
-}
-
-interface Activity {
-  id: string
-  type: 'created' | 'updated' | 'deleted'
-  domain: string
-  title: string
-  description: string
-  timestamp: string
-  metadata?: any
 }
 
 function ActivityItem({ activity, isLast }: { activity: Activity; isLast: boolean }) {
@@ -294,49 +245,41 @@ function ActivityItem({ activity, isLast }: { activity: Activity; isLast: boolea
 
   return (
     <div className="flex gap-4 relative">
-      {/* Timeline line */}
-      {!isLast && (
-        <div className="absolute left-5 top-10 bottom-0 w-0.5 bg-border" />
-      )}
+      {!isLast && <div className="absolute left-5 top-10 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-800" />}
 
-      {/* Icon */}
       <div className={`rounded-full p-2 ${getDomainColor(activity.domain)} text-white z-10 flex-shrink-0`}>
         {getDomainIcon(activity.domain)}
       </div>
 
-      {/* Content */}
       <div className="flex-1 pb-6">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold">{activity.title}</h3>
-              <Badge className={getTypeBadgeColor(activity.type)}>
-                <span className="flex items-center gap-1">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadgeColor(activity.type)}`}>
+                <span className="inline-flex items-center gap-1">
                   {getTypeIcon(activity.type)}
                   {activity.type}
                 </span>
-              </Badge>
-              <Badge variant="outline" className="capitalize">
+              </span>
+              <span className="px-2 py-1 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700 capitalize">
                 {activity.domain}
-              </Badge>
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {activity.description}
-            </p>
+            <p className="text-sm text-gray-500 mt-1">{activity.description}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
+          <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
             <Clock className="h-3 w-3" />
             {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
           </div>
         </div>
 
-        {/* Metadata preview */}
         {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-          <div className="mt-2 p-3 rounded-lg bg-accent/50 text-sm">
+          <div className="mt-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(activity.metadata).slice(0, 4).map(([key, value]) => (
                 <div key={key}>
-                  <span className="font-medium text-xs text-muted-foreground capitalize">
+                  <span className="font-medium text-xs text-gray-500 capitalize">
                     {key.replace(/([A-Z])/g, ' $1').trim()}:
                   </span>
                   <span className="ml-2">{String(value).substring(0, 30)}</span>
