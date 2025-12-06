@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing required Supabase environment variables')
+// Lazy-load Supabase client to prevent build-time errors
+let _supabase: SupabaseClient | null = null
+function getSupabase() {
+  if (!_supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing required Supabase environment variables')
+    }
+    _supabase = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return _supabase
 }
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 /**
  * DELETE /api/drive/delete
@@ -43,7 +48,7 @@ export async function DELETE(request: NextRequest) {
     await driveService.deleteFile(fileId)
 
     // Delete metadata from Supabase
-    await supabase.from('documents').delete().eq('drive_file_id', fileId)
+    await getSupabase().from('documents').delete().eq('drive_file_id', fileId)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
