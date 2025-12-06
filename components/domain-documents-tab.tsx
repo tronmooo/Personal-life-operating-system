@@ -11,7 +11,7 @@ import {
   Hash, Upload, Eye, Sparkles, Loader2,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { DocumentPreviewModal } from '@/components/document-preview-modal'
 import { DocumentTools } from '@/components/document-tools'
 import { SmartUploadDialog } from '@/components/documents/smart-upload-dialog'

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Download, Upload, AlertCircle } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export function DataExportImport() {
   const { data } = useData()

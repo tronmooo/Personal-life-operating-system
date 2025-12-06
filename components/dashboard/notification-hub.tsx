@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Bell, X, Check, Clock, ExternalLink } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Notification, NotificationPriority } from '@/lib/types/notification-types'
 import { useRouter } from 'next/navigation'
 

@@ -6,7 +6,7 @@
  */
 
 import OpenAI from 'openai'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export interface VoiceAgentConfig {
   apiKey: string

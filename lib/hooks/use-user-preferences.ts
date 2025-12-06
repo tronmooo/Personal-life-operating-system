@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export function useUserPreferences<T = any>(preferenceKey: string, defaultValue?: T) {
   const [value, setValue] = useState<T | undefined>(defaultValue)

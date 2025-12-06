@@ -3,7 +3,7 @@
  * Uploads to Supabase Storage (Google Drive upload handled by API)
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export interface ScannedDocument {
   text: string

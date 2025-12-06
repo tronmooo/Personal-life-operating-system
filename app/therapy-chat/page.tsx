@@ -1,7 +1,8 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ThumbsUp, ThumbsDown, Send, MessageCircle } from 'lucide-react'

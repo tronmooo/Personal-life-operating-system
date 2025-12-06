@@ -17,7 +17,7 @@
  */
 
 import OpenAI from 'openai'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Domain, DOMAIN_CONFIGS } from '@/types/domains'
 import Tesseract from 'tesseract.js'
 

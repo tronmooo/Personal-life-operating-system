@@ -9,7 +9,7 @@
  */
 
 import { idbGet, idbSet, idbDel, idbClear } from './idb-cache'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { listDomainEntries } from '../hooks/use-domain-entries'
 import type { Domain, DomainData } from '@/types/domains'
 

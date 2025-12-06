@@ -23,7 +23,7 @@ import {
   Shield,
   Inbox
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useRouter } from 'next/navigation'
 
 interface EmailSuggestion {

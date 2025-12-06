@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -6,7 +7,7 @@ import { SmartDocument } from '@/types/documents'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export default async function DomainDocumentsPage({ params }: { params: Promise<{ domainId: string }> }) {
   const resolvedParams = await params

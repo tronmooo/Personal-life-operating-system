@@ -3,7 +3,7 @@
  * Handles creating, loading, saving, and managing dashboard layouts
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { 
   DashboardLayout, 
   DashboardCard, 

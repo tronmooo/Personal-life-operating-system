@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { AppNotification, Reminder } from '@/types/notifications'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { mapDbPriorityToApp } from '@/types/notifications'
 
 interface NotificationContextType {

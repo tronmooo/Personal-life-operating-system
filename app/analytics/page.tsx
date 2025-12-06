@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -8,7 +9,7 @@ import {
   BarChart3, TrendingUp, Eye, MousePointer, 
   Calendar, Clock, Activity, Sparkles, Download, DollarSign, Target, Shield
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { AdvancedDashboard } from '@/components/analytics/advanced-dashboard'

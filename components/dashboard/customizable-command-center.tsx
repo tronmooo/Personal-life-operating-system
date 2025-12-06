@@ -6,7 +6,7 @@ import { Edit, Save, X, Eye, EyeOff, RotateCcw, Grid3x3, Plus } from 'lucide-rea
 import { LayoutManager } from '@/lib/dashboard/layout-manager'
 import { DashboardLayout, DashboardCard, DEFAULT_CARD_SIZES } from '@/lib/types/dashboard-layout-types'
 import { useData } from '@/lib/providers/data-provider'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { FinancialCard } from './domain-cards/financial-card'
 import { HealthCard } from './domain-cards/health-card'
 import { GenericDomainCard } from './domain-cards/generic-domain-card'

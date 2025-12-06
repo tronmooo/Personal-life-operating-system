@@ -3,7 +3,7 @@
  * Auto-categorizes transactions and detects recurring payments
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export interface TransactionToCategorize {
   id: string

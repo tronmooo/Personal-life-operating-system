@@ -1,10 +1,11 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Trash2, RefreshCw } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export default function DebugClearPage() {
   const supabase = useMemo(() => createClientComponentClient(), [])

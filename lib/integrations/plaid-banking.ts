@@ -3,7 +3,7 @@
  * Handles all Plaid API interactions for bank account and transaction syncing
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 const PLAID_ENV = process.env.NEXT_PUBLIC_PLAID_ENV || 'sandbox'
 const PLAID_CLIENT_ID = process.env.NEXT_PUBLIC_PLAID_CLIENT_ID || ''

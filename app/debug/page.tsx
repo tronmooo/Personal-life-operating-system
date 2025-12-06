@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export default function DebugPage() {
   const { data } = useData()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FolderOpen, BarChart3, Zap, Sparkles, Upload, LogOut, User as UserIcon, Settings, Plug, Brain, Phone, Users, History, Calendar } from 'lucide-react'

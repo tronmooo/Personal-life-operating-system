@@ -1,7 +1,7 @@
 'use client'
 
 import { ParsedCommand } from './command-parser'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { trackEvent } from '@/lib/analytics/event-tracker'
 
 export interface ExecutionResult {

@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User } from '@supabase/supabase-js'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { User, SupabaseClient } from '@supabase/supabase-js'
+import { createSafeBrowserClient } from './safe-client'
 
 interface AuthContextType {
   user: User | null
@@ -18,26 +18,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClientComponentClient()
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
 
   useEffect(() => {
+    // Create client on mount (client-side only)
+    const client = createSafeBrowserClient()
+    setSupabase(client)
+
+    if (!client) {
+      console.warn('⚠️ Supabase not configured, running in local-only mode')
+      setLoading(false)
+      return
+    }
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    client.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = client.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: new Error('Supabase not configured') }
+    }
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -50,6 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: new Error('Supabase not configured') }
+    }
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -62,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    if (!supabase) return
     try {
       await supabase.auth.signOut()
     } catch (error) {
@@ -70,6 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithGoogle = async () => {
+    if (!supabase) {
+      console.error('Supabase not configured')
+      return
+    }
     try {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -113,9 +134,8 @@ export const useAuth = () => {
   return context
 }
 
-
-
-
-
-
-
+// Export useUser for backward compatibility
+export const useUser = () => {
+  const { user, loading } = useAuth()
+  return { user, loading, isLoading: loading }
+}

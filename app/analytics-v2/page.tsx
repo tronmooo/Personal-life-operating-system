@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -10,7 +11,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { differenceInDays, subDays, subMonths } from 'date-fns'
 
 // New analytics components

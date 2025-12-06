@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Upload, FileText, Image, Loader2, Check, AlertCircle, Sparkles, X, Calendar
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { ExpirationTracker, type ExpirationData } from './expiration-tracker'
 
 // Dynamically import OCRService to avoid SSR issues

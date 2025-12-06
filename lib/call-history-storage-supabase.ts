@@ -3,7 +3,7 @@
  * Stores call history in Supabase database
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export interface CallHistoryEntry {
   callId: string

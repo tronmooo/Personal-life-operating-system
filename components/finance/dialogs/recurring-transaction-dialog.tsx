@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TransactionType, TransactionCategory, BillFrequency, TRANSACTION_CATEGORY_LABELS, FREQUENCY_LABELS } from '@/types/finance'
 import { format } from 'date-fns'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useAuth } from '@/lib/providers/auth-provider'
 import { toast } from 'sonner'
 

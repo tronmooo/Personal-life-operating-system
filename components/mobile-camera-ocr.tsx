@@ -11,7 +11,7 @@ import {
   Camera, Upload, FileText, X, Check, Loader2, 
   Image as ImageIcon, Scan, Eye, Download
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 

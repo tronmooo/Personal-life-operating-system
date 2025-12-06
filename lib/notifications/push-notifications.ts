@@ -3,7 +3,7 @@
  * Handles browser push notification subscriptions and sending
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 // VAPID Keys - Generate these with: npx web-push generate-vapid-keys
 // Store these in environment variables in production

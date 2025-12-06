@@ -9,7 +9,7 @@ import { useCalendarEvents } from '@/hooks/use-calendar-events'
 import { GoogleSignInButton } from '@/components/auth/google-signin-button'
 import { formatDistanceToNow, parseISO, format, isToday, isTomorrow } from 'date-fns'
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { CreateEventDialog } from '@/components/calendar/create-event-dialog'
 
 export function GoogleCalendarCard() {

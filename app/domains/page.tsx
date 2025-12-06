@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -18,7 +19,7 @@ import {
   pickFirstDate,
 } from '@/lib/dashboard/metrics-normalizers'
 import type { GenericMetadata } from '@/lib/dashboard/metrics-normalizers'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 // Helper to safely convert metadata values to Date
 function toSafeDate(value: unknown): Date | null {

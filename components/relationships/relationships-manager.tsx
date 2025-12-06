@@ -32,7 +32,7 @@ import {
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { sanitizeInput, isValidEmail, isValidDate } from '@/lib/validation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import {
   Heart,
   Search,

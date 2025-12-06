@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Domain } from '@/types/domains'
 
 export interface DomainStats {

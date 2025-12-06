@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
 import { Domain, DomainData } from '@/types/domains'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createSafeBrowserClient } from '@/lib/supabase/safe-client'
 import { idbGet, idbSet } from '@/lib/utils/idb-cache'
 import { toast } from '@/lib/utils/toast'
 import {
@@ -120,7 +120,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 // This ensures data persists correctly and never reverts to stale/phantom data
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const supabase = createClientComponentClient()
+  const [supabase, setSupabaseClient] = useState<ReturnType<typeof createSafeBrowserClient>>(null)
   const [session, setSession] = useState<any>(null)
   const [data, setData] = useState<Record<string, DomainData[]>>({})
   const [tasks, setTasks] = useState<Task[]>([])
@@ -158,8 +158,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Initialize Supabase client on mount
+  useEffect(() => {
+    const client = createSafeBrowserClient()
+    setSupabaseClient(client)
+  }, [])
+
   // Listen for auth changes
   useEffect(() => {
+    if (!supabase) {
+      console.warn('⚠️ Supabase not initialized yet')
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('🔐 DataProvider: Initial session check', session?.user?.email || 'NO USER')
       setSession(session)

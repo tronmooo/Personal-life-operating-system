@@ -10,7 +10,7 @@ import { LayoutTemplateCard } from './layout-template-card'
 import { LayoutPreviewModal } from './layout-preview-modal'
 import { LayoutManager } from '@/lib/dashboard/layout-manager'
 import { DashboardLayout } from '@/lib/types/dashboard-layout-types'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 interface LayoutTemplateSelectorProps {
   onLayoutChange?: (layout: DashboardLayout | null) => void

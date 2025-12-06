@@ -7,7 +7,7 @@ import {
   Download, Upload, Trash2, FolderOpen, FileText, 
   Filter, Tag, Calendar, TrendingUp, Archive
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Badge } from '@/components/ui/badge'
 
 interface DocumentToolsProps {

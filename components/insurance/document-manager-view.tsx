@@ -11,7 +11,7 @@ import {
   Calendar, FileText, AlertCircle, CheckCircle, XCircle, Upload,
   ChevronDown, ExternalLink
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useGoogleDrive } from '@/hooks/use-google-drive'
 import { DocumentPreviewModal } from '@/components/document-preview-modal'
 import { BackButton } from '@/components/ui/back-button'

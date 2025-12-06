@@ -2,7 +2,7 @@
  * Utility to fix data display issues by clearing caches and reloading from Supabase
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { idbDel } from './idb-cache'
 
 export async function fixDataDisplay() {

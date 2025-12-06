@@ -57,7 +57,7 @@ import { NewsFreeCard } from './news-free-card'
 import { UpcomingBillsCard } from './upcoming-bills-card'
 import { RecentActivityCard } from './recent-activity-card'
 import { DocumentExpirationCard } from './document-expiration-card'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import type { DomainData } from '@/types/domains'
 import {
   computeHealthStats,

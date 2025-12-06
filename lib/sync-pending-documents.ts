@@ -1,6 +1,6 @@
 // Sync pending documents from IndexedDB to Supabase on sign-in
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { idbGet, idbSet } from '@/lib/utils/idb-cache'
 
 /**

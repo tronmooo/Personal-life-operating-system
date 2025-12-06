@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useToast } from '@/components/ui/use-toast'
 
 export interface HealthProfile {

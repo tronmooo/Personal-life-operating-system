@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Shield, Home, Heart, Car, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 interface InsuranceCardProps {
   size: 'small' | 'medium' | 'large'

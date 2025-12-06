@@ -21,7 +21,7 @@ import type {
   MedicationAdherence,
   HealthDashboardSummary
 } from '@/types/health'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 interface HealthContextType {
   healthData: HealthData

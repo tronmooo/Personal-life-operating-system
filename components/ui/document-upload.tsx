@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Upload, FileText, Sparkles, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from './button'
 import { processDocument, OCRResult, extractStructuredMetadata } from '@/lib/ocr-processor'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 interface DocumentUploadProps {
   domain?: string
