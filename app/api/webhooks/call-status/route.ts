@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// Service role key is required for webhooks because:
-// 1. Webhooks don't have user session context
-// 2. RLS policies would block updates without proper auth
-// 3. The anon key fallback would silently fail to update records
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error(
-    'SUPABASE_SERVICE_ROLE_KEY is required for call status webhook. ' +
-    'The anon key cannot update call_sessions due to RLS policies. ' +
-    'Please configure SUPABASE_SERVICE_ROLE_KEY in your environment.'
-  )
+// Lazy-load Supabase client to prevent build-time errors
+let _supabase: SupabaseClient | null = null
+function getSupabase() {
+  if (!_supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    // Service role key is required for webhooks because:
+    // 1. Webhooks don't have user session context
+    // 2. RLS policies would block updates without proper auth
+    // 3. The anon key fallback would silently fail to update records
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error(
+        'SUPABASE_SERVICE_ROLE_KEY is required for call status webhook. ' +
+        'The anon key cannot update call_sessions due to RLS policies. ' +
+        'Please configure SUPABASE_SERVICE_ROLE_KEY in your environment.'
+      )
+    }
+    _supabase = createClient(supabaseUrl, supabaseServiceKey)
+  }
+  return _supabase
 }
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 /**
  * POST /api/webhooks/call-status
@@ -155,7 +160,7 @@ export async function POST(request: NextRequest) {
             .eq('id', callTask.id)
 
           // Create notification
-          await supabase.from('notifications').insert({
+          await getSupabase().from('notifications').insert({
             user_id: callTask.user_id,
             type: 'call_failed',
             payload: {

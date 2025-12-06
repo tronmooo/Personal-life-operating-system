@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 minutes
@@ -10,17 +10,24 @@ const PLAID_SECRET = process.env.PLAID_SECRET || ''
 const PLAID_ENV = process.env.NEXT_PUBLIC_PLAID_ENV || 'sandbox'
 const CRON_SECRET = process.env.CRON_SECRET || ''
 
-// Use service role key for cron jobs (bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+// Lazy-load Supabase client to prevent build-time errors
+let _supabase: SupabaseClient | null = null
+function getSupabase() {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) {
+      throw new Error('Missing Supabase environment variables')
+    }
+    _supabase = createClient(url, key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
   }
-)
+  return _supabase
+}
 
 /**
  * GET /api/plaid/sync-all
@@ -208,7 +215,7 @@ async function syncItemTransactions(item: any) {
     const duration = Date.now() - startTime
 
     // Log sync
-    await supabase.from('transaction_sync_log').insert({
+    await getSupabase().from('transaction_sync_log').insert({
       user_id: item.user_id,
       sync_type: 'daily',
       status: 'success',
@@ -228,7 +235,7 @@ async function syncItemTransactions(item: any) {
     const duration = Date.now() - startTime
 
     // Log error
-    await supabase.from('transaction_sync_log').insert({
+    await getSupabase().from('transaction_sync_log').insert({
       user_id: item.user_id,
       sync_type: 'daily',
       status: 'failed',
@@ -302,7 +309,7 @@ async function calculateAllNetWorth() {
       const netWorth = totalAssets - totalLiabilities
 
       // Store snapshot
-      await supabase.from('net_worth_snapshots').upsert(
+      await getSupabase().from('net_worth_snapshots').upsert(
         {
           user_id: userId,
           snapshot_date: getToday(),

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { createHmac, createHash, timingSafeEqual } from 'crypto'
 
 export const runtime = 'nodejs'
@@ -9,17 +9,24 @@ const PLAID_SECRET = process.env.PLAID_SECRET || ''
 const PLAID_ENV = process.env.NEXT_PUBLIC_PLAID_ENV || 'sandbox'
 const PLAID_WEBHOOK_VERIFICATION_KEY = process.env.PLAID_WEBHOOK_VERIFICATION_KEY || ''
 
-// Use service role key for webhook (bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+// Lazy-load Supabase client to prevent build-time errors
+let _supabase: SupabaseClient | null = null
+function getSupabase() {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) {
+      throw new Error('Missing Supabase environment variables')
+    }
+    _supabase = createClient(url, key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
   }
-)
+  return _supabase
+}
 
 /**
  * Verify Plaid webhook signature
@@ -294,7 +301,7 @@ async function syncTransactionsForItem(plaidItem: any) {
     }
 
     // Log sync
-    await supabase.from('transaction_sync_log').insert({
+    await getSupabase().from('transaction_sync_log').insert({
       user_id: plaidItem.user_id,
       sync_type: 'webhook',
       status: 'success',
@@ -303,7 +310,7 @@ async function syncTransactionsForItem(plaidItem: any) {
   } catch (error: any) {
     console.error('Error syncing transactions:', error)
     
-    await supabase.from('transaction_sync_log').insert({
+    await getSupabase().from('transaction_sync_log').insert({
       user_id: plaidItem.user_id,
       sync_type: 'webhook',
       status: 'failed',
