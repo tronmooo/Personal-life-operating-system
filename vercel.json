@@ -25,16 +25,6 @@
       "maxDuration": 60
     }
   },
-  "crons": [
-    {
-      "path": "/api/cron/refresh-stats",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/generate-insights",
-      "schedule": "0 6 * * *"
-    }
-  ],
   "redirects": [
     {
       "source": "/home",
