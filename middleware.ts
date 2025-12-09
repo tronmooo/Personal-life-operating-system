@@ -18,8 +18,7 @@ export async function middleware(req: NextRequest) {
     '/auth/callback',
     '/auth/login',
     '/auth/error',
-    // In development, allow home to load without session to avoid redirect loops
-    ...(process.env.NODE_ENV === 'development' ? ['/'] : []),
+    '/', // Allow home page - it will handle its own auth redirect
   ]
   
   const publicApiPaths = [
