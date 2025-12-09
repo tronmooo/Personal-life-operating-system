@@ -229,3 +229,4 @@ export function DomainHeatmap({ activities, selectedDomain, onDomainSelect }: Do
 
 
 
+
