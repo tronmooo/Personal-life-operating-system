@@ -41,7 +41,19 @@ export function useCalendarEvents(days: number = 7) {
   }, [])
 
   const fetchEvents = async () => {
-    const token = session?.provider_token
+    let token = session?.provider_token
+    
+    // If no provider_token in session, try fetching from user_settings
+    if (!token && session?.user?.id) {
+      console.log('📅 Fetching token from user_settings...')
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('google_access_token')
+        .eq('user_id', session.user.id)
+        .single()
+      
+      token = settings?.google_access_token || null
+    }
     
     console.log('📅 useCalendarEvents - fetchEvents called', {
       hasSession: !!session,

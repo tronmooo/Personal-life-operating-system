@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ OpenAI API key configured')
 
-    // Try to get access token from request body first, then session
+    // Try to get access token from request body first, then session, then user_settings
     let accessToken: string | null = null
     
     try {
@@ -58,12 +58,25 @@ export async function POST(request: NextRequest) {
       console.log('📩 Access token from session:', accessToken ? 'Present' : 'Missing')
     }
 
+    // Final fallback: check user_settings table
+    if (!accessToken) {
+      console.log('📩 Checking user_settings table for stored token...')
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('google_access_token')
+        .eq('user_id', user.id)
+        .single()
+      
+      accessToken = settings?.google_access_token || null
+      console.log('📩 Access token from user_settings:', accessToken ? 'Present' : 'Missing')
+    }
+
     if (!accessToken) {
       console.error('❌ No access token available. User needs to re-authenticate.')
       return NextResponse.json(
         { 
-          error: 'Gmail access token required. Please re-authenticate with Google.',
-          hint: 'Click "Sync Gmail" and grant permissions when prompted.'
+          error: 'Gmail access token required. Please sign out and sign in with Google again.',
+          hint: 'Click profile icon → Sign Out → Sign in with Google → Grant all permissions'
         },
         { status: 401 }
       )
