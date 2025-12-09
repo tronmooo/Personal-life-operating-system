@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -65,8 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info for context
-    const { data: user } = await supabase.auth.getUser()
-    const senderName = user.user?.user_metadata?.name || 'LifeHub User'
+    const senderName = user?.user_metadata?.name || 'LifeHub User'
 
     // Get shared link if provided
     let shareUrl = ''
