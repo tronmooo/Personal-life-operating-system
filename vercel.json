@@ -31,16 +31,8 @@
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron/cleanup-insights",
-      "schedule": "0 2 * * *"
-    },
-    {
       "path": "/api/cron/generate-insights",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-audit-logs",
-      "schedule": "0 3 * * 0"
     }
   ],
   "redirects": [
@@ -96,7 +88,6 @@
     }
   ]
 }
-
 
 
 
