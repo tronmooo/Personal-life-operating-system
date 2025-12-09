@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -9,11 +8,10 @@ type ClientResult =
   | { supabaseAdmin: SupabaseClient; userId: string }
 
 async function getClients(): Promise<ClientResult> {
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-  const { data: { session } } = await supabase.auth.getSession()
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     return { errorResponse: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
@@ -23,7 +21,7 @@ async function getClients(): Promise<ClientResult> {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  return { supabaseAdmin, userId: session.user.id }
+  return { supabaseAdmin, userId: user.id }
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {

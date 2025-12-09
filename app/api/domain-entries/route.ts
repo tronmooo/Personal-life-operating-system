@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateEntry, checkRateLimit, checkDuplicateEntry, sanitizeObject } from '@/lib/middleware/validation-middleware'
 
 export async function GET() {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -23,7 +21,7 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
       .from('domain_entries_view')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -38,11 +36,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -64,7 +61,7 @@ export async function POST(request: Request) {
       description,
       domain,
       metadata: metadata || {},
-      user_id: session.user.id,
+      user_id: user.id,
     })
 
     if (!validation.valid) {
@@ -79,9 +76,9 @@ export async function POST(request: Request) {
     }
 
     // 3. Rate limiting check
-    const rateLimit = checkRateLimit(session.user.id)
+    const rateLimit = checkRateLimit(user.id)
     if (!rateLimit.allowed) {
-      console.warn('⚠️ Rate limit exceeded for user:', session.user.id)
+      console.warn('⚠️ Rate limit exceeded for user:', user.id)
       return NextResponse.json(
         {
           error: 'Rate limit exceeded',
@@ -92,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Duplicate detection
-    const duplicateCheck = checkDuplicateEntry(session.user.id, title, domain)
+    const duplicateCheck = checkDuplicateEntry(user.id, title, domain)
     if (duplicateCheck.isDuplicate) {
       console.warn('⚠️ Duplicate entry detected:', { title, domain })
       return NextResponse.json(
@@ -125,7 +122,7 @@ export async function POST(request: Request) {
     )
 
     const insertPayload: Record<string, any> = {
-      user_id: session.user.id,
+      user_id: user.id,
       domain,
       title: validation.entry!.title, // Use validated & sanitized title
       description: validation.entry!.description || null,

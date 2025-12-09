@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
     
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -27,7 +25,7 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from('documents')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('uploaded_at', { ascending: false })
 
     if (domain_id) {
@@ -51,12 +49,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
     
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -99,7 +96,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from('documents')
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         domain: domain || null,
         domain_id: domain_id || null,
         file_path: file_path || file_url,
@@ -174,7 +171,7 @@ export async function DELETE(request: NextRequest) {
       .from('documents')
       .select('*')
       .eq('id', document_id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (fetchError || !doc) {
@@ -186,7 +183,7 @@ export async function DELETE(request: NextRequest) {
       .from('documents')
       .delete()
       .eq('id', document_id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
 
     if (deleteError) {
       console.error('Delete error:', deleteError)
@@ -235,7 +232,7 @@ export async function PATCH(request: NextRequest) {
       .from('documents')
       .update(updates)
       .eq('id', id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .select()
       .single()
 
