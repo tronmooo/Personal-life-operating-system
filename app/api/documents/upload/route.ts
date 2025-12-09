@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication using Supabase
-    const cookieStore = cookies()
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session } } = await supabaseAuth.auth.getSession()
+    const supabaseAuth = await createServerClient()
+    const { data: { user } } = await supabaseAuth.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Create a unique file path
     const fileExt = file.name.split('.').pop()
-    const fileName = `${session.user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+    const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
     // Upload file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -136,7 +134,7 @@ export async function POST(request: NextRequest) {
     const { data: docData, error: docError } = await supabase
       .from('documents')
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         domain: domain || null,
         domain_id: (domain_id && domain_id !== '') ? domain_id : null,
         file_path: publicUrl,
@@ -183,7 +181,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: session.user.id,
+          user_id: user.id,
           document_id: docData.id,
           storage_key: fileName
         })

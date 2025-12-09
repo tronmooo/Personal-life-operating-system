@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user (optional - AI Concierge can work without auth)
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     
     // Note: User can be null - AI Concierge works for everyone!
