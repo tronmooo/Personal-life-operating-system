@@ -391,10 +391,19 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
         message: result.message || result.response || 'I received your message but had trouble generating a response. Please try again.',
         visualization: result.visualization
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI API Error:', error)
-      // Fallback response if API fails
-      return { message: `I'm processing your request about "${question}". I have access to your ${Object.keys(data).length} life domains with ${Object.values(data).reduce((sum, items: any) => sum + (Array.isArray(items) ? items.length : 0), 0)} total entries. Due to a connection issue, I'm working in offline mode. Please check your API configuration.` }
+      // Clear “offline mode” language and surface a clear auth/network hint
+      const totalDomains = Object.keys(data).length
+      const totalEntries = Object.values(data).reduce(
+        (sum, items: any) => sum + (Array.isArray(items) ? items.length : 0),
+        0
+      )
+
+      const errorHint = error?.message ? ` Details: ${error.message}` : ''
+      return {
+        message: `I couldn't reach the AI service while processing "${question}". I see ${totalDomains} domains with ${totalEntries} entries. Please make sure you're signed in and online, then try again.${errorHint}`
+      }
     }
   }
 
