@@ -512,10 +512,22 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
         if (entryType.includes('meal') || entryType.includes('food') || entryType.includes('log')) return true
         return Boolean(meta.mealName || meta.calories || meta.protein)
       })
-      const totalCalories = meals.reduce((sum: number, item) => {
+      
+      // Group meals by date to calculate average daily calories
+      const mealsByDate = new Map<string, number>()
+      meals.forEach((item) => {
         const meta = extractMetadata(item)
-        return sum + parseNumeric(meta.calories ?? meta.energy)
-      }, 0)
+        const dateStr = pickDate(meta, 'date', 'createdAt')?.toISOString().split('T')[0] || 'unknown'
+        const calories = parseNumeric(meta.calories ?? meta.energy)
+        mealsByDate.set(dateStr, (mealsByDate.get(dateStr) || 0) + calories)
+      })
+      
+      // Calculate average daily calories (only for days with data)
+      const daysWithData = Array.from(mealsByDate.values()).filter(cal => cal > 0)
+      const avgDailyCalories = daysWithData.length > 0
+        ? Math.round(daysWithData.reduce((a, b) => a + b, 0) / daysWithData.length)
+        : 0
+      
       const totalProtein = meals.reduce((sum: number, item) => {
         const meta = extractMetadata(item)
         return sum + parseNumeric(meta.protein ?? meta.proteinGrams)
@@ -527,7 +539,7 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
       }).length
       
       return {
-        kpi1: { label: 'Daily Calories', value: totalCalories.toString(), icon: Utensils },
+        kpi1: { label: 'Daily Calories', value: avgDailyCalories.toString(), icon: Utensils },
         kpi2: { label: 'Protein', value: `${totalProtein}g`, icon: Activity },
         kpi3: { label: 'Meals Logged', value: meals.length.toString(), icon: CheckCircle },
         kpi4: { label: 'Recipes Saved', value: recipes.toString(), icon: Star }
