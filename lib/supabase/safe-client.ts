@@ -53,3 +53,5 @@ export function getSafeBrowserClient(): SupabaseClient | null {
   return createSafeBrowserClient()
 }
 
+
+

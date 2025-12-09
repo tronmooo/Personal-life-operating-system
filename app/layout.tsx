@@ -29,6 +29,10 @@ export const viewport: Viewport = {
   themeColor: '#667eea',
 }
 
+// Force dynamic rendering for all pages to prevent static generation errors
+// when Supabase env vars are not available during build time
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children,
 }: {
