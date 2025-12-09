@@ -33,12 +33,12 @@ const nextConfig = {
     ]
   },
   // Request size limits
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb' // API routes limited to 1MB
-    },
-    responseLimit: '4mb' // Response size limit
-  },
+  // api: {
+  //   bodyParser: {
+  //     sizeLimit: '1mb' // API routes limited to 1MB
+  //   },
+  //   responseLimit: '4mb' // Response size limit
+  // },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb', // Server actions limited to 2MB
