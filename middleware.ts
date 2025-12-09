@@ -1,13 +1,35 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  let supabaseResponse = NextResponse.next({
+    request: req,
+  })
 
-  // Use getUser() for reliable server-side auth - this also refreshes the token
-  // getSession() is deprecated and can be unreliable in Next.js 14
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request: req,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // Use getUser() for reliable server-side auth verification
+  // This also refreshes the auth token if needed
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -39,7 +61,7 @@ export async function middleware(req: NextRequest) {
 
   // Allow public paths and public APIs
   if (isPublicPath || isPublicApi) {
-    return res
+    return supabaseResponse
   }
   
   // Redirect to sign-in if not authenticated and trying to access protected pages
@@ -62,13 +84,12 @@ export async function middleware(req: NextRequest) {
     )
   }
 
-  return res
+  return supabaseResponse
 }
 
 export const config = {
   matcher: [
     // Exclude static assets and PWA files from middleware to avoid auth redirects
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|icon.*\.png|icon\.svg|apple-touch-icon.*\.png).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|icon.*\\.png|icon\\.svg|apple-touch-icon.*\\.png).*)',
   ],
 }
-
