@@ -27,12 +27,18 @@ export default function SignInPage() {
     setLoading(true)
     setError(null)
 
+    // Fallback: read from DOM if React state is empty (for browser automation)
+    const emailInput = document.getElementById('email') as HTMLInputElement
+    const passwordInput = document.getElementById('password') as HTMLInputElement
+    const emailValue = email || emailInput?.value || ''
+    const passwordValue = password || passwordInput?.value || ''
+
     try {
       if (isSignUp) {
         // Sign up with auto-confirm (no email verification required)
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: emailValue,
+          password: passwordValue,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
             // Auto-confirm the user without email verification
@@ -47,8 +53,8 @@ export default function SignInPage() {
         // If sign up successful, automatically sign in
         if (data.user) {
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+            email: emailValue,
+            password: passwordValue,
           })
           
           if (signInError) {
@@ -56,24 +62,24 @@ export default function SignInPage() {
             setError('Account created! Please sign in.')
             setIsSignUp(false)
           } else if (signInData.session) {
-            // Successfully signed in - navigate to home
+            // Successfully signed in - navigate to home with full reload
+            // This ensures cookies are properly sent to the server
             console.log('✅ Sign-up successful, user:', signInData.user.email)
-            router.push('/')
-            router.refresh()
+            window.location.href = '/'
           }
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: emailValue,
+          password: passwordValue,
         })
         if (error) throw error
         
         if (data.session) {
-          // Successfully signed in - navigate to home
+          // Successfully signed in - navigate to home with full reload
+          // This ensures cookies are properly sent to the server
           console.log('✅ Sign-in successful, user:', data.user.email)
-          router.push('/')
-          router.refresh()
+          window.location.href = '/'
         }
       }
     } catch (error: any) {
