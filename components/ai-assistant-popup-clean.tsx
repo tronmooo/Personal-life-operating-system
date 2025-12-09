@@ -314,6 +314,7 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
       console.log('🧠 [MULTI-ENTITY] Attempting multi-entity extraction...')
       const multiEntityResponse = await fetch('/api/ai-assistant/multi-entry', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: question,
@@ -357,6 +358,7 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
       console.log('💬 [FALLBACK] No entities found, using regular chat...')
       const response = await fetch('/api/ai-assistant/chat', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: question,
@@ -560,6 +562,7 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
     try {
       const response = await fetch('/api/ai-assistant/analyze-image', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
