@@ -5,28 +5,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 import { createGmailParser } from '@/lib/integrations/gmail-parser'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    // Get current user and session
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    // Get current user - use getUser() for reliable server-side auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !session?.user) {
+    if (authError || !user) {
       console.error('❌ Gmail sync - Authentication error:', authError)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const user = session.user
     console.log('✅ Gmail sync - User authenticated:', user.email)
 
     // Check if OpenAI is configured
@@ -54,9 +51,10 @@ export async function POST(request: NextRequest) {
       console.log('📩 No request body, checking session...')
     }
     
-    // Fallback to session provider_token
+    // Fallback to session provider_token (need to get session separately)
     if (!accessToken) {
-      accessToken = session.provider_token || null
+      const { data: { session } } = await supabase.auth.getSession()
+      accessToken = session?.provider_token || null
       console.log('📩 Access token from session:', accessToken ? 'Present' : 'Missing')
     }
 

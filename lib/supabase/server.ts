@@ -1,12 +1,41 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient as createSSRClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-// Server-side client for Server Components
-export const createServerClient = () => {
-  const cookieStore = cookies()
-  return createServerComponentClient({ cookies: () => cookieStore })
+/**
+ * Create a Supabase client for Server Components and Route Handlers
+ * Uses the @supabase/ssr package for proper Next.js 14 compatibility
+ */
+export const createServerClient = async () => {
+  const cookieStore = await cookies()
+  
+  return createSSRClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing user sessions.
+          }
+        },
+      },
+    }
+  )
 }
+
+/**
+ * Create a Supabase client for Route Handlers (same as createServerClient but explicit naming)
+ */
+export const createRouteClient = createServerClient
 
 // Detect placeholder/dummy values
 const looksLikePlaceholder = (value: string) => {
