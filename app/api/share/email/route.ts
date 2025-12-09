@@ -41,9 +41,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info for sender
-    const { data: user } = await supabase.auth.getUser()
-    const senderEmail = user.user?.email || 'noreply@lifehub.app'
-    const senderName = user.user?.user_metadata?.name || 'LifeHub User'
+    const senderEmail = user?.email || 'noreply@lifehub.app'
+    const senderName = user?.user_metadata?.name || 'LifeHub User'
 
     // Get shared link if provided
     let shareUrl = ''
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
         .from('shared_links')
         .select('share_token')
         .eq('id', body.share_link_id)
-        .eq('user_id', user.id)
+        .eq('user_id', user!.id)
         .single()
 
       if (link) {
