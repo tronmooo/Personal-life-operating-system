@@ -6,10 +6,11 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // Refresh session if expired - this is critical!
+  // Use getUser() for reliable server-side auth - this also refreshes the token
+  // getSession() is deprecated and can be unreliable in Next.js 14
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Public routes that don't require authentication
   const publicPaths = [
@@ -25,6 +26,7 @@ export async function middleware(req: NextRequest) {
     '/api/vapi/webhook', // Webhook (must verify signature separately)
     '/api/ai-concierge/webhook', // Webhook (must verify signature separately)
     '/api/auth', // NextAuth routes
+    '/api/plaid/webhook', // Plaid webhook
   ]
   
   const isPublicPath = publicPaths.some(path => 
@@ -41,7 +43,7 @@ export async function middleware(req: NextRequest) {
   }
   
   // Redirect to sign-in if not authenticated and trying to access protected pages
-  if (!session && !req.nextUrl.pathname.startsWith('/api/')) {
+  if (!user && !req.nextUrl.pathname.startsWith('/api/')) {
     const redirectUrl = new URL('/auth/signin', req.url)
     return NextResponse.redirect(redirectUrl)
   }
@@ -53,7 +55,7 @@ export async function middleware(req: NextRequest) {
   )
 
   // Check authentication for protected API routes
-  if (isProtectedPath && !session) {
+  if (isProtectedPath && !user) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }

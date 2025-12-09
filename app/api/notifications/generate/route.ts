@@ -12,15 +12,17 @@ export const maxDuration = 60
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
-    // Get authenticated user
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    // Use getUser() instead of getSession() for reliable server-side auth verification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      console.warn('⚠️ [notifications/generate POST] Auth failed:', authError?.message || 'No user')
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    console.log('🔔 Generating notifications for user:', session.user.id)
+    console.log('🔔 Generating notifications for user:', user.id)
 
     // Generate notifications (pass server supabase client)
     // Use service role for read-only domain entries, writes constrained by RLS to user_id
@@ -32,10 +34,10 @@ export async function POST(request: NextRequest) {
     )
 
     const generator = new NotificationGenerator(admin)
-    const notifications = await generator.generateNotifications(session.user.id)
+    const notifications = await generator.generateNotifications(user.id)
 
     // Cleanup old dismissed notifications (older than 30 days)
-    await generator.cleanupOldNotifications(session.user.id)
+    await generator.cleanupOldNotifications(user.id)
 
     return NextResponse.json({
       success: true,
@@ -57,11 +59,13 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
-    // Get authenticated user
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    // Use getUser() instead of getSession() for reliable server-side auth verification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      console.warn('⚠️ [notifications/generate GET] Auth failed:', authError?.message || 'No user')
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -69,7 +73,7 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('dismissed', false)
       .order('created_at', { ascending: false })
       .limit(100)

@@ -6,16 +6,20 @@ import { cookies } from 'next/headers'
 
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    
+    // Use getUser() instead of getSession() for reliable server-side auth verification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      console.warn('⚠️ [user-settings] Auth failed:', authError?.message || 'No user')
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
     const { data, error } = await supabase
       .from('user_settings')
       .select('settings')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (error && error.code !== 'PGRST116') {
@@ -31,9 +35,13 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    
+    // Use getUser() instead of getSession() for reliable server-side auth verification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      console.warn('⚠️ [user-settings POST] Auth failed:', authError?.message || 'No user')
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
     const { data: currentRow, error: selErr } = await supabase
       .from('user_settings')
       .select('settings')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (selErr && selErr.code !== 'PGRST116') {
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
     const { error: upsertErr } = await supabase
       .from('user_settings')
       .upsert({
-        user_id: session.user.id,
+        user_id: user.id,
         settings: merged,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
