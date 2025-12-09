@@ -4,15 +4,15 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { orderService, type Order, type OrderItem } from '@/lib/services/order-service'
 import { businessSearch } from '@/lib/services/business-search'
 import { userContextBuilder } from '@/lib/services/user-context-builder'
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
     // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser()

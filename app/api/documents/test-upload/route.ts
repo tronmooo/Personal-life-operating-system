@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 /**
  * Test endpoint to verify upload functionality without OpenAI
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     // Auth check
     const cookieStore = cookies()
     const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session } } = await supabaseAuth.auth.getSession()
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (!session?.user?.id) {
       console.log('❌ No session found')
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
-    console.log('✅ Auth check passed:', session.user.email)
+    console.log('✅ Auth check passed:', user.email)
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        userEmail: session.user.email,
+        userEmail: user.email,
         openAIConfigured: hasOpenAIKey
       }
     })

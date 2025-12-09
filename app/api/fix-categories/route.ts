@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { createClient } from '@supabase/supabase-js'
 
 /**
@@ -12,9 +12,9 @@ export async function GET() {
   try {
     const cookieStore = cookies()
     const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session } } = await supabaseAuth.auth.getSession()
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -28,7 +28,7 @@ export async function GET() {
     const { data: docs, error } = await supabase
       .from('documents')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

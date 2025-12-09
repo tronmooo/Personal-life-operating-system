@@ -3,16 +3,16 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const { data: { session }, error } = await supabase.auth.getUser()
     
     if (error || !session?.user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -49,7 +49,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      user: session.user.email,
+      user: user.email,
       tokenInfo: {
         scopes: scopes,
         expiresIn: tokenInfo.expires_in,

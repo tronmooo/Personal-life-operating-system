@@ -1,5 +1,5 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { NextResponse } from 'next/server'
 
 /**
@@ -8,8 +8,8 @@ import { NextResponse } from 'next/server'
  */
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     const results: any = {
       auth: !!session,
@@ -18,7 +18,7 @@ export async function GET() {
       tables: {}
     }
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({
         ...results,
         message: 'Not authenticated. Please sign in first.'

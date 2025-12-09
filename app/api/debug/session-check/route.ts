@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 /**
  * Debug endpoint to check Supabase session and Google OAuth tokens
@@ -11,7 +11,7 @@ export async function GET() {
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const { data: { session }, error } = await supabase.auth.getUser()
 
     if (error) {
       return NextResponse.json({
@@ -20,7 +20,7 @@ export async function GET() {
       })
     }
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({
         status: 'not_authenticated',
         message: 'No active session found',
@@ -31,18 +31,18 @@ export async function GET() {
     const sessionInfo = {
       status: 'authenticated',
       user: {
-        id: session.user.id,
-        email: session.user.email,
-        app_metadata: session.user.app_metadata,
+        id: user.id,
+        email: user.email,
+        app_metadata: user.app_metadata,
       },
       provider_token: session.provider_token ? '✅ EXISTS' : '❌ MISSING',
       provider_refresh_token: session.provider_refresh_token ? '✅ EXISTS' : '❌ MISSING',
       provider_token_length: session.provider_token?.length || 0,
-      provider: session.user.app_metadata?.provider || 'unknown',
-      providers: session.user.app_metadata?.providers || [],
+      provider: user.app_metadata?.provider || 'unknown',
+      providers: user.app_metadata?.providers || [],
       
       // Check if signed in with Google
-      is_google_oauth: session.user.app_metadata?.provider === 'google',
+      is_google_oauth: user.app_metadata?.provider === 'google',
       
       // Token preview (first 20 chars for security)
       token_preview: session.provider_token ? session.provider_token.substring(0, 20) + '...' : null,

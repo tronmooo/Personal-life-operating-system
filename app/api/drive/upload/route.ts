@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 import { createClient } from '@supabase/supabase-js'
 import { extractStructuredMetadata, ExtractedMetadata } from '@/lib/ocr-processor'
@@ -14,9 +14,9 @@ export async function POST(request: Request) {
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     const documentMetadata = {
       // Required/base columns
-      user_id: session.user.id, // Supabase user UUID
+      user_id: user.id, // Supabase user UUID
       domain: domain, // Domain type (insurance, health, etc.)
       domain_id: recordId && recordId !== 'null' ? recordId : null, // Link to policy/record if provided (must be UUID or null)
       drive_file_id: driveFile.id,
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       signed_date: extractedMetadata.signedDate || null,
     }
 
-    console.log('💾 Saving document metadata to Supabase...', { file_name: driveFile.name, user_id: session.user.id })
+    console.log('💾 Saving document metadata to Supabase...', { file_name: driveFile.name, user_id: user.id })
 
     // Store in documents table
     const { data, error } = await supabaseAdmin

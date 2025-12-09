@@ -5,8 +5,8 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -17,8 +17,8 @@ const REQUIRED_SCOPES = [
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const supabase = await createServerClient()
+    const { data: { session }, error } = await supabase.auth.getUser()
     
     if (error || !session?.user) {
       return NextResponse.json({
@@ -30,7 +30,7 @@ export async function GET() {
     }
 
     const token = session.provider_token
-    const user = session.user
+    const user = user
     
     // Check if user signed in with OAuth
     const provider = user.app_metadata?.provider

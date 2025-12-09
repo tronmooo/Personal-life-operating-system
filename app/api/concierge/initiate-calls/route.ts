@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { businessSearch } from '@/lib/services/business-search'
 import { userContextBuilder } from '@/lib/services/user-context-builder'
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user (optional - can work without auth if location provided)
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     // Determine a search location

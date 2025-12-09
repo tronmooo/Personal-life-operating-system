@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 
 /**
@@ -33,21 +33,21 @@ export async function POST(request: Request) {
     console.log('\n2️⃣ Checking authentication...')
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { session }, error: sessionError } = await supabase.auth.getUser()
 
     if (sessionError) {
       console.log('   ❌ Session error:', sessionError.message)
       return NextResponse.json({ error: 'Session error', details: sessionError.message }, { status: 401 })
     }
 
-    if (!session) {
+    if (authError || !user) {
       console.log('   ❌ No active session')
       return NextResponse.json({ error: 'Not authenticated - please sign in' }, { status: 401 })
     }
 
-    console.log('   ✅ Authenticated as:', session.user.email)
-    console.log('   User ID:', session.user.id)
-    console.log('   Provider:', session.user.app_metadata?.provider || 'unknown')
+    console.log('   ✅ Authenticated as:', user.email)
+    console.log('   User ID:', user.id)
+    console.log('   Provider:', user.app_metadata?.provider || 'unknown')
 
     // 3. Check provider token
     console.log('\n3️⃣ Checking Google provider token...')
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         error: 'No Google access token',
         details: 'You must sign out and sign back in with Google to get Drive access',
-        provider: session.user.app_metadata?.provider || 'unknown',
-        isGoogleOAuth: session.user.app_metadata?.provider === 'google'
+        provider: user.app_metadata?.provider || 'unknown',
+        isGoogleOAuth: user.app_metadata?.provider === 'google'
       }, { status: 401 })
     }
 

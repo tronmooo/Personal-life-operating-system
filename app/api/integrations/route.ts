@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -15,9 +15,9 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,7 +26,7 @@ export async function GET(_request: NextRequest) {
     const { data: connections, error } = await supabase
       .from('external_connections')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -54,9 +54,9 @@ export async function GET(_request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare connection data
     const connectionData: any = {
-      user_id: session.user.id,
+      user_id: user.id,
       provider,
       connection_type,
       status: 'active',
@@ -134,9 +134,9 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -152,7 +152,7 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase
       .from('external_connections')
       .delete()
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('provider', provider)
 
     if (error) {

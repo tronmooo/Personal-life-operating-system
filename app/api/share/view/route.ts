@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { GetSharedContentRequest, GetSharedContentResponse } from '@/types/share'
 import { DOMAIN_CONFIGS, Domain } from '@/types/domains'
 import { createHash } from 'crypto'

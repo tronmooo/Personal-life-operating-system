@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
@@ -42,14 +42,14 @@ export async function POST(request: NextRequest) {
     console.log('🔐 Step 1: Checking authentication...')
     const cookieStore = cookies()
     const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session } } = await supabaseAuth.auth.getSession()
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (!session?.user?.id) {
       console.error('❌ Auth failed: No session')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    console.log(`✅ Auth success: ${session.user.email}`)
+    console.log(`✅ Auth success: ${user.email}`)
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -242,7 +242,7 @@ Return ONLY JSON:
     // STEP 2: Upload to Supabase Storage in categorized folder
     const fileExt = file.name.split('.').pop()
     const storageCategory = extracted.category || 'miscellaneous'
-    const fileName = `${session.user.id}/${storageCategory}/${Date.now()}.${fileExt}`
+    const fileName = `${user.id}/${storageCategory}/${Date.now()}.${fileExt}`
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -312,7 +312,7 @@ Return ONLY JSON:
     const { data: docData, error: docError } = await supabase
       .from('documents')
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         domain: extracted.category || 'miscellaneous',
         file_path: publicUrl,
         file_url: publicUrl,
@@ -351,7 +351,7 @@ Return ONLY JSON:
     const { error: domainError } = await supabase
       .from('domain_entries')
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         domain: 'documents',
         title: extracted.documentTitle || extracted.documentType || file.name,
         description: `${extracted.documentType || 'Document'} - Uploaded ${new Date().toLocaleDateString()}`,
@@ -384,7 +384,7 @@ Return ONLY JSON:
       const { error: vehicleError } = await supabase
         .from('domain_entries')
         .insert({
-          user_id: session.user.id,
+          user_id: user.id,
           domain: 'vehicles',
           title: extracted.documentTitle || extracted.documentType || file.name,
           description: `Auto Insurance Document - Uploaded ${new Date().toLocaleDateString()}`,
@@ -440,7 +440,7 @@ Return ONLY JSON:
             const { error: alertError } = await supabase
               .from('domain_entries')
               .insert({
-                user_id: session.user.id,
+                user_id: user.id,
                 domain: 'critical_alerts',
                 title: alertTitle,
                 description: `Expiration: ${new Date(sanitizedExpirationDate).toLocaleDateString()} | Type: ${extracted.documentType || 'Document'} | Category: ${mappedCategory}`,

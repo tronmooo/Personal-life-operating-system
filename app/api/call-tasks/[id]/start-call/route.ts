@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { createTwilioService } from '@/lib/services/twilio-voice-service'
 import { generateCallScript } from '@/lib/services/call-ai-helper'
 
@@ -27,7 +27,7 @@ export async function POST(
   try {
     const { id } = params
     
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import twilio from 'twilio'
 
 export interface SendSMSRequest {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         .from('shared_links')
         .select('share_token')
         .eq('id', body.share_link_id)
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .single()
 
       if (link) {
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     // Log the share action (optional - don't fail if table doesn't exist)
     try {
       await supabase.from('share_analytics').insert({
-        user_id: session.user.id,
+        user_id: user.id,
         action: 'sms_sent',
         recipients: recipients.length,
         successful: results.length,

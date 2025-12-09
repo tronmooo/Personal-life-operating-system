@@ -5,17 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
     // Get current user and session
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     const diagnostics = {
       timestamp: new Date().toISOString(),
@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
     // Check authentication
     if (!authError && session?.user) {
       diagnostics.checks.authenticated = true
-      diagnostics.session.userId = session.user.id
-      diagnostics.session.email = session.user.email || null
-      diagnostics.session.provider = session.user.app_metadata?.provider || null
+      diagnostics.userId = user.id
+      diagnostics.session.email = user.email || null
+      diagnostics.session.provider = user.app_metadata?.provider || null
       
       // Check for provider token
       if (session.provider_token) {

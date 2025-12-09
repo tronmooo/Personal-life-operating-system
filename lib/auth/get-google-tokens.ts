@@ -7,7 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient as createSSRClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export interface GoogleTokens {
@@ -23,9 +23,30 @@ export interface GoogleTokens {
  */
 export async function getGoogleTokens(): Promise<GoogleTokens | null> {
   try {
-    // Get the authenticated user from Supabase session
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    // Get the authenticated user from Supabase session using SSR client
+    const cookieStore = await cookies()
+    
+    const supabase = createSSRClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing user sessions.
+            }
+          },
+        },
+      }
+    )
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -76,8 +97,28 @@ export async function getGoogleTokens(): Promise<GoogleTokens | null> {
  */
 export async function getAuthenticatedUser() {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const cookieStore = await cookies()
+    
+    const supabase = createSSRClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Ignore - middleware handles this
+            }
+          },
+        },
+      }
+    )
     
     const { data: { user }, error } = await supabase.auth.getUser()
     
@@ -91,9 +132,3 @@ export async function getAuthenticatedUser() {
     return null
   }
 }
-
-
-
-
-
-

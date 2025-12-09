@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { createClient } from '@supabase/supabase-js'
 
 // Force dynamic rendering (uses cookies for auth)
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = cookies()
     const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session } } = await supabaseAuth.auth.getSession()
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     const categoryParam = searchParams.get('category') || searchParams.get('domain') || ''
     const category = (categoryParam || '').toString().trim().toLowerCase()
 
-    console.log('🔍 Document search:', { query, category, user: session.user.id })
+    console.log('🔍 Document search:', { query, category, user: user.id })
 
     // Use service role for reliable server-side reads (still scoped to user_id)
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     let dbQuery = supabase
       .from('documents')
       .select('id, document_name, document_type, file_url, file_path, expiration_date, domain, metadata, uploaded_at, ocr_text')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('uploaded_at', { ascending: false })
 
     // Filter by category if provided

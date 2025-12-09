@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -246,9 +246,9 @@ const SYNC_HANDLERS: Record<string, SyncHandler> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
     const { data: connection, error: connError } = await supabase
       .from('external_connections')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('provider', provider)
       .eq('status', 'active')
       .single()
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     // Execute sync
     const startTime = Date.now()
-    const result = await handler(connection, supabase, session.user.id)
+    const result = await handler(connection, supabase, user.id)
     const duration = Date.now() - startTime
 
     // Update last_synced timestamp

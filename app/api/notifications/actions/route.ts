@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -10,11 +9,10 @@ export const runtime = 'nodejs'
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    // Get authenticated user
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
       .from('notifications')
       .update(updateData)
       .in('id', notificationIds)
-      .eq('user_id', session.user.id) // Security: only update user's own notifications
+      .eq('user_id', user.id) // Security: only update user's own notifications
 
     if (error) throw error
 
@@ -90,11 +88,10 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    // Get authenticated user
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -104,7 +101,7 @@ export async function GET(request: NextRequest) {
     const { count: unreadCount, error: countError } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('dismissed', false)
       .eq('read', false)
       .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
@@ -123,6 +120,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
-
-

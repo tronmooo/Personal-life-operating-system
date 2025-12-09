@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { encryptToString } from '@/lib/utils/encryption'
 
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID || ''
@@ -11,10 +11,10 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
 
     // Store each account separately in linked_accounts table
     const accountsToInsert = accountsData.accounts.map((account: any) => ({
-      user_id: session.user.id,
+      user_id: user.id,
       plaid_item_id: data.item_id,
       plaid_access_token: encryptedAccessToken,
       plaid_account_id: account.account_id,

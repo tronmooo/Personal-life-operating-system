@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createTwilioService } from '@/lib/services/twilio-voice-service'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { CallContext } from '@/lib/services/openai-voice-agent'
 
 /**

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 
 export async function POST(req: NextRequest) {
@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
     // Check authentication
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Create unique file path with user ID
     const fileExt = file.name.split('.').pop()
-    const fileName = path || `${session.user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+    const fileName = path || `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage

@@ -1,13 +1,13 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       .from('pets')
       .select('name')
       .eq('id', petId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (petError || !pet) {
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       .from('pet_costs')
       .select('*')
       .eq('pet_id', petId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('date', { ascending: false })
 
     if (costsError) throw costsError
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       .from('domain_entries')
       .select('*')
       .eq('domain', 'financial')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .or(`title.ilike.%${pet.name}%,description.ilike.%${pet.name}%,metadata->>description.ilike.%${pet.name}%`)
       .order('created_at', { ascending: false })
 
@@ -107,17 +107,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const costData = {
       ...body,
-      user_id: session.user.id
+      user_id: user.id
     }
 
     const { data, error } = await supabase
@@ -137,10 +137,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -155,7 +155,7 @@ export async function DELETE(request: Request) {
       .from('pet_costs')
       .delete()
       .eq('id', costId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
 
     if (error) throw error
 

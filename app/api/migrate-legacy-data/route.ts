@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 /**
  * Server-side migration endpoint for legacy localStorage data.
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Migration
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // 1. Authenticate user
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !session?.user) {
       return NextResponse.json(
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Migration
       )
     }
 
-    const userId = session.user.id
+    const userId = user.id
 
     // 2. Parse and validate request
     const body: MigrationRequest = await request.json()

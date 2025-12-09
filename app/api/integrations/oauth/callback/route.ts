@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -54,9 +54,9 @@ const OAUTH_CONFIGS: Record<string, {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    const { data: { session }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !session?.user) {
       return NextResponse.redirect(new URL('/auth/signin?error=unauthorized', request.url))
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
     const { error: saveError } = await supabase
       .from('external_connections')
       .upsert({
-        user_id: session.user.id,
+        user_id: user.id,
         provider,
         connection_type: 'oauth',
         access_token: tokenData.access_token,
