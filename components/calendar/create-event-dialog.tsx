@@ -40,6 +40,7 @@ export function CreateEventDialog({ trigger }: CreateEventDialogProps) {
       const response = await fetch('/api/ai/create-calendar-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ message })
       })
 
