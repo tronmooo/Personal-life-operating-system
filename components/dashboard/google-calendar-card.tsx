@@ -1,61 +1,23 @@
 'use client'
 
-import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, RefreshCw, Loader2, ExternalLink } from 'lucide-react'
 import { useCalendarEvents } from '@/hooks/use-calendar-events'
-import { GoogleSignInButton } from '@/components/auth/google-signin-button'
-import { formatDistanceToNow, parseISO, format, isToday, isTomorrow } from 'date-fns'
+import { parseISO, format, isToday, isTomorrow } from 'date-fns'
 import Link from 'next/link'
-import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { CreateEventDialog } from '@/components/calendar/create-event-dialog'
 
 export function GoogleCalendarCard() {
-  const { events, loading, error, refetch, isAuthenticated } = useCalendarEvents(7) // Next 7 days
-  const supabase = createClientComponentClient()
-  const [isReconnecting, setIsReconnecting] = useState(false)
+  // Show the next 30 days so real events are much more likely to appear
+  const { events, loading, error, refetch } = useCalendarEvents(30)
 
   console.log('📅 GoogleCalendarCard - Render:', {
-    isAuthenticated,
     eventsCount: events.length,
     loading,
     error
   })
-
-  const handleReconnect = async () => {
-    console.log('📅 Granting Google Calendar access...')
-    setIsReconnecting(true)
-    
-    try {
-      const redirectUrl = `${window.location.origin}/auth/callback`
-      // Use same unified scopes as sign-in page
-      const scopes = [
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/gmail.modify',
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/calendar.events',
-      ].join(' ')
-      
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          scopes: scopes,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
-          }
-        }
-      })
-    } catch (err) {
-      console.error('❌ Calendar auth error:', err)
-      setIsReconnecting(false)
-    }
-  }
 
   const getEventDate = (event: any) => {
     const dateStr = event.start.dateTime || event.start.date
@@ -81,49 +43,6 @@ export function GoogleCalendarCard() {
   }
 
   const upcomingEvents = events.slice(0, 5)
-
-  // If not authenticated, show a simple view with sync button (like Smart Inbox)
-  if (!isAuthenticated) {
-    return (
-      <Card className="border-2 border-purple-200 dark:border-purple-900">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-purple-500" />
-              <span className="text-lg">Google Calendar</span>
-            </div>
-            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              1
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-950 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground mb-3">
-              Calendar access needs to be refreshed. Click below to reconnect.
-            </p>
-            <Button 
-              onClick={handleReconnect} 
-              disabled={isReconnecting}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              {isReconnecting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Grant Calendar Access
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
 
   return (
     <Card className="border-2 border-purple-200 dark:border-purple-900 hover:shadow-xl transition-all">
@@ -159,9 +78,6 @@ export function GoogleCalendarCard() {
             <p className="text-sm text-red-800 dark:text-red-200">
               {error}
             </p>
-            <Button onClick={handleReconnect} size="sm" variant="outline" className="mt-2 w-full">
-              Reconnect Calendar
-            </Button>
           </div>
         )}
         
@@ -169,7 +85,7 @@ export function GoogleCalendarCard() {
           <div className="py-6 text-center">
             <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
-              No upcoming events in the next 7 days
+              No upcoming events in the next 30 days
             </p>
           </div>
         ) : (

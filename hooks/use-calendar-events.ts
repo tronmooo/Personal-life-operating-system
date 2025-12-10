@@ -26,6 +26,7 @@ export function useCalendarEvents(days: number = 7) {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasToken, setHasToken] = useState(false)
 
   // Get session
   useEffect(() => {
@@ -41,8 +42,8 @@ export function useCalendarEvents(days: number = 7) {
   }, [])
 
   const fetchEvents = async () => {
-    let token = session?.provider_token
-    
+    let token = session?.provider_token || null
+
     // If no provider_token in session, try fetching from user_settings
     if (!token && session?.user?.id) {
       console.log('📅 Fetching token from user_settings...')
@@ -54,15 +55,18 @@ export function useCalendarEvents(days: number = 7) {
       
       token = settings?.google_access_token || null
     }
+
+    // Track whether we have *any* valid token source
+    setHasToken(!!token)
     
     console.log('📅 useCalendarEvents - fetchEvents called', {
       hasSession: !!session,
-      hasProviderToken: !!token,
+      hasAnyToken: !!token,
       userEmail: session?.user?.email,
     })
 
     if (!session || !token) {
-      console.log('📅 useCalendarEvents - Skipping fetch (no provider token)')
+      console.log('📅 useCalendarEvents - Skipping fetch (no calendar token)')
       setEvents([])
       return
     }
@@ -118,14 +122,14 @@ export function useCalendarEvents(days: number = 7) {
   }
 
   useEffect(() => {
-    if (session?.provider_token) {
+    if (session && hasToken) {
       fetchEvents()
 
       // Refresh every 15 minutes
       const interval = setInterval(fetchEvents, 15 * 60 * 1000)
       return () => clearInterval(interval)
     }
-  }, [session, days])
+  }, [session, days, hasToken])
 
   return {
     events,
@@ -133,8 +137,8 @@ export function useCalendarEvents(days: number = 7) {
     error,
     refetch: fetchEvents,
     // Check if user has an active session and has granted calendar permissions
-    // Provider token might be null initially but get populated after OAuth
-    isAuthenticated: !!session?.user && (!!session?.provider_token || events.length > 0),
+    // Consider the user connected if we have any usable token source
+    isAuthenticated: !!session?.user && hasToken,
   }
 }
 

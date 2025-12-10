@@ -45,7 +45,15 @@ export function GoogleSignInButton({ forceSignIn = false, className, ...props }:
             access_type: 'offline',
             prompt: 'consent',
           },
-          scopes: 'email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata'
+          // Unified scopes for Calendar, Gmail, and Drive so you only have to grant access once
+          scopes:
+            'email profile ' +
+            'https://www.googleapis.com/auth/gmail.readonly ' +
+            'https://www.googleapis.com/auth/gmail.modify ' +
+            'https://www.googleapis.com/auth/calendar ' +
+            'https://www.googleapis.com/auth/calendar.events ' +
+            'https://www.googleapis.com/auth/drive.file ' +
+            'https://www.googleapis.com/auth/drive.appdata'
         },
       })
       
