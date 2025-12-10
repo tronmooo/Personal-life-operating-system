@@ -3,13 +3,131 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateEntry, checkRateLimit, checkDuplicateEntry, sanitizeObject } from '@/lib/middleware/validation-middleware'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createServerClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      // Return demo data for guest users
+      const demoData = [
+        {
+          id: 'demo-financial-1',
+          domain: 'financial',
+          title: 'Primary Checking Account',
+          description: 'Main checking account with online banking',
+          created_at: '2024-01-15T10:00:00Z',
+          updated_at: '2024-01-15T10:00:00Z',
+          metadata: {
+            accountType: 'checking',
+            balance: 2500.00,
+            institution: 'Demo Bank'
+          }
+        },
+        {
+          id: 'demo-financial-2',
+          domain: 'financial',
+          title: 'Emergency Savings',
+          description: 'Emergency fund for unexpected expenses',
+          created_at: '2024-01-16T14:30:00Z',
+          updated_at: '2024-01-16T14:30:00Z',
+          metadata: {
+            accountType: 'savings',
+            balance: 10000.00,
+            institution: 'Demo Bank'
+          }
+        },
+        {
+          id: 'demo-health-1',
+          domain: 'health',
+          title: 'Annual Physical',
+          description: 'Regular checkup with Dr. Smith',
+          created_at: '2024-02-01T09:00:00Z',
+          updated_at: '2024-02-01T09:00:00Z',
+          metadata: {
+            provider: 'Dr. Smith',
+            type: 'physical',
+            nextDue: '2025-02-01'
+          }
+        },
+        {
+          id: 'demo-vehicles-1',
+          domain: 'vehicles',
+          title: 'Toyota Camry',
+          description: 'Primary vehicle for daily commuting',
+          created_at: '2024-01-20T16:00:00Z',
+          updated_at: '2024-01-20T16:00:00Z',
+          metadata: {
+            make: 'Toyota',
+            model: 'Camry',
+            year: 2022,
+            mileage: 15000
+          }
+        },
+        {
+          id: 'demo-pets-1',
+          domain: 'pets',
+          title: 'Max the Golden Retriever',
+          description: 'Family dog, loves playing fetch',
+          created_at: '2024-01-25T11:00:00Z',
+          updated_at: '2024-01-25T11:00:00Z',
+          metadata: {
+            species: 'dog',
+            breed: 'Golden Retriever',
+            age: 3,
+            vet: 'City Animal Hospital'
+          }
+        },
+        {
+          id: 'demo-home-1',
+          domain: 'home',
+          title: '123 Main Street',
+          description: 'Primary residence',
+          created_at: '2024-01-10T08:00:00Z',
+          updated_at: '2024-01-10T08:00:00Z',
+          metadata: {
+            type: 'house',
+            bedrooms: 3,
+            bathrooms: 2,
+            sqFt: 2000
+          }
+        },
+        {
+          id: 'demo-nutrition-1',
+          domain: 'nutrition',
+          title: 'Weekly Meal Plan',
+          description: 'Balanced meals for the week',
+          created_at: '2024-02-05T07:00:00Z',
+          updated_at: '2024-02-05T07:00:00Z',
+          metadata: {
+            calories: 2200,
+            protein: 150,
+            carbs: 250,
+            fat: 70
+          }
+        },
+        {
+          id: 'demo-fitness-1',
+          domain: 'fitness',
+          title: 'Morning Run',
+          description: 'Daily 5K run for cardiovascular health',
+          created_at: '2024-02-10T06:30:00Z',
+          updated_at: '2024-02-10T06:30:00Z',
+          metadata: {
+            type: 'cardio',
+            duration: 30,
+            distance: 5.0,
+            calories: 300
+          }
+        }
+      ]
+
+      // Filter by domain if provided
+      const url = new URL(request.url)
+      const domain = url.searchParams.get('domain')
+      const filteredData = domain ? demoData.filter(item => item.domain === domain) : demoData
+
+      return NextResponse.json(filteredData)
     }
 
     const supabaseAdmin = createClient(
