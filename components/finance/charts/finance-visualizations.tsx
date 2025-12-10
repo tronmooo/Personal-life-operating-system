@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils'
 // ============ NET WORTH TREND CHART ============
 interface NetWorthTrendProps {
   data: Array<{ month: string; value: number }>
+  height?: number
 }
 
-export function NetWorthTrendChart({ data }: NetWorthTrendProps) {
+export function NetWorthTrendChart({ data, height = 160 }: NetWorthTrendProps) {
   const { maxValue, minValue } = useMemo(() => {
     const values = data.map(d => d.value)
     return {
@@ -20,7 +21,7 @@ export function NetWorthTrendChart({ data }: NetWorthTrendProps) {
   const range = maxValue - minValue || 1
 
   return (
-    <div className="h-40 relative">
+    <div className="relative" style={{ height }}>
       <svg className="w-full h-full" viewBox="0 0 400 120" preserveAspectRatio="none">
         {/* Grid lines */}
         <g className="text-slate-700/30">
@@ -103,16 +104,17 @@ export function NetWorthTrendChart({ data }: NetWorthTrendProps) {
 // ============ CASH FLOW BAR CHART ============
 interface CashFlowBarChartProps {
   data: Array<{ month: string; income: number; expenses: number }>
+  height?: number
 }
 
-export function CashFlowBarChart({ data }: CashFlowBarChartProps) {
+export function CashFlowBarChart({ data, height = 160 }: CashFlowBarChartProps) {
   const maxValue = useMemo(() => {
     const allValues = data.flatMap(d => [d.income, d.expenses])
     return Math.max(...allValues, 1)
   }, [data])
 
   return (
-    <div className="h-40 flex items-end gap-2">
+    <div className="flex items-end gap-2" style={{ height }}>
       {data.map((d, i) => {
         const incomeHeight = (d.income / maxValue) * 100
         const expenseHeight = (d.expenses / maxValue) * 100
@@ -138,7 +140,15 @@ export function CashFlowBarChart({ data }: CashFlowBarChartProps) {
 }
 
 // ============ BUDGET PROGRESS RING ============
+// Supports two modes:
+// 1. Single ring with spent/budget (for overall budget progress)
+// 2. Multiple rings with categories array (for category breakdown)
 interface BudgetProgressRingProps {
+  // Mode 1: Single overall budget
+  spent?: number
+  budget?: number
+  size?: number
+  // Mode 2: Multiple category rings
   categories?: Array<{
     category: string
     budgetedAmount: number
@@ -146,8 +156,61 @@ interface BudgetProgressRingProps {
   }>
 }
 
-export function BudgetProgressRing({ categories = [] }: BudgetProgressRingProps) {
+export function BudgetProgressRing({ spent, budget, size = 160, categories }: BudgetProgressRingProps) {
+  // Mode 1: Single ring for overall budget
+  if (spent !== undefined && budget !== undefined) {
+    const percent = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0
+    const isOverBudget = spent > budget
+    const radius = (size / 2) - 12
+    const circumference = 2 * Math.PI * radius
+    const strokeDashoffset = circumference - (percent / 100) * circumference
+    const centerX = size / 2
+    const centerY = size / 2
+
+    return (
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg className="w-full h-full -rotate-90" viewBox={`0 0 ${size} ${size}`}>
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={radius}
+            fill="none"
+            stroke="rgb(51, 65, 85)"
+            strokeWidth="12"
+          />
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={radius}
+            fill="none"
+            stroke={isOverBudget ? 'rgb(239, 68, 68)' : 'rgb(34, 197, 94)'}
+            strokeWidth="12"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-500"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <span className="text-2xl font-bold text-white">{percent.toFixed(0)}%</span>
+            <p className="text-xs text-slate-400">used</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Mode 2: Multiple category rings
   const topCategories = (categories || []).slice(0, 4)
+
+  if (topCategories.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-20 text-slate-400 text-sm">
+        No budget categories
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center justify-center gap-4 flex-wrap">
@@ -211,15 +274,17 @@ interface Bill {
 interface UpcomingBillsListProps {
   bills: Bill[]
   maxItems?: number
+  limit?: number  // alias for maxItems
 }
 
-export function UpcomingBillsList({ bills, maxItems = 5 }: UpcomingBillsListProps) {
+export function UpcomingBillsList({ bills, maxItems = 5, limit }: UpcomingBillsListProps) {
+  const itemLimit = limit ?? maxItems
   const sortedBills = useMemo(() => {
     return [...bills]
       .filter(b => b.status !== 'paid')
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-      .slice(0, maxItems)
-  }, [bills, maxItems])
+      .slice(0, itemLimit)
+  }, [bills, itemLimit])
 
   const formatDate = (dateStr: string) => {
     try {
@@ -703,17 +768,23 @@ export function BillsCalendar({ bills }: BillsCalendarProps) {
 
 // ============ BUDGET ALLOCATION DONUT ============
 interface BudgetAllocationDonutProps {
-  data: Array<{ category: string; amount: number; color?: string }>
+  data: Array<{ 
+    category: string
+    amount?: number
+    budgeted?: number  // alias for amount
+    color?: string 
+  }>
   height?: number
 }
 
 export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDonutProps) {
-  const total = data.reduce((sum, d) => sum + d.amount, 0)
+  const total = data.reduce((sum, d) => sum + (d.amount ?? d.budgeted ?? 0), 0)
   
   const segments = useMemo(() => {
     let currentAngle = 0
     return data.map((d, i) => {
-      const percent = total > 0 ? d.amount / total : 0
+      const amount = d.amount ?? d.budgeted ?? 0
+      const percent = total > 0 ? amount / total : 0
       const angle = percent * 360
       const startAngle = currentAngle
       currentAngle += angle
@@ -731,6 +802,7 @@ export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDo
       
       return {
         ...d,
+        amount,
         percent,
         startAngle,
         endAngle: currentAngle,
@@ -793,7 +865,7 @@ export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDo
           <div key={i} className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
             <span className="text-sm text-slate-300 flex-1 truncate">{seg.category}</span>
-            <span className="text-sm text-white font-medium">${seg.amount.toLocaleString()}</span>
+            <span className="text-sm text-white font-medium">${(seg.amount || 0).toLocaleString()}</span>
             <span className="text-xs text-slate-400 w-10 text-right">{(seg.percent * 100).toFixed(0)}%</span>
           </div>
         ))}
@@ -803,27 +875,111 @@ export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDo
 }
 
 // ============ MONTH OVER MONTH COMPARISON ============
+// Supports two interfaces:
+// 1. Simple: { current: { budgeted, spent }, previous: { budgeted, spent } }
+// 2. Category arrays: { currentMonth: Array<{category, spent}>, previousMonth: Array<{category, spent}> }
 interface MonthOverMonthComparisonProps {
-  current: { budgeted: number; spent: number }
-  previous: { budgeted: number; spent: number }
+  current?: { budgeted: number; spent: number }
+  previous?: { budgeted: number; spent: number }
+  currentMonth?: Array<{ category: string; spent: number }>
+  previousMonth?: Array<{ category: string; spent: number }>
 }
 
-export function MonthOverMonthComparison({ current, previous }: MonthOverMonthComparisonProps) {
-  const spentChange = previous.spent > 0
-    ? ((current.spent - previous.spent) / previous.spent) * 100
+export function MonthOverMonthComparison({ current, previous, currentMonth, previousMonth }: MonthOverMonthComparisonProps) {
+  // If using category arrays, aggregate them
+  const currentData = useMemo(() => {
+    if (current) return current
+    if (currentMonth) {
+      const totalSpent = currentMonth.reduce((sum, c) => sum + c.spent, 0)
+      return { budgeted: totalSpent * 1.1, spent: totalSpent }
+    }
+    return { budgeted: 0, spent: 0 }
+  }, [current, currentMonth])
+
+  const previousData = useMemo(() => {
+    if (previous) return previous
+    if (previousMonth) {
+      const totalSpent = previousMonth.reduce((sum, c) => sum + c.spent, 0)
+      return { budgeted: totalSpent * 1.1, spent: totalSpent }
+    }
+    return { budgeted: 0, spent: 0 }
+  }, [previous, previousMonth])
+
+  const spentChange = previousData.spent > 0
+    ? ((currentData.spent - previousData.spent) / previousData.spent) * 100
     : 0
 
-  const budgetChange = previous.budgeted > 0
-    ? ((current.budgeted - previous.budgeted) / previous.budgeted) * 100
+  const budgetChange = previousData.budgeted > 0
+    ? ((currentData.budgeted - previousData.budgeted) / previousData.budgeted) * 100
     : 0
 
+  // If using category arrays, show per-category comparison
+  if (currentMonth && previousMonth) {
+    return (
+      <div className="space-y-4">
+        {/* Overall comparison */}
+        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-700">
+          <div>
+            <p className="text-sm text-slate-400 mb-1">This Month</p>
+            <p className="text-2xl font-bold text-white">${currentData.spent.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-400 mb-1">Last Month</p>
+            <p className="text-2xl font-bold text-slate-300">${previousData.spent.toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* Change indicator */}
+        <div className="flex items-center justify-center gap-2 py-2">
+          <span className={cn(
+            "text-xl font-bold",
+            spentChange > 0 ? "text-rose-400" : "text-emerald-400"
+          )}>
+            {spentChange > 0 ? '↑' : '↓'} {Math.abs(spentChange).toFixed(1)}%
+          </span>
+          <span className="text-sm text-slate-400">
+            {spentChange > 0 ? 'more than last month' : 'less than last month'}
+          </span>
+        </div>
+
+        {/* Top category changes */}
+        <div className="space-y-2">
+          {currentMonth.slice(0, 4).map((cat, i) => {
+            const prevCat = previousMonth.find(p => p.category === cat.category)
+            const change = prevCat && prevCat.spent > 0
+              ? ((cat.spent - prevCat.spent) / prevCat.spent) * 100
+              : 0
+
+            return (
+              <div key={i} className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
+                <span className="text-sm text-slate-300">{cat.category}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white">${cat.spent.toLocaleString()}</span>
+                  {prevCat && (
+                    <span className={cn(
+                      "text-xs",
+                      change > 0 ? "text-rose-400" : "text-emerald-400"
+                    )}>
+                      {change > 0 ? '↑' : '↓'}{Math.abs(change).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // Simple mode
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-sm text-slate-300">Spending</span>
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-white">
-            ${current.spent.toLocaleString()}
+            ${currentData.spent.toLocaleString()}
           </span>
           <span className={cn(
             "text-xs",
@@ -838,7 +994,7 @@ export function MonthOverMonthComparison({ current, previous }: MonthOverMonthCo
         <span className="text-sm text-slate-300">Budget</span>
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-white">
-            ${current.budgeted.toLocaleString()}
+            ${currentData.budgeted.toLocaleString()}
           </span>
           <span className={cn(
             "text-xs",
@@ -853,8 +1009,8 @@ export function MonthOverMonthComparison({ current, previous }: MonthOverMonthCo
         <div className="flex justify-between text-xs text-slate-400 mb-1">
           <span>Budget Usage</span>
           <span>
-            {current.budgeted > 0 
-              ? ((current.spent / current.budgeted) * 100).toFixed(0) 
+            {currentData.budgeted > 0 
+              ? ((currentData.spent / currentData.budgeted) * 100).toFixed(0) 
               : 0
             }%
           </span>
@@ -863,14 +1019,14 @@ export function MonthOverMonthComparison({ current, previous }: MonthOverMonthCo
           <div
             className={cn(
               "h-full rounded-full",
-              current.spent > current.budgeted
+              currentData.spent > currentData.budgeted
                 ? "bg-rose-500"
-                : current.spent / current.budgeted > 0.8
+                : currentData.spent / currentData.budgeted > 0.8
                   ? "bg-amber-500"
                   : "bg-emerald-500"
             )}
             style={{ 
-              width: `${Math.min((current.spent / current.budgeted) * 100, 100)}%` 
+              width: `${Math.min((currentData.spent / currentData.budgeted) * 100, 100)}%` 
             }}
           />
         </div>

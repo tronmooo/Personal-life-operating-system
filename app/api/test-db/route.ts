@@ -6,23 +6,44 @@ import { NextResponse } from 'next/server'
  * Database Test Endpoint
  * Tests connection and table access
  */
+
+type TableTestResult = {
+  accessible: boolean
+  count?: number
+  error?: string | null
+}
+
+type TestResults = {
+  auth: boolean
+  user_id: string | null
+  email: string | null
+  tables: Record<string, TableTestResult>
+  message?: string
+  summary?: {
+    total_tables: number
+    accessible: number
+    with_data: number
+  }
+}
+
 export async function GET() {
   try {
     const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    const results: any = {
-      auth: !!session,
-      user_id: session?.user?.id || null,
-      email: session?.user?.email || null,
+    const isAuthenticated = !!user && !authError
+    const results: TestResults = {
+      auth: isAuthenticated,
+      user_id: user?.id ?? null,
+      email: user?.email ?? null,
       tables: {}
     }
 
-    if (authError || !user) {
+    if (!isAuthenticated) {
       return NextResponse.json({
         ...results,
         message: 'Not authenticated. Please sign in first.'
-      })
+      }, { status: 401 })
     }
 
     // Test each table
@@ -42,7 +63,7 @@ export async function GET() {
 
     for (const table of tables) {
       try {
-        const { data, error, count } = await supabase
+        const { error, count } = await supabase
           .from(table)
           .select('*', { count: 'exact', head: false })
           .limit(1)
@@ -52,27 +73,33 @@ export async function GET() {
           count: count || 0,
           error: error?.message || null
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
         results.tables[table] = {
           accessible: false,
-          error: err.message
+          error: message
         }
       }
     }
+
+    const tableResults = Object.values(results.tables)
+    const accessibleCount = tableResults.filter((t) => t.accessible).length
+    const withDataCount = tableResults.filter((t) => (t.count ?? 0) > 0).length
 
     return NextResponse.json({
       ...results,
       message: '✅ Database test complete',
       summary: {
         total_tables: tables.length,
-        accessible: Object.values(results.tables).filter((t: any) => t.accessible).length,
-        with_data: Object.values(results.tables).filter((t: any) => t.count > 0).length
+        accessible: accessibleCount,
+        with_data: withDataCount
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     return NextResponse.json({
       error: 'Database test failed',
-      details: error.message
+      details: message
     }, { status: 500 })
   }
 }
