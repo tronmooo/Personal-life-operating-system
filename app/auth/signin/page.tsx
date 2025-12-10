@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,46 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  // Redirect function that works reliably
+  const redirectToHome = useCallback(() => {
+    console.log('🔄 Redirecting to home...')
+    // Use replace to avoid back button issues
+    window.location.replace('/')
+  }, [])
+
+  // Check if user is already authenticated on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          console.log('✅ Already authenticated, redirecting...', session.user.email)
+          redirectToHome()
+          return
+        }
+      } catch (err) {
+        console.error('Auth check error:', err)
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+    checkAuth()
+  }, [supabase.auth, redirectToHome])
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Auth state changed:', event, session?.user?.email)
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('✅ Sign-in detected, redirecting...')
+        redirectToHome()
+      }
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [supabase.auth, redirectToHome])
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,10 +102,10 @@ export default function SignInPage() {
             setError('Account created! Please sign in.')
             setIsSignUp(false)
           } else if (signInData.session) {
-            // Successfully signed in - navigate to home with full reload
-            // This ensures cookies are properly sent to the server
+            // Successfully signed in - the auth state listener will redirect
             console.log('✅ Sign-up successful, user:', signInData.user.email)
-            window.location.href = '/'
+            // Force redirect in case auth listener doesn't fire
+            setTimeout(() => redirectToHome(), 100)
           }
         }
       } else {
@@ -76,10 +116,10 @@ export default function SignInPage() {
         if (error) throw error
         
         if (data.session) {
-          // Successfully signed in - navigate to home with full reload
-          // This ensures cookies are properly sent to the server
+          // Successfully signed in - the auth state listener will redirect
           console.log('✅ Sign-in successful, user:', data.user.email)
-          window.location.href = '/'
+          // Force redirect in case auth listener doesn't fire
+          setTimeout(() => redirectToHome(), 100)
         }
       }
     } catch (error: any) {
@@ -120,6 +160,18 @@ export default function SignInPage() {
       setError(error.message || 'An error occurred')
       setLoading(false)
     }
+  }
+
+  // Show loading while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
