@@ -43,69 +43,69 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const { items, create, update, remove, loading } = useDomainCRUD('financial')
   
   // Parse all financial items by type
-  const transactions = useMemo<Transaction[]>(() => {
+  const transactions = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'transaction')
       .map(item => ({
         id: item.id,
         title: item.title,
         description: item.description,
-        type: item.metadata?.type || 'expense',
-        category: item.metadata?.category || 'Uncategorized',
-        subcategory: item.metadata?.subcategory,
+        type: (item.metadata?.type as Transaction['type']) || 'expense',
+        category: (item.metadata?.category as string) || 'Uncategorized',
+        subcategory: item.metadata?.subcategory as string | undefined,
         amount: Number(item.metadata?.amount || 0),
-        date: item.metadata?.date || item.createdAt || item.created_at,
-        account: item.metadata?.account,
-        payee: item.metadata?.payee,
-        payer: item.metadata?.payer,
-        tags: item.metadata?.tags || [],
-        paymentMethod: item.metadata?.paymentMethod,
-        status: item.metadata?.status,
-        receiptUrl: item.metadata?.receiptUrl,
-        notes: item.metadata?.notes,
-        created_at: item.createdAt || item.created_at,
-        updated_at: item.updatedAt || item.updated_at
-      }))
-  }, [items])
+        date: (item.metadata?.date as string) || item.createdAt,
+        account: item.metadata?.account as string | undefined,
+        payee: item.metadata?.payee as string | undefined,
+        payer: item.metadata?.payer as string | undefined,
+        tags: (item.metadata?.tags as string[]) || [],
+        paymentMethod: item.metadata?.paymentMethod as string | undefined,
+        status: item.metadata?.status as string | undefined,
+        receiptUrl: item.metadata?.receiptUrl as string | undefined,
+        notes: item.metadata?.notes as string | undefined,
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
+      } as Transaction))
+  }, [items]) as Transaction[]
 
-  const accounts = useMemo<FinancialAccount[]>(() => {
+  const accounts = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'account')
       .map(item => ({
         id: item.id,
         name: item.title,
-        accountType: item.metadata?.accountType || 'checking',
-        institution: item.metadata?.institution || '',
-        accountNumber: item.metadata?.accountNumber,
+        accountType: (item.metadata?.accountType as string) || 'checking',
+        institution: (item.metadata?.institution as string) || '',
+        accountNumber: item.metadata?.accountNumber as string | undefined,
         balance: Number(item.metadata?.balance || 0),
-        interestRate: item.metadata?.interestRate,
-        creditLimit: item.metadata?.creditLimit,
-        openDate: item.metadata?.openDate,
-        lastUpdated: item.metadata?.lastUpdated || item.updatedAt || item.updated_at,
+        interestRate: item.metadata?.interestRate as number | undefined,
+        creditLimit: item.metadata?.creditLimit as number | undefined,
+        openDate: item.metadata?.openDate as string | undefined,
+        lastUpdated: (item.metadata?.lastUpdated as string) || item.updatedAt,
         isActive: item.metadata?.isActive !== false,
-        created_at: item.createdAt || item.created_at,
-        updated_at: item.updatedAt || item.updated_at
-      }))
-  }, [items])
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
+      } as FinancialAccount))
+  }, [items]) as FinancialAccount[]
 
-  const assets = useMemo<Asset[]>(() => {
+  const assets = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'asset')
       .map(item => ({
         id: item.id,
         name: item.title,
-        assetType: item.metadata?.assetType || 'other',
+        assetType: (item.metadata?.assetType as string) || 'other',
         currentValue: Number(item.metadata?.currentValue || 0),
-        purchasePrice: item.metadata?.purchasePrice,
-        purchaseDate: item.metadata?.purchaseDate,
-        lastUpdated: item.metadata?.lastUpdated || item.updatedAt || item.updated_at,
-        notes: item.metadata?.notes,
-        created_at: item.createdAt || item.created_at,
-        updated_at: item.updatedAt || item.updated_at
-      }))
-  }, [items])
+        purchasePrice: item.metadata?.purchasePrice as number | undefined,
+        purchaseDate: item.metadata?.purchaseDate as string | undefined,
+        lastUpdated: (item.metadata?.lastUpdated as string) || item.updatedAt,
+        notes: item.metadata?.notes as string | undefined,
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
+      } as Asset))
+  }, [items]) as Asset[]
 
-  const investments = useMemo<Investment[]>(() => {
+  const investments = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'investment')
       .map(item => {
@@ -120,73 +120,73 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         return {
           id: item.id,
           name: item.title,
-          symbol: item.metadata?.symbol || '',
+          symbol: (item.metadata?.symbol as string) || '',
           quantity,
           purchasePrice,
           currentPrice,
-          purchaseDate: item.metadata?.purchaseDate || item.createdAt || item.created_at,
-          broker: item.metadata?.broker,
-          investmentType: item.metadata?.investmentType,
+          purchaseDate: (item.metadata?.purchaseDate as string) || item.createdAt,
+          broker: item.metadata?.broker as string | undefined,
+          investmentType: item.metadata?.investmentType as string | undefined,
           totalValue,
           totalCost,
           gainLoss,
           returnPercent,
-          created_at: item.createdAt || item.created_at,
-          updated_at: item.updatedAt || item.updated_at
-        }
+          created_at: item.createdAt,
+          updated_at: item.updatedAt
+        } as Investment
       })
-  }, [items])
+  }, [items]) as Investment[]
 
-  const debts = useMemo<Debt[]>(() => {
+  const debts = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'debt')
       .map(item => ({
         id: item.id,
         name: item.title,
-        creditor: item.metadata?.creditor || '',
-        loanType: item.metadata?.loanType || 'personal',
+        creditor: (item.metadata?.creditor as string) || '',
+        loanType: (item.metadata?.loanType as string) || 'personal',
         interestRate: Number(item.metadata?.interestRate || 0),
         originalBalance: Number(item.metadata?.originalBalance || 0),
         currentBalance: Number(item.metadata?.currentBalance || 0),
         minimumPayment: Number(item.metadata?.minimumPayment || 0),
-        dueDate: item.metadata?.dueDate || '',
-        accountNumber: item.metadata?.accountNumber,
-        termMonths: item.metadata?.termMonths,
-        monthsRemaining: item.metadata?.monthsRemaining,
-        payoffDate: item.metadata?.payoffDate,
-        isAutoPay: item.metadata?.isAutoPay || false,
-        created_at: item.createdAt || item.created_at,
-        updated_at: item.updatedAt || item.updated_at
-      }))
-  }, [items])
+        dueDate: (item.metadata?.dueDate as string) || '',
+        accountNumber: item.metadata?.accountNumber as string | undefined,
+        termMonths: item.metadata?.termMonths as number | undefined,
+        monthsRemaining: item.metadata?.monthsRemaining as number | undefined,
+        payoffDate: item.metadata?.payoffDate as string | undefined,
+        isAutoPay: (item.metadata?.isAutoPay as boolean) || false,
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
+      } as Debt))
+  }, [items]) as Debt[]
 
-  const bills = useMemo<Bill[]>(() => {
+  const bills = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'bill')
       .map(item => ({
         id: item.id,
         name: item.title,
-        provider: item.metadata?.provider || '',
-        category: item.metadata?.category || 'other',
+        provider: (item.metadata?.provider as string) || '',
+        category: (item.metadata?.category as string) || 'other',
         amount: Number(item.metadata?.amount || 0),
-        due_date: item.metadata?.dueDate || '',
-        dueDate: item.metadata?.dueDate || '',
+        due_date: (item.metadata?.dueDate as string) || '',
+        dueDate: (item.metadata?.dueDate as string) || '',
         recurring: item.metadata?.recurring !== false,
-        frequency: item.metadata?.frequency,
-        is_autopay: item.metadata?.isAutoPay || false,
-        isAutoPay: item.metadata?.isAutoPay || false,
-        status: item.metadata?.status || 'pending',
-        account: item.metadata?.account,
-        website: item.metadata?.website,
-        lastPaidDate: item.metadata?.lastPaidDate,
-        nextDueDate: item.metadata?.nextDueDate,
-        notes: item.metadata?.notes,
-        created_at: item.createdAt || item.created_at,
-        updated_at: item.updatedAt || item.updated_at
-      }))
-  }, [items])
+        frequency: item.metadata?.frequency as string | undefined,
+        is_autopay: (item.metadata?.isAutoPay as boolean) || false,
+        isAutoPay: (item.metadata?.isAutoPay as boolean) || false,
+        status: (item.metadata?.status as string) || 'pending',
+        account: item.metadata?.account as string | undefined,
+        website: item.metadata?.website as string | undefined,
+        lastPaidDate: item.metadata?.lastPaidDate as string | undefined,
+        nextDueDate: item.metadata?.nextDueDate as string | undefined,
+        notes: item.metadata?.notes as string | undefined,
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
+      } as Bill))
+  }, [items]) as Bill[]
 
-  const budgetCategories = useMemo<BudgetCategory[]>(() => {
+  const budgetCategories = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'budget')
       .map(item => {
@@ -200,18 +200,18 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           category: item.title,
           budgetedAmount: budgeted,
           spentAmount: spent,
-          month: item.metadata?.month || '',
+          month: (item.metadata?.month as string) || '',
           year: Number(item.metadata?.year || new Date().getFullYear()),
           variance,
           percentUsed,
-          rollover: item.metadata?.rollover,
-          created_at: item.createdAt || item.created_at,
-          updated_at: item.updatedAt || item.updated_at
-        }
+          rollover: item.metadata?.rollover as boolean | undefined,
+          created_at: item.createdAt,
+          updated_at: item.updatedAt
+        } as BudgetCategory
       })
-  }, [items])
+  }, [items]) as BudgetCategory[]
 
-  const goals = useMemo<FinancialGoal[]>(() => {
+  const goals = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'goal')
       .map(item => {
@@ -223,57 +223,57 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           id: item.id,
           title: item.title,
           description: item.description,
-          goalType: item.metadata?.goalType || 'savings',
+          goalType: (item.metadata?.goalType as string) || 'savings',
           targetAmount: target,
           currentAmount: current,
-          targetDate: item.metadata?.targetDate,
-          monthlyContribution: item.metadata?.monthlyContribution,
-          priority: item.metadata?.priority || 'medium',
-          status: item.metadata?.status || 'active',
+          targetDate: item.metadata?.targetDate as string | undefined,
+          monthlyContribution: item.metadata?.monthlyContribution as number | undefined,
+          priority: (item.metadata?.priority as string) || 'medium',
+          status: (item.metadata?.status as string) || 'active',
           progress,
-          account: item.metadata?.account,
-          created_at: item.createdAt || item.created_at,
-          updated_at: item.updatedAt || item.updated_at
-        }
+          account: item.metadata?.account as string | undefined,
+          created_at: item.createdAt,
+          updated_at: item.updatedAt
+        } as FinancialGoal
       })
-  }, [items])
+  }, [items]) as FinancialGoal[]
 
-  const recurringTransactions = useMemo<RecurringTransaction[]>(() => {
+  const recurringTransactions = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'recurring-transaction')
       .map(item => ({
         id: item.id,
         name: item.title,
-        type: item.metadata?.type || 'expense',
-        category: item.metadata?.category || '',
+        type: (item.metadata?.type as RecurringTransaction['type']) || 'expense',
+        category: (item.metadata?.category as string) || '',
         amount: Number(item.metadata?.amount || 0),
-        frequency: item.metadata?.frequency || 'monthly',
-        startDate: item.metadata?.startDate || item.createdAt || item.created_at,
-        endDate: item.metadata?.endDate,
-        account: item.metadata?.account || '',
+        frequency: (item.metadata?.frequency as string) || 'monthly',
+        startDate: (item.metadata?.startDate as string) || item.createdAt,
+        endDate: item.metadata?.endDate as string | undefined,
+        account: (item.metadata?.account as string) || '',
         isActive: item.metadata?.isActive !== false,
-        lastGenerated: item.metadata?.lastGenerated,
-        nextGeneration: item.metadata?.nextGeneration,
-        created_at: item.createdAt || item.created_at,
-        updated_at: item.updatedAt || item.updated_at
-      }))
-  }, [items])
+        lastGenerated: item.metadata?.lastGenerated as string | undefined,
+        nextGeneration: item.metadata?.nextGeneration as string | undefined,
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
+      } as RecurringTransaction))
+  }, [items]) as RecurringTransaction[]
 
-  const taxDeductions = useMemo<TaxDeduction[]>(() => {
+  const taxDeductions = useMemo(() => {
     return items
       .filter(item => item.metadata?.itemType === 'tax-deduction')
       .map(item => ({
         id: item.id,
-        deductionType: item.metadata?.deductionType || 'other',
+        deductionType: (item.metadata?.deductionType as string) || 'other',
         amount: Number(item.metadata?.amount || 0),
-        date: item.metadata?.date || item.createdAt || item.created_at,
+        date: (item.metadata?.date as string) || item.createdAt,
         year: Number(item.metadata?.year || new Date().getFullYear()),
         description: item.description,
-        category: item.metadata?.category,
-        receiptUrl: item.metadata?.receiptUrl,
-        created_at: item.createdAt || item.created_at
-      }))
-  }, [items])
+        category: item.metadata?.category as string | undefined,
+        receiptUrl: item.metadata?.receiptUrl as string | undefined,
+        created_at: item.createdAt
+      } as TaxDeduction))
+  }, [items]) as TaxDeduction[]
 
   // Calculate financial summary
   const financialSummary = useMemo<FinancialSummary | null>(() => {
@@ -662,8 +662,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           tags: data.tags,
           paymentMethod: data.paymentMethod,
           notes: data.notes,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -746,8 +746,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           openDate: data.openDate,
           lastUpdated: new Date().toISOString(),
           isActive: true,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -820,8 +820,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           purchaseDate: data.purchaseDate || '',
           lastUpdated: new Date().toISOString(),
           notes: data.notes,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -902,8 +902,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           totalCost,
           gainLoss,
           returnPercent,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -987,8 +987,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           accountNumber: data.accountNumber,
           termMonths: data.termMonths,
           isAutoPay: data.isAutoPay,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -1089,8 +1089,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           status: data.status || 'pending',
           account: data.account,
           notes: data.notes,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -1161,8 +1161,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           variance: data.budgetedAmount,
           percentUsed: 0,
           rollover: data.rollover,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -1235,8 +1235,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           priority: data.priority,
           status: 'active',
           progress,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
@@ -1333,8 +1333,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           endDate: data.endDate,
           account: data.account,
           isActive: true,
-          created_at: entry.createdAt || entry.created_at,
-          updated_at: entry.updatedAt || entry.updated_at
+          created_at: entry.createdAt,
+          updated_at: entry.updatedAt
         }
       }
       return null
