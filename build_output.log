@@ -1,0 +1,301 @@
+
+> lifehub@1.0.0 prebuild
+> echo 'Skipping migration check for deployment'
+
+Skipping migration check for deployment
+
+> lifehub@1.0.0 build
+> NODE_OPTIONS='--max-old-space-size=6144' next build
+
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.production.local, .env.local
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (129kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+(node:21820) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+ ⚠ Using edge runtime on a page currently disables static generation for that page
+   Generating static pages (0/218) ...
+   Generating static pages (54/218) 
+   Generating static pages (108/218) 
+   Generating static pages (163/218) 
+ ✓ Generating static pages (218/218)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                  Size     First Load JS
+┌ ƒ /                                        40 kB           314 kB
+├ ƒ /_not-found                              883 B          88.8 kB
+├ ƒ /activity                                4 kB           95.7 kB
+├ ƒ /admin/migration-status                  4.47 kB         100 kB
+├ ƒ /admin/sync-data                         6.95 kB         175 kB
+├ ƒ /ai                                      3.89 kB         108 kB
+├ ƒ /ai-assistant                            13.9 kB         188 kB
+├ ƒ /ai-assistant-settings                   13.8 kB         196 kB
+├ ƒ /ai-chat                                 11.1 kB         304 kB
+├ ƒ /ai-insights                             179 B          96.8 kB
+├ ƒ /ai-tools-calculators                    3.8 kB          100 kB
+├ ƒ /ai-tools-status                         5.4 kB          110 kB
+├ ƒ /analytics                               6.75 kB         307 kB
+├ ƒ /analytics-advanced                      1.16 kB         193 kB
+├ ƒ /analytics-comprehensive                 11.5 kB         223 kB
+├ ƒ /analytics-enhanced                      9.04 kB         341 kB
+├ ƒ /analytics-v2                            23.3 kB         316 kB
+├ ƒ /api/admin/apply-rls                     0 B                0 B
+├ ƒ /api/admin/ensure-notification-settings  0 B                0 B
+├ ƒ /api/admin/run-critical-migrations       0 B                0 B
+├ ƒ /api/admin/run-migration                 0 B                0 B
+├ ƒ /api/ai-advisor                          0 B                0 B
+├ ƒ /api/ai-assistant/actions                0 B                0 B
+├ ƒ /api/ai-assistant/analyze-image          0 B                0 B
+├ ƒ /api/ai-assistant/chat                   0 B                0 B
+├ ƒ /api/ai-assistant/intelligent-chat       0 B                0 B
+├ ƒ /api/ai-assistant/multi-entry            0 B                0 B
+├ ƒ /api/ai-assistant/search-documents       0 B                0 B
+├ ƒ /api/ai-assistant/send                   0 B                0 B
+├ ƒ /api/ai-assistant/test                   0 B                0 B
+├ ƒ /api/ai-chat                             0 B                0 B
+├ ƒ /api/ai-tools/analyze                    0 B                0 B
+├ ƒ /api/ai-tools/analyze-contract           0 B                0 B
+├ ƒ /api/ai-tools/budgets                    0 B                0 B
+├ ƒ /api/ai-tools/generate-pdf               0 B                0 B
+├ ƒ /api/ai-tools/invoices                   0 B                0 B
+├ ƒ /api/ai-tools/meals                      0 B                0 B
+├ ƒ /api/ai-tools/ocr                        0 B                0 B
+├ ƒ /api/ai-tools/receipts                   0 B                0 B
+├ ƒ /api/ai-tools/service-comparator         0 B                0 B
+├ ƒ /api/ai-tools/tax-documents              0 B                0 B
+├ ƒ /api/ai-tools/travel                     0 B                0 B
+├ ƒ /api/ai-tools/universal                  0 B                0 B
+├ ƒ /api/ai/analyze-journal                  0 B                0 B
+├ ƒ /api/ai/chat                             0 B                0 B
+├ ƒ /api/ai/create-calendar-event            0 B                0 B
+├ ƒ /api/ai/insights                         0 B                0 B
+├ ƒ /api/ai/journal-prompts                  0 B                0 B
+├ ƒ /api/ai/journal-reflection               0 B                0 B
+├ ƒ /api/ai/therapy-chat                     0 B                0 B
+├ ƒ /api/analytics/comprehensive             0 B                0 B
+├ ƒ /api/analyze-food                        0 B                0 B
+├ ƒ /api/analyze-food-vision                 0 B                0 B
+├ ƒ /api/appliances/fetch-recommendation     0 B                0 B
+├ ƒ /api/auth/[...nextauth]                  0 B                0 B
+├ ƒ /api/calculators/ai-insights             0 B                0 B
+├ ƒ /api/calendar/background-sync            0 B                0 B
+├ ƒ /api/calendar/sync                       0 B                0 B
+├ ƒ /api/call-sessions/[id]/process          0 B                0 B
+├ ƒ /api/call-tasks                          0 B                0 B
+├ ƒ /api/call-tasks/[id]                     0 B                0 B
+├ ƒ /api/call-tasks/[id]/start-call          0 B                0 B
+├ ƒ /api/calls                               0 B                0 B
+├ ƒ /api/concierge/chat                      0 B                0 B
+├ ƒ /api/concierge/initiate-calls            0 B                0 B
+├ ƒ /api/concierge/search-businesses         0 B                0 B
+├ ○ /api/cron/nightly                        0 B                0 B
+├ ○ /api/data                                0 B                0 B
+├ ƒ /api/debug/auth-diagnosis                0 B                0 B
+├ ƒ /api/debug/check-documents               0 B                0 B
+├ ƒ /api/debug/session                       0 B                0 B
+├ ƒ /api/debug/session-check                 0 B                0 B
+├ ƒ /api/debug/token-scopes                  0 B                0 B
+├ ƒ /api/delete-health                       0 B                0 B
+├ ƒ /api/documents                           0 B                0 B
+├ ƒ /api/documents/auto-ingest               0 B                0 B
+├ ƒ /api/documents/expand-search-terms       0 B                0 B
+├ ƒ /api/documents/search                    0 B                0 B
+├ ƒ /api/documents/smart-scan                0 B                0 B
+├ ƒ /api/documents/test-upload               0 B                0 B
+├ ƒ /api/documents/upload                    0 B                0 B
+├ ƒ /api/documents/upload-to-drive           0 B                0 B
+├ ƒ /api/domain-entries                      0 B                0 B
+├ ƒ /api/domain-entries/[id]                 0 B                0 B
+├ ƒ /api/domains                             0 B                0 B
+├ ƒ /api/domains/[id]                        0 B                0 B
+├ ƒ /api/drive/delete                        0 B                0 B
+├ ƒ /api/drive/list                          0 B                0 B
+├ ƒ /api/drive/search                        0 B                0 B
+├ ƒ /api/drive/share                         0 B                0 B
+├ ƒ /api/drive/upload                        0 B                0 B
+├ ƒ /api/estimate/asset                      0 B                0 B
+├ ƒ /api/fix-categories                      0 B                0 B
+├ ƒ /api/gmail/approve                       0 B                0 B
+├ ƒ /api/gmail/check-config                  0 B                0 B
+├ ƒ /api/gmail/reject                        0 B                0 B
+├ ƒ /api/gmail/suggestions                   0 B                0 B
+├ ƒ /api/gmail/sync                          0 B                0 B
+├ ƒ /api/google-places/search                0 B                0 B
+├ ƒ /api/health-sync/cron                    0 B                0 B
+├ ○ /api/health-sync/google/authorize        0 B                0 B
+├ ƒ /api/health-sync/google/callback         0 B                0 B
+├ ƒ /api/health-sync/run                     0 B                0 B
+├ ƒ /api/health/insights                     0 B                0 B
+├ ƒ /api/health/recommendations              0 B                0 B
+├ ƒ /api/insights/generate                   0 B                0 B
+├ ƒ /api/integrations                        0 B                0 B
+├ ƒ /api/integrations/oauth/callback         0 B                0 B
+├ ƒ /api/integrations/sync                   0 B                0 B
+├ ƒ /api/layouts                             0 B                0 B
+├ ƒ /api/logs                                0 B                0 B
+├ ƒ /api/mcp/config                          0 B                0 B
+├ ƒ /api/mcp/execute                         0 B                0 B
+├ ƒ /api/migrate-legacy-data                 0 B                0 B
+├ ƒ /api/notifications/actions               0 B                0 B
+├ ƒ /api/notifications/cron                  0 B                0 B
+├ ƒ /api/notifications/generate              0 B                0 B
+├ ƒ /api/notifications/send-push             0 B                0 B
+├ ƒ /api/orders/[orderId]                    0 B                0 B
+├ ƒ /api/orders/list                         0 B                0 B
+├ ƒ /api/orders/place-order                  0 B                0 B
+├ ƒ /api/parse-warranty                      0 B                0 B
+├ ƒ /api/pet-profiles                        0 B                0 B
+├ ƒ /api/pets                                0 B                0 B
+├ ƒ /api/pets/costs                          0 B                0 B
+├ ƒ /api/pets/vaccinations                   0 B                0 B
+├ ƒ /api/plaid/create-link-token             0 B                0 B
+├ ƒ /api/plaid/encrypt-token                 0 B                0 B
+├ ƒ /api/plaid/exchange-token                0 B                0 B
+├ ƒ /api/plaid/get-accounts                  0 B                0 B
+├ ƒ /api/plaid/get-transactions              0 B                0 B
+├ ƒ /api/plaid/sync-all                      0 B                0 B
+├ ƒ /api/plaid/sync-transactions             0 B                0 B
+├ ƒ /api/plaid/webhook                       0 B                0 B
+├ ƒ /api/reminders                           0 B                0 B
+├ ƒ /api/seed-data                           0 B                0 B
+├ ƒ /api/share                               0 B                0 B
+├ ƒ /api/share/email                         0 B                0 B
+├ ƒ /api/share/export                        0 B                0 B
+├ ƒ /api/share/qr                            0 B                0 B
+├ ƒ /api/share/sms                           0 B                0 B
+├ ƒ /api/share/view                          0 B                0 B
+├ ƒ /api/test-db                             0 B                0 B
+├ ƒ /api/test-drive-direct                   0 B                0 B
+├ ƒ /api/therapy-chat                        0 B                0 B
+├ ƒ /api/therapy-chat/feedback               0 B                0 B
+├ ƒ /api/transactions/categorize             0 B                0 B
+├ ƒ /api/upload                              0 B                0 B
+├ ƒ /api/user-location                       0 B                0 B
+├ ƒ /api/user-settings                       0 B                0 B
+├ ƒ /api/valuations/cron                     0 B                0 B
+├ ƒ /api/vehicles/fetch-value                0 B                0 B
+├ ƒ /api/voice/initiate-call                 0 B                0 B
+├ ƒ /api/voice/parse-command                 0 B                0 B
+├ ƒ /api/voice/status                        0 B                0 B
+├ ○ /api/voice/stream                        0 B                0 B
+├ ƒ /api/voice/twiml                         0 B                0 B
+├ ƒ /api/webhooks/call-status                0 B                0 B
+├ ƒ /api/zillow-property-value               0 B                0 B
+├ ƒ /api/zillow-scrape                       0 B                0 B
+├ ƒ /appointments                            6.39 kB         198 kB
+├ ƒ /auth                                    8.89 kB         163 kB
+├ ƒ /auth/callback                           0 B                0 B
+├ ƒ /auth/debug                              6.28 kB         154 kB
+├ ƒ /auth/login                              4.59 kB         166 kB
+├ ƒ /auth/signin                             9.46 kB         157 kB
+├ ƒ /auth/signup                             8.64 kB         165 kB
+├ ƒ /calendar                                6.99 kB         167 kB
+├ ƒ /calendar-debug                          7.94 kB         155 kB
+├ ƒ /command                                 7.51 kB         175 kB
+├ ƒ /command-center                          307 B           272 kB
+├ ƒ /connections                             3.31 kB        91.2 kB
+├ ƒ /debug                                   5.92 kB         174 kB
+├ ƒ /debug-clear                             7.41 kB         155 kB
+├ ƒ /digital                                 12.4 kB         173 kB
+├ ƒ /documents/new                           10.7 kB         138 kB
+├ ƒ /domains                                 13.1 kB         201 kB
+├ ƒ /domains/[domainId]                      56 kB           437 kB
+├ ƒ /domains/[domainId]/documents            6.62 kB         218 kB
+├ ƒ /domains/financial                       483 B          88.4 kB
+├ ƒ /domains/financial/enhanced              166 B           152 kB
+├ ƒ /domains/health/enhanced                 166 B           152 kB
+├ ƒ /domains/home/enhanced                   17.2 kB         247 kB
+├ ƒ /domains/insurance/enhanced              166 B           152 kB
+├ ƒ /domains/miscellaneous                   15.2 kB         233 kB
+├ ƒ /domains/vehicles                        1.44 kB         338 kB
+├ ƒ /domains/vehicles/enhanced               165 B           152 kB
+├ ƒ /export                                  8.54 kB         183 kB
+├ ƒ /external                                8.26 kB         104 kB
+├ ƒ /finance                                 39.3 kB         235 kB
+├ ƒ /fitness                                 9.67 kB         314 kB
+├ ƒ /health                                  22.3 kB         341 kB
+├ ƒ /home                                    6.52 kB         193 kB
+├ ƒ /home/[id]                               16.3 kB         321 kB
+├ ƒ /insights                                14 kB           188 kB
+├ ƒ /insurance                               11.4 kB         196 kB
+├ ƒ /legal                                   11.3 kB         192 kB
+├ ƒ /my-dashboard                            7.24 kB         210 kB
+├ ƒ /nutrition                               11.2 kB         324 kB
+├ ƒ /offline                                 2.12 kB        97.9 kB
+├ ƒ /personal-assistant                      3.09 kB          91 kB
+├ ƒ /pets                                    4.25 kB         189 kB
+├ ƒ /pets/[petId]                            9.73 kB         313 kB
+├ ƒ /profile                                 17 kB           303 kB
+├ ƒ /reminders                               6.44 kB         171 kB
+├ ƒ /settings                                43.1 kB         243 kB
+├ ƒ /settings/health-sync                    6.69 kB         154 kB
+├ ƒ /shared/[token]                          5.1 kB          107 kB
+├ ƒ /test-concierge                          3.45 kB         109 kB
+├ ƒ /test-crud                               6.86 kB         179 kB
+├ ƒ /test-domains                            7.66 kB         176 kB
+├ ƒ /test-drive-upload                       6.36 kB         170 kB
+├ ƒ /test-google-places                      4.4 kB          109 kB
+├ ƒ /test-location                           2.62 kB        90.5 kB
+├ ƒ /test-zillow                             2.65 kB        98.5 kB
+├ ƒ /therapy-chat                            8.36 kB         156 kB
+├ ƒ /tools                                   96.9 kB         468 kB
+├ ƒ /tools/[toolId]                          6.3 kB          148 kB
+├ ƒ /tools/auto-loan-calculator              3.38 kB        99.2 kB
+├ ƒ /tools/body-fat-percentage               3.29 kB        99.1 kB
+├ ƒ /tools/break-even-calculator             6.31 kB         204 kB
+├ ƒ /tools/budget-planner                    7.33 kB         157 kB
+├ ƒ /tools/carbon-footprint-calculator       4.92 kB         132 kB
+├ ƒ /tools/credit-card-payoff-calculator     4.05 kB        99.8 kB
+├ ƒ /tools/currency-converter                3.85 kB        99.6 kB
+├ ƒ /tools/debt-payoff-calculator            4.17 kB         100 kB
+├ ƒ /tools/emergency-fund-calculator         2.4 kB          101 kB
+├ ƒ /tools/fire-calculator                   4.04 kB        99.8 kB
+├ ƒ /tools/fuel-cost-calculator              3.18 kB          99 kB
+├ ƒ /tools/gpa-calculator                    4.21 kB         131 kB
+├ ƒ /tools/habit-tracker-calculator          4.57 kB         132 kB
+├ ƒ /tools/heart-rate-zones                  4.8 kB          101 kB
+├ ƒ /tools/home-affordability-calculator     2.28 kB        99.8 kB
+├ ƒ /tools/investment-return-calculator      3.66 kB        99.5 kB
+├ ƒ /tools/loan-amortization                 3.06 kB        98.9 kB
+├ ƒ /tools/macro-calculator                  3.25 kB          99 kB
+├ ƒ /tools/meal-prep-calculator              4.65 kB         132 kB
+├ ƒ /tools/net-worth-calculator              5.58 kB         317 kB
+├ ƒ /tools/password-strength-checker         4.78 kB         101 kB
+├ ƒ /tools/payback-period-calculator         3.31 kB        99.1 kB
+├ ƒ /tools/pomodoro-timer                    3.46 kB        99.3 kB
+├ ƒ /tools/rent-vs-buy-calculator            4.18 kB         100 kB
+├ ƒ /tools/retirement-planning               3.94 kB        99.7 kB
+├ ƒ /tools/roi-calculator                    3.93 kB        99.7 kB
+├ ƒ /tools/salary-comparison-calculator      3.65 kB        99.4 kB
+├ ƒ /tools/savings-goal-calculator           3.98 kB        99.8 kB
+├ ƒ /tools/service-comparator                11.8 kB         139 kB
+├ ƒ /tools/sleep-calculator                  3.42 kB        99.2 kB
+├ ƒ /tools/study-time-calculator             4.72 kB         132 kB
+├ ƒ /tools/tax-estimator                     3.91 kB        99.7 kB
+├ ƒ /tools/time-zone-converter               3.71 kB        99.5 kB
+├ ƒ /tools/tip-calculator                    3.61 kB        99.4 kB
+├ ƒ /tools/unit-converter                    4.07 kB        99.9 kB
+├ ƒ /tools/water-intake-calculator           3.71 kB        99.5 kB
+└ ƒ /tools/wedding-budget-calculator         3.19 kB          99 kB
++ First Load JS shared by all                87.9 kB
+  ├ chunks/2117-d119d0fdb8db016d.js          31.9 kB
+  ├ chunks/fd9d1056-986e88678380c101.js      53.7 kB
+  └ other shared chunks (total)              2.37 kB
+
+
+ƒ Middleware                                 76.7 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

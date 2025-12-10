@@ -12,6 +12,7 @@ import { VoiceDataEntry } from '@/components/voice-data-entry'
 import { ClientOnlyFloatingButtons } from '@/components/client-only-floating-buttons'
 import { NotificationScheduler } from '@/components/notifications/notification-scheduler'
 import { BackButtonGuard } from '@/components/ui/back-button-guard'
+import { GuestAwareLayout } from '@/components/layout/guest-aware-layout'
 import { initDevGeolocationStub } from '@/lib/utils/dev-geolocation-stub'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -57,7 +58,9 @@ export default function RootLayout({
               <BackButtonGuard />
             </div>
             <main className="flex-1">
-              {children}
+              <GuestAwareLayout>
+                {children}
+              </GuestAwareLayout>
             </main>
           </div>
           <CommandPalette />

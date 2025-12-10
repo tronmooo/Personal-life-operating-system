@@ -1,7 +1,8 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useDomainEntries } from './use-domain-entries'
 import { toast } from '@/lib/utils/toast'
 import type { Domain, DomainData } from '@/types/domains'
+import { createSafeBrowserClient } from '@/lib/supabase/safe-client'
 
 /**
  * Standardized hook for domain CRUD operations with consistent UX
@@ -37,12 +38,56 @@ export function useDomainCRUD(domain: Domain) {
     fetchEntries 
   } = useDomainEntries(domain)
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createSafeBrowserClient()
+      if (!supabase) {
+        setIsAuthenticated(false)
+        return
+      }
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+    }
+    checkAuth()
+  }, [])
+
+  /**
+   * Helper to check auth before any write operation
+   */
+  const requireAuth = useCallback((action: string): boolean => {
+    if (!isAuthenticated) {
+      toast.warning(
+        'Sign In Required',
+        `Please sign in to ${action}. Your data will be saved securely.`
+      )
+      
+      // Redirect to sign-in after a short delay
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          const currentPath = window.location.pathname
+          window.location.href = `/auth/signin?redirect=${encodeURIComponent(currentPath)}`
+        }, 1500)
+      }
+      return false
+    }
+    return true
+  }, [isAuthenticated])
+
   /**
    * Create a new domain entry with error handling and user feedback
    * @param data - Partial domain data (title, description, metadata)
    * @returns Created entry or throws error
    */
   const create = useCallback(async (data: Partial<DomainData>) => {
+    // Check authentication before creating
+    if (!requireAuth('add items')) {
+      toast.info('Demo Mode', 'Sign in to save your own data. This is demo data.')
+      return null
+    }
+
     try {
       const result = await createEntry({
         title: data.title || 'Untitled',
@@ -59,7 +104,7 @@ export function useDomainCRUD(domain: Domain) {
       toast.error('Failed to create', errorMessage)
       throw err
     }
-  }, [createEntry, domain])
+  }, [createEntry, domain, requireAuth])
 
   /**
    * Update an existing domain entry with error handling and user feedback
@@ -68,6 +113,12 @@ export function useDomainCRUD(domain: Domain) {
    * @returns Updated entry or throws error
    */
   const update = useCallback(async (id: string, data: Partial<DomainData>) => {
+    // Check authentication before updating
+    if (!requireAuth('save changes')) {
+      toast.info('Demo Mode', 'Sign in to edit your own data. This is demo data.')
+      return null
+    }
+
     try {
       const result = await updateEntry({ id, ...data })
       toast.success('Updated successfully', 'Your changes have been saved')
@@ -77,7 +128,7 @@ export function useDomainCRUD(domain: Domain) {
       toast.error('Failed to update', errorMessage)
       throw err
     }
-  }, [updateEntry])
+  }, [updateEntry, requireAuth])
 
   /**
    * Delete a domain entry with optional confirmation dialog
@@ -86,6 +137,12 @@ export function useDomainCRUD(domain: Domain) {
    * @returns true if deleted, false if cancelled
    */
   const remove = useCallback(async (id: string, skipConfirm = false) => {
+    // Check authentication before deleting
+    if (!requireAuth('delete items')) {
+      toast.info('Demo Mode', 'Sign in to manage your own data. This is demo data.')
+      return false
+    }
+
     // Show confirmation dialog unless explicitly skipped
     if (!skipConfirm) {
       const confirmed = typeof window !== 'undefined' && 
@@ -105,7 +162,7 @@ export function useDomainCRUD(domain: Domain) {
       toast.error('Failed to delete', errorMessage)
       throw err
     }
-  }, [deleteEntry])
+  }, [deleteEntry, requireAuth])
 
   /**
    * Refresh domain entries from Supabase
@@ -128,6 +185,12 @@ export function useDomainCRUD(domain: Domain) {
    */
   const removeMany = useCallback(async (ids: string[], skipConfirm = false) => {
     if (ids.length === 0) return 0
+
+    // Check authentication before deleting
+    if (!requireAuth('delete items')) {
+      toast.info('Demo Mode', 'Sign in to manage your own data. This is demo data.')
+      return 0
+    }
 
     // Show confirmation dialog unless explicitly skipped
     if (!skipConfirm) {
@@ -164,13 +227,16 @@ export function useDomainCRUD(domain: Domain) {
     }
 
     return successCount
-  }, [deleteEntry])
+  }, [deleteEntry, requireAuth])
 
   return {
     // Data
     items: entries,
     loading: isLoading,
     error,
+    
+    // Auth state (useful for UI to show/hide buttons)
+    isAuthenticated: isAuthenticated ?? false,
     
     // Actions with consistent UX
     create,

@@ -24,6 +24,128 @@ interface UpdateDomainEntryPayload extends BaseDomainEntryPayload {
   id: string
 }
 
+// Demo data for guest users
+function getDemoData(domain?: Domain): DomainData[] {
+  const demoEntries: DomainData[] = [
+    {
+      id: 'demo-financial-1',
+      domain: 'financial',
+      title: 'Primary Checking Account',
+      description: 'Main checking account with online banking',
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-15T10:00:00Z',
+      metadata: {
+        accountType: 'checking',
+        balance: 2500.00,
+        institution: 'Demo Bank'
+      }
+    },
+    {
+      id: 'demo-financial-2',
+      domain: 'financial',
+      title: 'Emergency Savings',
+      description: 'Emergency fund for unexpected expenses',
+      createdAt: '2024-01-16T14:30:00Z',
+      updatedAt: '2024-01-16T14:30:00Z',
+      metadata: {
+        accountType: 'savings',
+        balance: 10000.00,
+        institution: 'Demo Bank'
+      }
+    },
+    {
+      id: 'demo-health-1',
+      domain: 'health',
+      title: 'Annual Physical',
+      description: 'Regular checkup with Dr. Smith',
+      createdAt: '2024-02-01T09:00:00Z',
+      updatedAt: '2024-02-01T09:00:00Z',
+      metadata: {
+        provider: 'Dr. Smith',
+        type: 'physical',
+        nextDue: '2025-02-01'
+      }
+    },
+    {
+      id: 'demo-vehicles-1',
+      domain: 'vehicles',
+      title: 'Toyota Camry',
+      description: 'Primary vehicle for daily commuting',
+      createdAt: '2024-01-20T16:00:00Z',
+      updatedAt: '2024-01-20T16:00:00Z',
+      metadata: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2022,
+        mileage: 15000
+      }
+    },
+    {
+      id: 'demo-pets-1',
+      domain: 'pets',
+      title: 'Max the Golden Retriever',
+      description: 'Family dog, loves playing fetch',
+      createdAt: '2024-01-25T11:00:00Z',
+      updatedAt: '2024-01-25T11:00:00Z',
+      metadata: {
+        species: 'dog',
+        breed: 'Golden Retriever',
+        age: 3,
+        vet: 'City Animal Hospital'
+      }
+    },
+    {
+      id: 'demo-home-1',
+      domain: 'home',
+      title: '123 Main Street',
+      description: 'Primary residence',
+      createdAt: '2024-01-10T08:00:00Z',
+      updatedAt: '2024-01-10T08:00:00Z',
+      metadata: {
+        type: 'house',
+        bedrooms: 3,
+        bathrooms: 2,
+        sqFt: 2000
+      }
+    },
+    {
+      id: 'demo-nutrition-1',
+      domain: 'nutrition',
+      title: 'Weekly Meal Plan',
+      description: 'Balanced meals for the week',
+      createdAt: '2024-02-05T07:00:00Z',
+      updatedAt: '2024-02-05T07:00:00Z',
+      metadata: {
+        calories: 2200,
+        protein: 150,
+        carbs: 250,
+        fat: 70
+      }
+    },
+    {
+      id: 'demo-fitness-1',
+      domain: 'fitness',
+      title: 'Morning Run',
+      description: 'Daily 5K run for cardiovascular health',
+      createdAt: '2024-02-10T06:30:00Z',
+      updatedAt: '2024-02-10T06:30:00Z',
+      metadata: {
+        type: 'cardio',
+        duration: 30,
+        distance: 5.0,
+        calories: 300
+      }
+    }
+  ]
+
+  // Filter by domain if specified
+  if (domain) {
+    return demoEntries.filter(entry => entry.domain === domain)
+  }
+
+  return demoEntries
+}
+
 // Helper to get the active person ID from user settings
 async function getActivePersonId(): Promise<string> {
   try {
@@ -60,8 +182,8 @@ export async function listDomainEntries(client: SupabaseClient, domain?: Domain,
   // 🔧 FIX: Get current user to filter entries (view doesn't have RLS)
   const { data: { user }, error: userError } = await client.auth.getUser()
   if (userError || !user) {
-    console.warn('⚠️ Not authenticated, cannot list domain entries')
-    return []
+    console.warn('⚠️ Not authenticated, showing demo data for guest users')
+    return getDemoData(domain)
   }
 
   // Get active person ID if not provided

@@ -219,7 +219,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Session state is managed by the provider, no need to check for errors here
 
       if (!user) {
-        console.warn('⚠️ Not authenticated - cannot load data')
+        console.log('👀 Viewing as guest - no user data to load')
+        // Allow viewing the app without authentication
+        // Data will be empty but UI will render
         setIsLoaded(true)
         setIsLoading(false)
         return
