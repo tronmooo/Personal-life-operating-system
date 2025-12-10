@@ -22,7 +22,22 @@ export async function POST(request: Request) {
       )
     }
     
-    const token = session.provider_token
+    // Get provider token from session OR user_settings
+    const { data: { session } } = await supabase.auth.getSession()
+    let token = session?.provider_token
+
+    // If not in session, try fetching from user_settings
+    if (!token) {
+      console.log('📅 No session token, checking user_settings...')
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('google_access_token')
+        .eq('user_id', user.id)
+        .single()
+      
+      token = settings?.google_access_token || null
+    }
+
     if (!token) {
       return NextResponse.json({
         error: 'Calendar not connected',
