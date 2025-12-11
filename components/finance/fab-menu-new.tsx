@@ -44,14 +44,92 @@ export function FABMenu({
         onAddBudget?.()
         break
       default:
+        // Dashboard and Analysis tabs - show full menu
         setIsOpen(!isOpen)
     }
   }
   
+  // Show full menu on dashboard and analysis tabs
+  const showFullMenu = isOpen && (activeTab === 'dashboard' || activeTab === 'analysis')
+  // Show assets sub-menu
+  const showAssetsMenu = isOpen && activeTab === 'assets'
+  
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-      {/* Expanded Menu Options */}
-      {isOpen && activeTab === 'assets' && (
+      {/* Full Menu for Dashboard/Analysis tabs */}
+      {showFullMenu && (
+        <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <Button
+            size="sm"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-lg"
+            onClick={() => {
+              onAddTransaction?.()
+              setIsOpen(false)
+            }}
+          >
+            <Receipt className="h-4 w-4 mr-2" />
+            Add Transaction
+          </Button>
+          <Button
+            size="sm"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-lg"
+            onClick={() => {
+              onAddAsset?.()
+              setIsOpen(false)
+            }}
+          >
+            <Wallet className="h-4 w-4 mr-2" />
+            Add Asset
+          </Button>
+          <Button
+            size="sm"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-lg"
+            onClick={() => {
+              onAddInvestment?.()
+              setIsOpen(false)
+            }}
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Add Investment
+          </Button>
+          <Button
+            size="sm"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-lg"
+            onClick={() => {
+              onAddDebt?.()
+              setIsOpen(false)
+            }}
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Add Debt
+          </Button>
+          <Button
+            size="sm"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-lg"
+            onClick={() => {
+              onAddBill?.()
+              setIsOpen(false)
+            }}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Add Bill
+          </Button>
+          <Button
+            size="sm"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-lg"
+            onClick={() => {
+              onAddBudget?.()
+              setIsOpen(false)
+            }}
+          >
+            <Target className="h-4 w-4 mr-2" />
+            Add Budget
+          </Button>
+        </div>
+      )}
+
+      {/* Assets sub-menu (Investment + Asset) */}
+      {showAssetsMenu && (
         <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <Button
             size="sm"

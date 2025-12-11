@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { useDomainCRUD } from '@/lib/hooks/use-domain-crud'
@@ -222,38 +222,19 @@ export function VehicleTrackerAutoTrack() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState<Partial<Vehicle>>({})
 
-  // Load vehicles when domainEntries changes
+  // Listen for real-time vehicle data updates - trigger refresh
   useEffect(() => {
-    if (!domainLoading && domainEntries) {
-      console.log('🔄 Domain entries updated, loading vehicles...')
-      loadVehicles()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainLoading, domainEntries])
-
-  // Listen for real-time vehicle data updates
-  useEffect(() => {
-    let reloadTimer: NodeJS.Timeout | null = null
     const handleUpdate = () => {
-      console.log('🚗 Vehicle data updated, scheduling reload...')
-      // Debounce reload to ensure React state has updated
-      if (reloadTimer) clearTimeout(reloadTimer)
-      reloadTimer = setTimeout(() => {
-        console.log('🚗 Executing deferred reload after state update')
-        loadVehicles()
-        if (selectedVehicle) {
-          loadVehicleData(selectedVehicle.id)
-        }
-      }, 150) // Wait for React state to update
+      console.log('🚗 Vehicle data updated, refreshing...')
+      refreshDomain()
     }
     window.addEventListener('data-updated', handleUpdate)
     window.addEventListener('vehicles-data-updated', handleUpdate)
     return () => {
-      if (reloadTimer) clearTimeout(reloadTimer)
       window.removeEventListener('data-updated', handleUpdate)
       window.removeEventListener('vehicles-data-updated', handleUpdate)
     }
-  }, [selectedVehicle])
+  }, [refreshDomain])
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -274,11 +255,14 @@ export function VehicleTrackerAutoTrack() {
     }
   }, [selectedVehicle])
 
-  const loadVehicles = useCallback(async () => {
+  // Process vehicle data when domainEntries changes
+  useEffect(() => {
+    if (domainLoading) return
+    
     try {
       setLoading(true)
       
-      console.log('🚗 loadVehicles - Loading from useDomainCRUD')
+      console.log('🚗 Processing vehicles from useDomainCRUD')
       console.log('🔍 domainLoading:', domainLoading, 'entries:', domainEntries?.length)
       
       // Load from useDomainCRUD hook - data is already fetched and managed
@@ -342,8 +326,8 @@ export function VehicleTrackerAutoTrack() {
       console.log(`🚗 Filtered ${mappedVehicles.length} actual vehicles`)
 
       setVehicles(mappedVehicles)
-      if (mappedVehicles.length > 0 && !selectedVehicle) {
-        setSelectedVehicle(mappedVehicles[0])
+      if (mappedVehicles.length > 0) {
+        setSelectedVehicle(prev => prev ?? mappedVehicles[0])
       }
     } catch (error) {
       console.error('Error loading vehicles:', error)
@@ -351,7 +335,7 @@ export function VehicleTrackerAutoTrack() {
       setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainEntries])
+  }, [domainEntries, domainLoading])
 
   const loadVehicleData = async (vehicleId: string) => {
     try {
