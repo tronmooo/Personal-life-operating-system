@@ -794,6 +794,9 @@ interface BillsCalendarProps {
 }
 
 export function BillsCalendar({ bills }: BillsCalendarProps) {
+  // Ensure bills is always an array
+  const safeBills = Array.isArray(bills) ? bills : []
+  
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
@@ -801,8 +804,9 @@ export function BillsCalendar({ bills }: BillsCalendarProps) {
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
 
   const billsByDay = useMemo(() => {
-    const map: Record<number, typeof bills> = {}
-    bills.forEach(bill => {
+    const map: Record<number, typeof safeBills> = {}
+    safeBills.forEach(bill => {
+      if (!bill || !bill.dueDate) return
       try {
         const date = new Date(bill.dueDate)
         if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
@@ -813,7 +817,7 @@ export function BillsCalendar({ bills }: BillsCalendarProps) {
       } catch {}
     })
     return map
-  }, [bills, currentMonth, currentYear])
+  }, [safeBills, currentMonth, currentYear])
 
   const days = []
   for (let i = 0; i < firstDay; i++) {

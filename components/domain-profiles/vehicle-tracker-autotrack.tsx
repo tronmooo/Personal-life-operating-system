@@ -500,8 +500,8 @@ export function VehicleTrackerAutoTrack() {
       console.log('💾 Vehicle form data:', vehicleForm)
 
       // Save via useDomainCRUD (proper error handling and persistence)
+      // Let Supabase generate a UUID for the id
       const result = await createEntry({
-        id: `veh_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         title: vehicleForm.vehicleName,
         metadata: {
           type: 'vehicle',
