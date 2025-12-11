@@ -10,15 +10,38 @@ interface NetWorthTrendProps {
 }
 
 export function NetWorthTrendChart({ data, height = 160 }: NetWorthTrendProps) {
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  
   const { maxValue, minValue } = useMemo(() => {
-    const values = data.map(d => d.value)
+    if (safeData.length === 0) return { maxValue: 1, minValue: 0 }
+    const values = safeData.map(d => d.value)
     return {
       maxValue: Math.max(...values, 1),
       minValue: Math.min(...values, 0)
     }
-  }, [data])
+  }, [safeData])
 
   const range = maxValue - minValue || 1
+
+  // Handle empty or single data point
+  if (safeData.length === 0) {
+    return (
+      <div className="relative flex items-center justify-center text-slate-400 text-sm" style={{ height }}>
+        No data available
+      </div>
+    )
+  }
+
+  // Calculate x position safely (avoid division by zero)
+  const getX = (index: number) => {
+    if (safeData.length <= 1) return 200 // Center single point
+    return (index / (safeData.length - 1)) * 400
+  }
+
+  const getY = (value: number) => {
+    return 120 - ((value - minValue) / range) * 100
+  }
 
   return (
     <div className="relative" style={{ height }}>
@@ -46,54 +69,46 @@ export function NetWorthTrendChart({ data, height = 160 }: NetWorthTrendProps) {
           </linearGradient>
         </defs>
 
-        {/* Area fill */}
-        <path
-          d={`
-            M 0,${120 - ((data[0]?.value - minValue) / range) * 100}
-            ${data.map((d, i) => {
-              const x = (i / (data.length - 1)) * 400
-              const y = 120 - ((d.value - minValue) / range) * 100
-              return `L ${x},${y}`
-            }).join(' ')}
-            L 400,120
-            L 0,120
-            Z
-          `}
-          fill="url(#netWorthGradient)"
-        />
+        {/* Area fill - only render if we have multiple points */}
+        {safeData.length > 1 && (
+          <path
+            d={`
+              M 0,${getY(safeData[0]?.value ?? 0)}
+              ${safeData.map((d, i) => `L ${getX(i)},${getY(d.value)}`).join(' ')}
+              L 400,120
+              L 0,120
+              Z
+            `}
+            fill="url(#netWorthGradient)"
+          />
+        )}
 
-        {/* Line */}
-        <path
-          d={data.map((d, i) => {
-            const x = (i / (data.length - 1)) * 400
-            const y = 120 - ((d.value - minValue) / range) * 100
-            return `${i === 0 ? 'M' : 'L'} ${x},${y}`
-          }).join(' ')}
-          fill="none"
-          stroke="rgb(34, 197, 94)"
-          strokeWidth="2"
-        />
+        {/* Line - only render if we have multiple points */}
+        {safeData.length > 1 && (
+          <path
+            d={safeData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)},${getY(d.value)}`).join(' ')}
+            fill="none"
+            stroke="rgb(34, 197, 94)"
+            strokeWidth="2"
+          />
+        )}
 
         {/* Points */}
-        {data.map((d, i) => {
-          const x = (i / (data.length - 1)) * 400
-          const y = 120 - ((d.value - minValue) / range) * 100
-          return (
-            <circle
-              key={i}
-              cx={x}
-              cy={y}
-              r="4"
-              fill="rgb(34, 197, 94)"
-              className="drop-shadow-md"
-            />
-          )
-        })}
+        {safeData.map((d, i) => (
+          <circle
+            key={i}
+            cx={getX(i)}
+            cy={getY(d.value)}
+            r="4"
+            fill="rgb(34, 197, 94)"
+            className="drop-shadow-md"
+          />
+        ))}
       </svg>
 
       {/* X-axis labels */}
       <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2 text-xs text-slate-400">
-        {data.map((d, i) => (
+        {safeData.map((d, i) => (
           <span key={i}>{d.month}</span>
         ))}
       </div>
@@ -108,16 +123,28 @@ interface CashFlowBarChartProps {
 }
 
 export function CashFlowBarChart({ data, height = 160 }: CashFlowBarChartProps) {
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  
   const maxValue = useMemo(() => {
-    const allValues = data.flatMap(d => [d.income, d.expenses])
+    if (safeData.length === 0) return 1
+    const allValues = safeData.flatMap(d => [d.income || 0, d.expenses || 0])
     return Math.max(...allValues, 1)
-  }, [data])
+  }, [safeData])
+
+  if (safeData.length === 0) {
+    return (
+      <div className="flex items-center justify-center text-slate-400 text-sm" style={{ height }}>
+        No cash flow data
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-end gap-2" style={{ height }}>
-      {data.map((d, i) => {
-        const incomeHeight = (d.income / maxValue) * 100
-        const expenseHeight = (d.expenses / maxValue) * 100
+      {safeData.map((d, i) => {
+        const incomeHeight = ((d.income || 0) / maxValue) * 100
+        const expenseHeight = ((d.expenses || 0) / maxValue) * 100
 
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -279,12 +306,15 @@ interface UpcomingBillsListProps {
 
 export function UpcomingBillsList({ bills, maxItems = 5, limit }: UpcomingBillsListProps) {
   const itemLimit = limit ?? maxItems
+  // Ensure bills is always an array
+  const safeBills = Array.isArray(bills) ? bills : []
+  
   const sortedBills = useMemo(() => {
-    return [...bills]
-      .filter(b => b.status !== 'paid')
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    return [...safeBills]
+      .filter(b => b && b.status !== 'paid')
+      .sort((a, b) => new Date(a.dueDate || '').getTime() - new Date(b.dueDate || '').getTime())
       .slice(0, itemLimit)
-  }, [bills, itemLimit])
+  }, [safeBills, itemLimit])
 
   const formatDate = (dateStr: string) => {
     try {
@@ -364,12 +394,14 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export function SpendingDonutChart({ data }: SpendingDonutChartProps) {
-  const total = data.reduce((sum, d) => sum + d.amount, 0)
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : []
+  const total = safeData.reduce((sum, d) => sum + (d.amount || 0), 0)
   
   const segments = useMemo(() => {
     let currentAngle = 0
-    return data.map((d, i) => {
-      const percent = total > 0 ? d.amount / total : 0
+    return safeData.map((d, i) => {
+      const percent = total > 0 ? (d.amount || 0) / total : 0
       const angle = percent * 360
       const startAngle = currentAngle
       currentAngle += angle
@@ -382,7 +414,7 @@ export function SpendingDonutChart({ data }: SpendingDonutChartProps) {
         color: d.color || CATEGORY_COLORS[d.category] || `hsl(${i * 60}, 70%, 60%)`
       }
     })
-  }, [data, total])
+  }, [safeData, total])
 
   const describeArc = (cx: number, cy: number, radius: number, startAngle: number, endAngle: number) => {
     const start = polarToCartesian(cx, cy, radius, endAngle)
@@ -441,15 +473,25 @@ interface SpendingSparklineProps {
 }
 
 export function SpendingSparkline({ data }: SpendingSparklineProps) {
-  const maxValue = Math.max(...data.map(d => d.amount), 1)
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  const maxValue = safeData.length > 0 ? Math.max(...safeData.map(d => d.amount || 0), 1) : 1
+  
+  if (safeData.length === 0) {
+    return (
+      <div className="h-12 flex items-center justify-center text-slate-400 text-xs">
+        No spending data
+      </div>
+    )
+  }
 
   return (
     <div className="h-12">
-      <svg className="w-full h-full" viewBox={`0 0 ${data.length * 10} 40`} preserveAspectRatio="none">
+      <svg className="w-full h-full" viewBox={`0 0 ${Math.max(safeData.length * 10, 10)} 40`} preserveAspectRatio="none">
         <path
-          d={data.map((d, i) => {
+          d={safeData.map((d, i) => {
             const x = i * 10 + 5
-            const y = 40 - (d.amount / maxValue) * 36
+            const y = 40 - ((d.amount || 0) / maxValue) * 36
             return `${i === 0 ? 'M' : 'L'} ${x},${y}`
           }).join(' ')}
           fill="none"
@@ -469,8 +511,10 @@ interface AssetAllocationTreemapProps {
 }
 
 export function AssetAllocationTreemap({ data }: AssetAllocationTreemapProps) {
-  const total = data.reduce((sum, d) => sum + d.value, 0)
-  const sorted = [...data].sort((a, b) => b.value - a.value)
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : []
+  const total = safeData.reduce((sum, d) => sum + (d.value || 0), 0)
+  const sorted = [...safeData].sort((a, b) => (b.value || 0) - (a.value || 0))
 
   const TYPE_COLORS: Record<string, string> = {
     'real-estate': 'from-emerald-600 to-emerald-800',
@@ -510,15 +554,38 @@ interface AssetValueTrendChartProps {
 }
 
 export function AssetValueTrendChart({ data }: AssetValueTrendChartProps) {
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  
   const { maxValue, minValue } = useMemo(() => {
-    const values = data.map(d => d.value)
+    if (safeData.length === 0) return { maxValue: 1, minValue: 0 }
+    const values = safeData.map(d => d.value || 0)
     return {
       maxValue: Math.max(...values, 1),
       minValue: Math.min(...values, 0)
     }
-  }, [data])
+  }, [safeData])
 
   const range = maxValue - minValue || 1
+
+  // Handle empty or single data point
+  if (safeData.length === 0) {
+    return (
+      <div className="h-32 flex items-center justify-center text-slate-400 text-sm">
+        No asset data
+      </div>
+    )
+  }
+
+  // Calculate x position safely (avoid division by zero)
+  const getX = (index: number) => {
+    if (safeData.length <= 1) return 200 // Center single point
+    return (index / (safeData.length - 1)) * 400
+  }
+
+  const getY = (value: number) => {
+    return 100 - ((value - minValue) / range) * 80
+  }
 
   return (
     <div className="h-32">
@@ -530,31 +597,39 @@ export function AssetValueTrendChart({ data }: AssetValueTrendChartProps) {
           </linearGradient>
         </defs>
 
-        <path
-          d={`
-            M 0,${100 - ((data[0]?.value - minValue) / range) * 80}
-            ${data.map((d, i) => {
-              const x = (i / (data.length - 1)) * 400
-              const y = 100 - ((d.value - minValue) / range) * 80
-              return `L ${x},${y}`
-            }).join(' ')}
-            L 400,100
-            L 0,100
-            Z
-          `}
-          fill="url(#assetGradient)"
-        />
+        {/* Area fill - only render if we have multiple points */}
+        {safeData.length > 1 && (
+          <path
+            d={`
+              M 0,${getY(safeData[0]?.value ?? 0)}
+              ${safeData.map((d, i) => `L ${getX(i)},${getY(d.value || 0)}`).join(' ')}
+              L 400,100
+              L 0,100
+              Z
+            `}
+            fill="url(#assetGradient)"
+          />
+        )}
 
-        <path
-          d={data.map((d, i) => {
-            const x = (i / (data.length - 1)) * 400
-            const y = 100 - ((d.value - minValue) / range) * 80
-            return `${i === 0 ? 'M' : 'L'} ${x},${y}`
-          }).join(' ')}
-          fill="none"
-          stroke="rgb(251, 191, 36)"
-          strokeWidth="2"
-        />
+        {/* Line - only render if we have multiple points */}
+        {safeData.length > 1 && (
+          <path
+            d={safeData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)},${getY(d.value || 0)}`).join(' ')}
+            fill="none"
+            stroke="rgb(251, 191, 36)"
+            strokeWidth="2"
+          />
+        )}
+
+        {/* Single point */}
+        {safeData.length === 1 && (
+          <circle
+            cx={200}
+            cy={getY(safeData[0]?.value ?? 0)}
+            r="4"
+            fill="rgb(251, 191, 36)"
+          />
+        )}
       </svg>
     </div>
   )
@@ -566,15 +641,27 @@ interface DebtComparisonChartProps {
 }
 
 export function DebtComparisonChart({ data }: DebtComparisonChartProps) {
-  const maxValue = Math.max(...data.flatMap(d => [d.currentBalance, d.originalBalance]), 1)
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : []
+  const maxValue = safeData.length > 0 
+    ? Math.max(...safeData.flatMap(d => [d.currentBalance || 0, d.originalBalance || 0]), 1) 
+    : 1
+
+  if (safeData.length === 0) {
+    return (
+      <div className="text-center text-slate-400 py-4 text-sm">
+        No debt data
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
-      {data.slice(0, 4).map((debt, i) => {
-        const currentPercent = (debt.currentBalance / maxValue) * 100
-        const originalPercent = (debt.originalBalance / maxValue) * 100
-        const paidPercent = debt.originalBalance > 0
-          ? ((debt.originalBalance - debt.currentBalance) / debt.originalBalance) * 100
+      {safeData.slice(0, 4).map((debt, i) => {
+        const currentPercent = ((debt.currentBalance || 0) / maxValue) * 100
+        const originalPercent = ((debt.originalBalance || 0) / maxValue) * 100
+        const paidPercent = (debt.originalBalance || 0) > 0
+          ? (((debt.originalBalance || 0) - (debt.currentBalance || 0)) / (debt.originalBalance || 1)) * 100
           : 0
 
         return (
@@ -606,12 +693,15 @@ interface PayoffTimelineProps {
 }
 
 export function PayoffTimeline({ debts }: PayoffTimelineProps) {
+  // Ensure debts is always an array
+  const safeDebts = Array.isArray(debts) ? debts : []
+  
   const sortedDebts = useMemo(() => {
-    return [...debts]
-      .filter(d => d.payoffDate)
+    return [...safeDebts]
+      .filter(d => d && d.payoffDate)
       .sort((a, b) => new Date(a.payoffDate!).getTime() - new Date(b.payoffDate!).getTime())
       .slice(0, 4)
-  }, [debts])
+  }, [safeDebts])
 
   if (sortedDebts.length === 0) {
     return (

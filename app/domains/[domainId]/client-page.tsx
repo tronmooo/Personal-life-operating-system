@@ -28,6 +28,8 @@ import { LoansManager } from '@/components/domain-profiles/loans-manager'
 import { ApplianceTrackerAutoTrack } from '@/components/domain-profiles/appliance-tracker-autotrack'
 import { MindfulnessAppFull } from '@/components/mindfulness/mindfulness-app-full'
 import { RelationshipsManager } from '@/components/relationships/relationships-manager'
+import { HomePageWrapper } from '@/components/home/home-page-wrapper'
+import { FitnessTrackerFull } from '@/components/fitness/fitness-tracker-full'
 import { toast } from 'sonner'
 import { QuickShareButton } from '@/components/share/quick-share-button'
 
@@ -91,13 +93,6 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
     }
   }, [domainId, router])
 
-  // Special case for Home - redirect to property manager page
-  useEffect(() => {
-    if (domainId === 'home') {
-      router.push('/home')
-    }
-  }, [domainId, router])
-
   // Special case for Digital Life - redirect to new digital page
   useEffect(() => {
     if (domainId === 'digital') {
@@ -109,13 +104,6 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
   useEffect(() => {
     if (domainId === 'health') {
       router.push('/health')
-    }
-  }, [domainId, router])
-
-  // Special case for Fitness - redirect to fitness page  
-  useEffect(() => {
-    if (domainId === 'fitness') {
-      router.push('/fitness')
     }
   }, [domainId, router])
 
@@ -131,7 +119,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
   // Removed: Special case for Planning/Goals domain (domain has been deleted)
   
   // Domains that redirect to dedicated pages
-  if (domainId === 'pets' || domainId === 'nutrition' || domainId === 'home' || domainId === 'digital' || domainId === 'health' || domainId === 'fitness' || domainId === 'insurance') {
+  if (domainId === 'pets' || domainId === 'nutrition' || domainId === 'digital' || domainId === 'health' || domainId === 'insurance') {
     return <div className="container mx-auto p-6"><p>Redirecting...</p></div>
   }
   
@@ -248,6 +236,16 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
   // Special case for Relationships - render full manager
   if (domainId === 'relationships') {
     return <RelationshipsManager />
+  }
+
+  // Special case for Home - render property manager
+  if (domainId === 'home') {
+    return <HomePageWrapper />
+  }
+
+  // Special case for Fitness - render fitness tracker
+  if (domainId === 'fitness') {
+    return <FitnessTrackerFull />
   }
 
   // Special case for Appliances - render tracker
