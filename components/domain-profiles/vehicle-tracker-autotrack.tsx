@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-// eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
-import { useData } from '@/lib/providers/data-provider'
+import { useDomainCRUD } from '@/lib/hooks/use-domain-crud'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -108,7 +107,15 @@ interface Warranty {
 
 export function VehicleTrackerAutoTrack() {
   const router = useRouter()
-  const { addData, updateData, deleteData, getData, reloadDomain, isLoaded, isLoading } = useData()
+  const { 
+    items: domainEntries, 
+    create: createEntry, 
+    update: updateEntry, 
+    remove: removeEntry, 
+    loading: domainLoading,
+    refresh: refreshDomain,
+    isAuthenticated
+  } = useDomainCRUD('vehicles')
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [maintenanceRecords, setMaintenanceRecords] = useState<Maintenance[]>([])
@@ -215,13 +222,13 @@ export function VehicleTrackerAutoTrack() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState<Partial<Vehicle>>({})
 
-  // Load vehicles when DataProvider finishes loading OR when data changes
+  // Load vehicles when domainEntries changes
   useEffect(() => {
-    if (isLoaded && !isLoading) {
-      console.log('🔄 Data provider ready, loading vehicles...')
+    if (!domainLoading && domainEntries) {
+      console.log('🔄 Domain entries updated, loading vehicles...')
       loadVehicles()
     }
-  }, [isLoaded, isLoading, getData])
+  }, [domainLoading, domainEntries, loadVehicles])
 
   // Listen for real-time vehicle data updates
   useEffect(() => {
@@ -255,8 +262,8 @@ export function VehicleTrackerAutoTrack() {
         try {
           const vin = (selectedVehicle as any).vin
           if (!vin) { setRecalls([]); return }
-          // Recalls are stored in Supabase table vehicle_recalls; DataProvider abstracts fetch
-          const items: any[] = getData('vehicles') || []
+          // Recalls are stored in domain_entries with type 'vehicle_recall'
+          const items: any[] = domainEntries || []
           const recs = items
             .filter((i: any) => i?.metadata?.type === 'vehicle_recall' && i?.metadata?.vehicleId === selectedVehicle.id)
             .map((i: any) => ({ id: i.id, description: i.metadata?.description || 'Recall', severity: i.metadata?.severity, date: i.metadata?.date_issued }))
@@ -266,17 +273,17 @@ export function VehicleTrackerAutoTrack() {
     }
   }, [selectedVehicle])
 
-  const loadVehicles = async () => {
+  const loadVehicles = useCallback(async () => {
     try {
       setLoading(true)
       
-      console.log('🚗 loadVehicles - Loading from DataProvider (like finance domain)')
-      console.log('🔍 isLoaded:', isLoaded, 'isLoading:', isLoading)
+      console.log('🚗 loadVehicles - Loading from useDomainCRUD')
+      console.log('🔍 domainLoading:', domainLoading, 'entries:', domainEntries?.length)
       
-      // Load from DataProvider - NO auth checks, handled automatically
-      const vehicleData = getData('vehicles') || []
-      console.log(`📦 Raw vehicle data from DataProvider:`, vehicleData)
-      console.log(`✅ Loaded ${vehicleData.length} vehicles from DataProvider`)
+      // Load from useDomainCRUD hook - data is already fetched and managed
+      const vehicleData = domainEntries || []
+      console.log(`📦 Raw vehicle data from useDomainCRUD:`, vehicleData)
+      console.log(`✅ Loaded ${vehicleData.length} vehicles from useDomainCRUD`)
 
       // Log first item to see structure
       if (vehicleData.length > 0) {
@@ -342,11 +349,11 @@ export function VehicleTrackerAutoTrack() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [domainEntries, domainLoading, selectedVehicle])
 
   const loadVehicleData = async (vehicleId: string) => {
     try {
-      const domainItems: any[] = getData('vehicles') || []
+      const domainItems: any[] = domainEntries || []
 
       const maint = domainItems
         .filter((i: any) => {
@@ -503,11 +510,11 @@ export function VehicleTrackerAutoTrack() {
 
   const handleAddVehicle = async () => {
     try {
-      console.log('💾 handleAddVehicle - saving via DataProvider (like finance domain)')
+      console.log('💾 handleAddVehicle - saving via useDomainCRUD')
       console.log('💾 Vehicle form data:', vehicleForm)
 
-      // Save via DataProvider (metadata shape)
-      await addData('vehicles', {
+      // Save via useDomainCRUD (proper error handling and persistence)
+      const result = await createEntry({
         id: `veh_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         title: vehicleForm.vehicleName,
         metadata: {
@@ -515,56 +522,58 @@ export function VehicleTrackerAutoTrack() {
           ...vehicleForm
         }
       })
-      console.log('✅ Vehicle saved via DataProvider')
 
-      // Reload vehicles
-      await loadVehicles()
-      
-      setIsAddVehicleOpen(false)
-      setVehicleForm({
-        vehicleName: '',
-        make: '',
-        model: '',
-        year: new Date().getFullYear(),
-        vin: '',
-        trim: '',
-        drivetrain: '',
-        condition: 'Good',
-        currentMileage: 0,
-        estimatedValue: 0,
-        lifeExpectancy: 10,
-        monthlyInsurance: 0,
-        location: '',
-        zipCode: '',
-        features: '',
-        exteriorColor: '',
-        interiorColor: '',
-        certifiedPreOwned: false
-      })
-      setAiValuation(null)
-      alert('Vehicle added successfully!')
+      // Only proceed if creation was successful
+      if (result) {
+        console.log('✅ Vehicle saved successfully:', result.id)
+        
+        setIsAddVehicleOpen(false)
+        setVehicleForm({
+          vehicleName: '',
+          make: '',
+          model: '',
+          year: new Date().getFullYear(),
+          vin: '',
+          trim: '',
+          drivetrain: '',
+          condition: 'Good',
+          currentMileage: 0,
+          estimatedValue: 0,
+          lifeExpectancy: 10,
+          monthlyInsurance: 0,
+          location: '',
+          zipCode: '',
+          features: '',
+          exteriorColor: '',
+          interiorColor: '',
+          certifiedPreOwned: false
+        })
+        setAiValuation(null)
+        // Toast is shown by useDomainCRUD, no need for alert
+      }
     } catch (error) {
       console.error('Error adding vehicle:', error)
-      alert('Failed to add vehicle')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
   const handleUpdateVehicle = async () => {
     if (!selectedVehicle) return
     try {
-      await updateData('vehicles', selectedVehicle.id, {
+      const result = await updateEntry(selectedVehicle.id, {
         title: vehicleForm.vehicleName,
         metadata: {
           type: 'vehicle',
           ...vehicleForm
         }
       })
-      await loadVehicles()
-      setIsEditVehicleOpen(false)
-      alert('Vehicle updated')
+      if (result) {
+        setIsEditVehicleOpen(false)
+        // Toast is shown by useDomainCRUD
+      }
     } catch (e) {
       console.error('Failed to update vehicle', e)
-      alert('Failed to update vehicle')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
@@ -580,7 +589,7 @@ export function VehicleTrackerAutoTrack() {
         else if (milesTillService <= 2000) status = 'upcoming'
       }
 
-      await addData('vehicles', {
+      const result = await createEntry({
         title: maintenanceForm.serviceName,
         metadata: {
           type: 'maintenance',
@@ -591,19 +600,21 @@ export function VehicleTrackerAutoTrack() {
         }
       })
 
-      await loadVehicleData(selectedVehicle.id)
-      setIsAddMaintenanceOpen(false)
-      setMaintenanceForm({
-        serviceName: '',
-        lastServiceMileage: 0,
-        lastServiceDate: '',
-        nextServiceMileage: 0,
-        cost: 0
-      })
-      alert('Maintenance record added!')
+      if (result) {
+        await loadVehicleData(selectedVehicle.id)
+        setIsAddMaintenanceOpen(false)
+        setMaintenanceForm({
+          serviceName: '',
+          lastServiceMileage: 0,
+          lastServiceDate: '',
+          nextServiceMileage: 0,
+          cost: 0
+        })
+        // Toast is shown by useDomainCRUD
+      }
     } catch (error) {
       console.error('Error adding maintenance:', error)
-      alert('Failed to add maintenance')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
@@ -611,7 +622,7 @@ export function VehicleTrackerAutoTrack() {
     if (!selectedVehicle) return
 
     try {
-      await addData('vehicles', {
+      const result = await createEntry({
         title: `Expense - ${costForm.costType}`,
         metadata: {
           type: 'cost',
@@ -619,21 +630,20 @@ export function VehicleTrackerAutoTrack() {
           ...costForm,
         }
       })
-      // Ensure provider sync completes before reload
-      await reloadDomain('vehicles')
-      await new Promise(r => setTimeout(r, 300))
-      await loadVehicleData(selectedVehicle.id)
-      setIsAddCostOpen(false)
-      setCostForm({
-        costType: 'fuel',
-        amount: 0,
-        date: new Date().toISOString().split('T')[0],
-        description: ''
-      })
-      alert('Cost added successfully!')
+      if (result) {
+        await loadVehicleData(selectedVehicle.id)
+        setIsAddCostOpen(false)
+        setCostForm({
+          costType: 'fuel',
+          amount: 0,
+          date: new Date().toISOString().split('T')[0],
+          description: ''
+        })
+        // Toast is shown by useDomainCRUD
+      }
     } catch (error) {
       console.error('Error adding cost:', error)
-      alert('Failed to add cost')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
@@ -664,7 +674,7 @@ export function VehicleTrackerAutoTrack() {
         }
       }
 
-      await addData('vehicles', {
+      const result = await createEntry({
         title: warrantyForm.warrantyName,
         metadata: {
           type: 'warranty',
@@ -675,30 +685,24 @@ export function VehicleTrackerAutoTrack() {
         }
       })
       
-      await reloadDomain('vehicles')
-      await new Promise(r => setTimeout(r, 300))
-      await loadVehicleData(selectedVehicle.id)
-      
-      // Dispatch event for real-time updates
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('vehicles-data-updated'))
+      if (result) {
+        await loadVehicleData(selectedVehicle.id)
+        
+        setIsAddWarrantyOpen(false)
+        setWarrantyForm({
+          warrantyName: '',
+          provider: '',
+          expiryDate: '',
+          coverageMiles: 0
+        })
+        setWarrantyDocFile(null)
+        setWarrantyDocBase64(null)
+        setWarrantyPdfUrl(null)
+        // Toast is shown by useDomainCRUD
       }
-      
-      setIsAddWarrantyOpen(false)
-      setWarrantyForm({
-        warrantyName: '',
-        provider: '',
-        expiryDate: '',
-        coverageMiles: 0
-      })
-      setWarrantyDocFile(null)
-      setWarrantyDocBase64(null)
-      setWarrantyPdfUrl(null)
-      
-      alert('Warranty added successfully!')
     } catch (error) {
       console.error('Error adding warranty:', error)
-      alert('Failed to add warranty')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
@@ -706,7 +710,7 @@ export function VehicleTrackerAutoTrack() {
     if (!selectedVehicle) return
     try {
       // Save mileage log entry
-      await addData('vehicles', {
+      const logResult = await createEntry({
         title: `Mileage - ${milesForm.odometer.toLocaleString()} mi`,
         metadata: {
           type: 'mileage_log',
@@ -716,44 +720,44 @@ export function VehicleTrackerAutoTrack() {
         }
       })
 
-      // Update vehicle currentMileage if increased
-      const newMileage = Math.max(selectedVehicle.currentMileage || 0, milesForm.odometer || 0)
-      const updated = {
-        vehicleName: selectedVehicle.vehicleName,
-        make: selectedVehicle.make,
-        model: selectedVehicle.model,
-        year: selectedVehicle.year,
-        vin: selectedVehicle.vin || '',
-        trim: (selectedVehicle as any).trim || '',
-        drivetrain: (selectedVehicle as any).drivetrain || '',
-        condition: (selectedVehicle as any).condition || 'Good',
-        currentMileage: newMileage,
-        estimatedValue: selectedVehicle.estimatedValue,
-        lifeExpectancy: selectedVehicle.lifeExpectancy,
-        monthlyInsurance: selectedVehicle.monthlyInsurance,
-        location: (selectedVehicle as any).location || '',
-        zipCode: (selectedVehicle as any).zipCode || '',
-        features: (selectedVehicle as any).features || '',
-        exteriorColor: (selectedVehicle as any).exteriorColor || '',
-        interiorColor: (selectedVehicle as any).interiorColor || '',
-        certifiedPreOwned: !!(selectedVehicle as any).certifiedPreOwned,
-      }
-      await updateData('vehicles', selectedVehicle.id, {
-        title: updated.vehicleName,
-        metadata: {
-          type: 'vehicle',
-          ...updated
+      if (logResult) {
+        // Update vehicle currentMileage if increased
+        const newMileage = Math.max(selectedVehicle.currentMileage || 0, milesForm.odometer || 0)
+        const updated = {
+          vehicleName: selectedVehicle.vehicleName,
+          make: selectedVehicle.make,
+          model: selectedVehicle.model,
+          year: selectedVehicle.year,
+          vin: selectedVehicle.vin || '',
+          trim: (selectedVehicle as any).trim || '',
+          drivetrain: (selectedVehicle as any).drivetrain || '',
+          condition: (selectedVehicle as any).condition || 'Good',
+          currentMileage: newMileage,
+          estimatedValue: selectedVehicle.estimatedValue,
+          lifeExpectancy: selectedVehicle.lifeExpectancy,
+          monthlyInsurance: selectedVehicle.monthlyInsurance,
+          location: (selectedVehicle as any).location || '',
+          zipCode: (selectedVehicle as any).zipCode || '',
+          features: (selectedVehicle as any).features || '',
+          exteriorColor: (selectedVehicle as any).exteriorColor || '',
+          interiorColor: (selectedVehicle as any).interiorColor || '',
+          certifiedPreOwned: !!(selectedVehicle as any).certifiedPreOwned,
         }
-      })
+        await updateEntry(selectedVehicle.id, {
+          title: updated.vehicleName,
+          metadata: {
+            type: 'vehicle',
+            ...updated
+          }
+        })
 
-      await reloadDomain('vehicles')
-      await loadVehicles()
-      setIsAddMilesOpen(false)
-      setMilesForm({ date: new Date().toISOString().split('T')[0], odometer: 0 })
-      alert('Mileage logged!')
+        setIsAddMilesOpen(false)
+        setMilesForm({ date: new Date().toISOString().split('T')[0], odometer: 0 })
+        // Toast is shown by useDomainCRUD
+      }
     } catch (e) {
       console.error('Failed to add mileage', e)
-      alert('Failed to add mileage')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
@@ -801,7 +805,7 @@ export function VehicleTrackerAutoTrack() {
         certifiedPreOwned: !!(selectedVehicle as any).certifiedPreOwned,
       }
       
-      await updateData('vehicles', selectedVehicle.id, {
+      const result = await updateEntry(selectedVehicle.id, {
         title: updated.vehicleName,
         metadata: {
           type: 'vehicle',
@@ -809,13 +813,14 @@ export function VehicleTrackerAutoTrack() {
         }
       })
 
-      await reloadDomain('vehicles')
-      await loadVehicles()
-      setIsEditMode(false)
-      setEditForm({})
+      if (result) {
+        setIsEditMode(false)
+        setEditForm({})
+        // Toast is shown by useDomainCRUD
+      }
     } catch (e) {
       console.error('Failed to update vehicle', e)
-      alert('Failed to update vehicle')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
@@ -828,19 +833,23 @@ export function VehicleTrackerAutoTrack() {
   const handleDeleteVehicle = async () => {
     if (!selectedVehicle) return
     try {
-      await deleteData('vehicles', selectedVehicle.id)
-      await loadVehicles()
-      alert('Vehicle deleted')
+      const deleted = await removeEntry(selectedVehicle.id)
+      if (deleted) {
+        setSelectedVehicle(null)
+        // Toast is shown by useDomainCRUD
+      }
     } catch (e) {
       console.error('Failed to delete vehicle', e)
-      alert('Failed to delete vehicle')
+      // Error toast is shown by useDomainCRUD
     }
   }
 
   const handleDeleteMaintenance = async (id: string) => {
     try {
-      await deleteData('vehicles', id)
-      if (selectedVehicle) await loadVehicleData(selectedVehicle.id)
+      const deleted = await removeEntry(id)
+      if (deleted && selectedVehicle) {
+        await loadVehicleData(selectedVehicle.id)
+      }
     } catch (e) {
       console.error('Failed to delete maintenance', e)
     }
@@ -848,8 +857,10 @@ export function VehicleTrackerAutoTrack() {
 
   const handleDeleteCost = async (id: string) => {
     try {
-      await deleteData('vehicles', id)
-      if (selectedVehicle) await loadVehicleData(selectedVehicle.id)
+      const deleted = await removeEntry(id)
+      if (deleted && selectedVehicle) {
+        await loadVehicleData(selectedVehicle.id)
+      }
     } catch (e) {
       console.error('Failed to delete cost', e)
     }
@@ -857,8 +868,10 @@ export function VehicleTrackerAutoTrack() {
 
   const handleDeleteWarranty = async (id: string) => {
     try {
-      await deleteData('vehicles', id)
-      if (selectedVehicle) await loadVehicleData(selectedVehicle.id)
+      const deleted = await removeEntry(id)
+      if (deleted && selectedVehicle) {
+        await loadVehicleData(selectedVehicle.id)
+      }
     } catch (e) {
       console.error('Failed to delete warranty', e)
     }
