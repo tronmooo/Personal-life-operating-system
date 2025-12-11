@@ -228,7 +228,8 @@ export function VehicleTrackerAutoTrack() {
       console.log('🔄 Domain entries updated, loading vehicles...')
       loadVehicles()
     }
-  }, [domainLoading, domainEntries, loadVehicles])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainLoading, domainEntries])
 
   // Listen for real-time vehicle data updates
   useEffect(() => {
@@ -349,7 +350,8 @@ export function VehicleTrackerAutoTrack() {
     } finally {
       setLoading(false)
     }
-  }, [domainEntries, domainLoading, selectedVehicle])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainEntries])
 
   const loadVehicleData = async (vehicleId: string) => {
     try {
