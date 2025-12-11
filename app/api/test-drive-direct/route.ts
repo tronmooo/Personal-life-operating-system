@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 
 /**
@@ -31,14 +30,8 @@ export async function POST(request: Request) {
 
     // 2. Check authentication
     console.log('\n2️⃣ Checking authentication...')
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { session }, error: sessionError } = await supabase.auth.getUser()
-
-    if (sessionError) {
-      console.log('   ❌ Session error:', sessionError.message)
-      return NextResponse.json({ error: 'Session error', details: sessionError.message }, { status: 401 })
-    }
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       console.log('   ❌ No active session')
@@ -51,10 +44,12 @@ export async function POST(request: Request) {
 
     // 3. Check provider token
     console.log('\n3️⃣ Checking Google provider token...')
-    console.log('   Provider token:', session.provider_token ? '✅ EXISTS' : '❌ MISSING')
-    console.log('   Refresh token:', session.provider_refresh_token ? '✅ EXISTS' : '❌ MISSING')
+    const { data: { session } } = await supabase.auth.getSession()
     
-    if (!session.provider_token) {
+    console.log('   Provider token:', session?.provider_token ? '✅ EXISTS' : '❌ MISSING')
+    console.log('   Refresh token:', session?.provider_refresh_token ? '✅ EXISTS' : '❌ MISSING')
+    
+    if (!session?.provider_token) {
       console.log('   ❌ No Google provider token - user must sign in with Google OAuth')
       return NextResponse.json({
         error: 'No Google access token',
@@ -126,24 +121,19 @@ export async function POST(request: Request) {
       checkDrive: 'https://drive.google.com - Look for LifeHub/Miscellaneous folder'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const stack = error instanceof Error ? error.stack : undefined
     console.error('\n❌ ❌ ❌ ERROR ❌ ❌ ❌')
-    console.error('Error message:', error.message)
-    console.error('Error stack:', error.stack)
+    console.error('Error message:', message)
+    console.error('Error stack:', stack)
     console.error('========================================\n')
 
     return NextResponse.json({
       error: 'Upload failed',
-      message: error.message,
-      stack: error.stack,
-      type: error.constructor.name,
+      message: message,
+      stack: stack,
+      type: error?.constructor?.name,
     }, { status: 500 })
   }
 }
-
-
-
-
-
-
-

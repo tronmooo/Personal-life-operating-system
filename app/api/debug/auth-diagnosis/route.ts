@@ -7,7 +7,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-
 export const dynamic = 'force-dynamic'
 
 const REQUIRED_SCOPES = [
@@ -18,9 +17,9 @@ const REQUIRED_SCOPES = [
 export async function GET() {
   try {
     const supabase = await createServerClient()
-    const { data: { session }, error } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (error || !session?.user) {
+    if (userError || !user) {
       return NextResponse.json({
         status: 'error',
         issue: 'NOT_AUTHENTICATED',
@@ -29,8 +28,9 @@ export async function GET() {
       })
     }
 
-    const token = session.provider_token
-    const user = user
+    // Get session for provider token
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.provider_token
     
     // Check if user signed in with OAuth
     const provider = user.app_metadata?.provider
@@ -132,53 +132,23 @@ export async function GET() {
         nextSteps: 'Your authentication is properly configured. Gmail sync should work now!'
       })
 
-    } catch (tokenError: any) {
+    } catch (tokenError: unknown) {
+      const message = tokenError instanceof Error ? tokenError.message : 'Unknown error'
       return NextResponse.json({
         status: 'error',
         issue: 'TOKEN_CHECK_FAILED',
         message: 'Could not validate OAuth token',
-        error: tokenError.message,
+        error: message,
         solution: 'Sign out and sign back in with Google'
       })
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({
       status: 'error',
       issue: 'UNEXPECTED_ERROR',
-      message: error.message
+      message: message
     }, { status: 500 })
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

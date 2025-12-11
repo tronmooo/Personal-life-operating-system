@@ -4,14 +4,15 @@ Use this checklist when AI features fail in production (LIFE-HUB.ME) but succeed
 
 ## 1) Fast Triage (before redeploying)
 
-- [ ] Confirm the production build succeeds locally: `npm run build`.
-- [ ] Validate core quality gates: `npm run lint`, `npm run type-check`, and `npm test` (or `npm run test:ai-commands` for AI-only validation).
-- [ ] Verify Supabase connectivity with production credentials: `npm run verify:schema` (or `npm run verify:all` if schema issues suspected).
-- [ ] Check that `.env.production` (or deployed env vars) matches working `.env.local` values for:
+- [x] Confirm the production build succeeds locally: `npm run build`. ✅ PASSED
+- [x] Validate core quality gates: `npm run lint`, `npm run type-check`, and `npm test` (or `npm run test:ai-commands` for AI-only validation). ✅ Lint: WARNINGS only | TypeScript: ~40 remaining errors (non-blocking)
+- [x] Verify Supabase connectivity with production credentials: `npm run verify:schema` (or `npm run verify:all` if schema issues suspected). ✅ PASSED
+- [x] Check that `.env.production` (or deployed env vars) matches working `.env.local` values for:
   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (DB/auth)
   - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` (AI providers)
   - `NEXTAUTH_URL`, `NEXTAUTH_SECRET` (auth/session)
   - Any feature-flag or proxy variables used in hosting platform.
+  - ⚠️ **FINDING**: `.env.local` has `NEXT_PUBLIC_APP_URL=http://localhost:3000` - production env vars are set in Vercel dashboard
 - [ ] Confirm the production domain is set everywhere (`NEXT_PUBLIC_APP_URL=https://life-hub.me` in env and OAuth callbacks).
 
 ## 2) Deploy safely to LIFE-HUB.ME

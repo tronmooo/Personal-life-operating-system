@@ -22,6 +22,9 @@ export async function POST(request: Request) {
       )
     }
     
+    // Get session for provider token (Google Calendar)
+    const { data: { session } } = await supabase.auth.getSession()
+    
     // Route to appropriate MCP server handler
     switch (serverId) {
       case 'google-calendar':

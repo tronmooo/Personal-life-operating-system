@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-
 export async function GET() {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -27,8 +25,8 @@ export async function GET() {
 
     // Show what categories are actually in the database
     const categoryCounts: Record<string, number> = {}
-    const sampleDocs = docs.map(doc => {
-      const category = doc.metadata?.category || 'No category'
+    const sampleDocs = (docs || []).map((doc: { document_name: string; document_type: string; domain: string; metadata: Record<string, unknown> | null; created_at: string }) => {
+      const category = (doc.metadata?.category as string) || 'No category'
       categoryCounts[category] = (categoryCounts[category] || 0) + 1
       
       return {
@@ -41,18 +39,13 @@ export async function GET() {
     })
 
     return NextResponse.json({
-      total: docs.length,
+      total: docs?.length || 0,
       categoryCounts,
       sampleDocuments: sampleDocs.slice(0, 10),
       allDocuments: sampleDocs
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
-
-
-
-
-
-

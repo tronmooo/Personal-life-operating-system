@@ -5,20 +5,21 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
     const supabase = await createServerClient()
     
-    const { data: { session }, error } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (error || !session?.user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const token = session.provider_token
+    // Get session for provider token
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.provider_token
     
     if (!token) {
       return NextResponse.json({
@@ -67,42 +68,11 @@ export async function GET() {
         ? 'Sign out and sign back in to grant Gmail permissions. If that doesn\'t work, check Supabase Dashboard → Authentication → Providers → Google and ensure Gmail scopes are configured.'
         : null
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({
       error: 'Failed to check token',
-      message: error.message
+      message: message
     }, { status: 500 })
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

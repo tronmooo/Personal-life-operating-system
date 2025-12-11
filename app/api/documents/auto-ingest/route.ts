@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ Auth success: ${user.email}`)
 
+    // Get session for provider token (Google Drive upload)
+    const { data: { session } } = await supabaseAuth.auth.getSession()
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -266,16 +269,16 @@ Return ONLY JSON:
     let driveWebContentLink: string | null = null
     let driveThumbnailLink: string | null = null
 
-    if (session.provider_token) {
+    if (session?.provider_token) {
       console.log('🔑 Google provider token found - attempting Google Drive upload...')
-      console.log('   Provider token exists:', session.provider_token.substring(0, 20) + '...')
+      console.log('   Provider token exists:', session?.provider_token.substring(0, 20) + '...')
       console.log('   GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID)
       console.log('   GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET)
       console.log('   Domain folder:', storageCategory)
       try {
         const driveService = new GoogleDriveService(
-          session.provider_token,
-          session.provider_refresh_token || undefined
+          session?.provider_token!,
+          session?.provider_refresh_token || undefined
         )
 
         // Re-read the file for Drive upload

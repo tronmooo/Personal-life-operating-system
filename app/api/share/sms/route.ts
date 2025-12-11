@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import twilio from 'twilio'
 
 export interface SendSMSRequest {
@@ -24,12 +23,10 @@ export interface SendSMSResponse {
  */
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!user?.id) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -118,8 +115,9 @@ export async function POST(request: NextRequest) {
 
         console.log(`📱 SMS sent to ${formattedPhone}: ${sms.sid}`)
         results.push(sms.sid)
-      } catch (smsError: any) {
-        console.error(`❌ Failed to send SMS to ${recipient}:`, smsError.message)
+      } catch (smsError: unknown) {
+        const message = smsError instanceof Error ? smsError.message : 'Unknown error'
+        console.error(`❌ Failed to send SMS to ${recipient}:`, message)
         failed.push(recipient)
       }
     }
@@ -152,12 +150,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(response)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to send SMS'
     console.error('Exception in POST /api/share/sms:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to send SMS' },
+      { error: message },
       { status: 500 }
     )
   }
 }
-

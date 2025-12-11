@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { ExportDataRequest, ExportDataResponse } from '@/types/share'
 import { universalExporter } from '@/lib/share/universal-exporter'
 
@@ -12,12 +11,10 @@ export const maxDuration = 60
  */
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -81,12 +78,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(response)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Export failed'
     console.error('Exception in POST /api/share/export:', error)
     return NextResponse.json(
-      { error: error.message || 'Export failed' },
+      { error: message },
       { status: 500 }
     )
   }
 }
-

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { GetSharedContentRequest, GetSharedContentResponse } from '@/types/share'
 import { DOMAIN_CONFIGS, Domain } from '@/types/domains'
 import { createHash } from 'crypto'
@@ -11,8 +10,7 @@ import { createHash } from 'crypto'
  */
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
 
     const body: GetSharedContentRequest = await request.json()
     
@@ -151,12 +149,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(response)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
     console.error('Exception in POST /api/share/view:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     )
   }
 }
-

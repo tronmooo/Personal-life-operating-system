@@ -29,8 +29,7 @@ export async function POST(request: Request) {
     }
 
     // Get authenticated user (optional for voice calls)
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     // If no user, we can still proceed but track as guest

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-
 /**
  * Server-side migration endpoint for legacy localStorage data.
  * 
@@ -22,7 +21,7 @@ import { createServerClient } from '@/lib/supabase/server'
 interface MigrationRequest {
   type: 'routines' | 'domain-logs' | 'other'
   domain?: string
-  data: any[]
+  data: unknown[]
 }
 
 interface MigrationResult {
@@ -36,13 +35,12 @@ interface MigrationResult {
 
 export async function POST(request: NextRequest): Promise<NextResponse<MigrationResult>> {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
 
     // 1. Authenticate user
-    const { data: { session }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !session?.user) {
+    if (authError || !user) {
       return NextResponse.json(
         {
           success: false,
@@ -170,9 +168,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Migration
  * Migrate routines to mindfulness domain
  */
 async function migrateRoutines(
-  supabase: any,
+  supabase: ReturnType<typeof createServerClient> extends Promise<infer T> ? T : never,
   userId: string,
-  routines: any[]
+  routines: unknown[]
 ): Promise<MigrationResult> {
   let migratedCount = 0
   let skippedCount = 0
@@ -188,13 +186,13 @@ async function migrateRoutines(
     .eq('metadata->>itemType', 'routine')
 
   const existingLegacyIds = new Set(
-    existingRoutines?.map((r: any) => r.metadata?.legacyId).filter(Boolean) || []
+    existingRoutines?.map((r: { metadata?: { legacyId?: string } }) => r.metadata?.legacyId).filter(Boolean) || []
   )
 
-  for (const routine of routines) {
+  for (const routine of routines as Record<string, unknown>[]) {
     try {
       // Skip if already migrated
-      if (routine.id && existingLegacyIds.has(routine.id)) {
+      if (routine.id && existingLegacyIds.has(routine.id as string)) {
         skippedCount++
         continue
       }
@@ -210,8 +208,8 @@ async function migrateRoutines(
       const { error } = await supabase.from('domain_entries').insert({
         user_id: userId,
         domain: 'mindfulness',
-        title: routine.name,
-        description: routine.description || '',
+        title: routine.name as string,
+        description: (routine.description as string) || '',
         metadata: {
           itemType: 'routine',
           timeOfDay: routine.timeOfDay,
@@ -253,10 +251,10 @@ async function migrateRoutines(
  * Migrate domain log entries
  */
 async function migrateDomainLogs(
-  supabase: any,
+  supabase: ReturnType<typeof createServerClient> extends Promise<infer T> ? T : never,
   userId: string,
   domain: string,
-  logs: any[]
+  logs: unknown[]
 ): Promise<MigrationResult> {
   let migratedCount = 0
   let skippedCount = 0
@@ -270,27 +268,27 @@ async function migrateDomainLogs(
     .eq('user_id', userId)
     .eq('domain', domain)
 
-  const existingIds = new Set(existingLogs?.map((l: any) => l.id) || [])
+  const existingIds = new Set(existingLogs?.map((l: { id: string }) => l.id) || [])
 
-  for (const log of logs) {
+  for (const log of logs as Record<string, unknown>[]) {
     try {
       // Skip if already exists
-      if (log.id && existingIds.has(log.id)) {
+      if (log.id && existingIds.has(log.id as string)) {
         skippedCount++
         continue
       }
 
-      const payload = log.data && typeof log.data === 'object' ? log.data : {}
-      const timestamp = log.timestamp ?? payload.date ?? new Date().toISOString()
-      const typeName = log.typeName ?? log.type ?? 'Log Entry'
+      const payload = log.data && typeof log.data === 'object' ? log.data as Record<string, unknown> : {}
+      const timestamp = (log.timestamp ?? payload.date ?? new Date().toISOString()) as string
+      const typeName = (log.typeName ?? log.type ?? 'Log Entry') as string
       const logTypeId = log.type ?? log.logType ?? payload.logType
 
       // Insert into domain_entries
       const { error } = await supabase.from('domain_entries').insert({
         user_id: userId,
         domain,
-        title: log.title ?? `${typeName} - ${new Date(timestamp).toLocaleString()}`,
-        description: payload.notes ?? log.notes ?? '',
+        title: (log.title ?? `${typeName} - ${new Date(timestamp).toLocaleString()}`) as string,
+        description: ((payload.notes ?? log.notes ?? '') as string),
         metadata: {
           source: 'domain-quick-log-legacy',
           migratedFrom: 'localStorage-server',
@@ -329,17 +327,17 @@ async function migrateDomainLogs(
  * Migrate generic data to specified domain
  */
 async function migrateGenericData(
-  supabase: any,
+  supabase: ReturnType<typeof createServerClient> extends Promise<infer T> ? T : never,
   userId: string,
   domain: string,
-  items: any[]
+  items: unknown[]
 ): Promise<MigrationResult> {
   let migratedCount = 0
   const skippedCount = 0
   let failedCount = 0
   const errors: string[] = []
 
-  for (const item of items) {
+  for (const item of items as Record<string, unknown>[]) {
     try {
       if (!item.title && !item.name) {
         errors.push(`Item missing title/name: ${JSON.stringify(item)}`)
@@ -350,8 +348,8 @@ async function migrateGenericData(
       const { error } = await supabase.from('domain_entries').insert({
         user_id: userId,
         domain,
-        title: item.title ?? item.name ?? 'Migrated Item',
-        description: item.description ?? '',
+        title: ((item.title ?? item.name ?? 'Migrated Item') as string),
+        description: ((item.description ?? '') as string),
         metadata: {
           ...item,
           migratedFrom: 'localStorage-server',
@@ -380,4 +378,3 @@ async function migrateGenericData(
     message: `Migrated ${migratedCount} items, skipped ${skippedCount}, failed ${failedCount}`
   }
 }
-

@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { createClient } from '@supabase/supabase-js'
 
 /**
@@ -10,22 +9,21 @@ import { createClient } from '@supabase/supabase-js'
  */
 export async function GET() {
   try {
-    const cookieStore = cookies()
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
     // Get all documents for this user
-    const { data: docs, error } = await supabase
+    const { data: docs, error } = await supabaseAdmin
       .from('documents')
       .select('*')
       .eq('user_id', user.id)
@@ -34,14 +32,13 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log(`🔧 Fixing categories for ${docs.length} documents...`)
+    console.log(`🔧 Fixing categories for ${docs?.length || 0} documents...`)
 
     const updates = []
     let fixedCount = 0
 
-    for (const doc of docs) {
+    for (const doc of docs || []) {
       const docType = (doc.document_type || '').toLowerCase()
-      const docName = (doc.document_name || '').toLowerCase()
       const metadata = doc.metadata || {}
       const oldCategory = metadata.category
       let newCategory = oldCategory
@@ -79,7 +76,7 @@ export async function GET() {
       if (newCategory !== oldCategory) {
         const updatedMetadata = { ...metadata, category: newCategory }
         
-        await supabase
+        await supabaseAdmin
           .from('documents')
           .update({ metadata: updatedMetadata })
           .eq('id', doc.id)
@@ -101,15 +98,16 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      totalDocuments: docs.length,
+      totalDocuments: docs?.length || 0,
       fixedCount: fixedCount,
       updates: updates
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error fixing categories:', error)
     return NextResponse.json({
-      error: error.message
+      error: message
     }, { status: 500 })
   }
 }

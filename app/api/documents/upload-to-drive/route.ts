@@ -25,8 +25,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get session for provider token
+    const { data: { session } } = await supabase.auth.getSession()
+
     // Check for Google provider token
-    if (!session.provider_token) {
+    if (!session?.provider_token) {
       console.warn('⚠️ No Google provider token found')
       return NextResponse.json({
         success: false,
@@ -53,8 +56,8 @@ export async function POST(request: NextRequest) {
 
     // Initialize Google Drive service
     const driveService = new GoogleDriveService(
-      session.provider_token,
-      session.provider_refresh_token || undefined
+      session?.provider_token!,
+      session?.provider_refresh_token || undefined
     )
 
     // Map domain to folder name
