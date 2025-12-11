@@ -193,7 +193,7 @@ export function AssetsTab({ onOpenAssetDialog, onOpenInvestmentDialog }: AssetsT
             </div>
             <Button 
               size="sm" 
-              className="bg-black hover:bg-slate-900"
+              className="btn-finance"
               onClick={() => onOpenAssetDialog?.()}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -275,7 +275,7 @@ export function AssetsTab({ onOpenAssetDialog, onOpenInvestmentDialog }: AssetsT
             </div>
             <Button 
               size="sm" 
-              className="bg-black hover:bg-slate-900"
+              className="btn-finance"
               onClick={() => onOpenInvestmentDialog?.()}
             >
               <Plus className="h-4 w-4 mr-2" />

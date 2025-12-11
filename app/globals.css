@@ -401,6 +401,48 @@
   box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.15);
 }
 
+/* ======================== */
+/* Finance Domain Button Styles */
+/* ======================== */
+/* These ensure buttons are ALWAYS visible regardless of theme */
+
+.btn-finance {
+  background-color: #2563eb !important;
+  color: white !important;
+  border: 1px solid #3b82f6 !important;
+}
+
+.btn-finance:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.btn-finance-outline {
+  background-color: #1e293b !important;
+  color: white !important;
+  border: 1px solid #475569 !important;
+}
+
+.btn-finance-outline:hover {
+  background-color: #334155 !important;
+}
+
+.btn-finance-secondary {
+  background-color: #475569 !important;
+  color: white !important;
+  border: 1px solid #64748b !important;
+}
+
+.btn-finance-secondary:hover {
+  background-color: #64748b !important;
+}
+
+/* Force visibility for ALL buttons in finance domain */
+[class*="bg-blue-600"],
+[class*="!bg-blue-600"] {
+  background-color: #2563eb !important;
+  color: white !important;
+}
+
 /* Button Ripple Effect */
 @keyframes ripple {
   to {

@@ -272,7 +272,7 @@ export function DebtsTab({ onOpenDebtDialog }: DebtsTabProps = {}) {
             </div>
             <Button 
               size="sm" 
-              className="bg-black hover:bg-slate-900"
+              className="btn-finance"
               onClick={() => onOpenDebtDialog?.()}
             >
               <Plus className="h-4 w-4 mr-2" />

@@ -162,7 +162,7 @@ export function InvestmentDialog({ open, onOpenChange }: InvestmentDialogProps) 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-black hover:bg-slate-900"
+            className="w-full bg-blue-600 hover:bg-blue-700"
           >
             {loading ? 'Adding...' : 'Add Holding'}
           </Button>

@@ -207,7 +207,7 @@ export function TransactionsTab({ onOpenTransactionDialog, onOpenRecurringDialog
                 </div>
                 
                 {/* CTA Button */}
-                <Button className="w-full bg-black hover:bg-slate-900">
+                <Button className="w-full btn-finance">
                   <Building className="h-4 w-4 mr-2" />
                   Connect Bank Account with Plaid
                 </Button>
@@ -237,14 +237,14 @@ export function TransactionsTab({ onOpenTransactionDialog, onOpenRecurringDialog
             <div className="flex gap-2">
               <Button 
                 size="sm" 
-                className="bg-black hover:bg-slate-900"
+                className="btn-finance"
                 onClick={() => generateRecurringTransactions()}
               >
                 ▶️ Generate
               </Button>
               <Button 
                 size="sm" 
-                className="bg-black hover:bg-slate-900"
+                className="btn-finance"
                 onClick={() => onOpenRecurringDialog?.()}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -312,13 +312,13 @@ export function TransactionsTab({ onOpenTransactionDialog, onOpenRecurringDialog
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" className="bg-black hover:bg-slate-900">
+              <Button size="sm" className="btn-finance">
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
               <Button 
                 size="sm" 
-                className="bg-black hover:bg-slate-900"
+                className="btn-finance"
                 onClick={() => onOpenTransactionDialog?.()}
               >
                 <Plus className="h-4 w-4 mr-2" />

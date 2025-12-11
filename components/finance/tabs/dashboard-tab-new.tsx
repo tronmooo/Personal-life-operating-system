@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useMemo } from 'react'
@@ -15,7 +14,7 @@ import {
 } from '../charts/finance-visualizations'
 
 export function DashboardTab() {
-  const { financialSummary, billSummary, insights, loading, bills, transactions, monthlyBudget } = useFinance()
+  const { financialSummary, billSummary, insights, loading, bills, monthlyBudget } = useFinance()
   
   // Generate net worth trend data (last 6 months - simulated for demo)
   const netWorthTrendData = useMemo(() => {
@@ -34,7 +33,7 @@ export function DashboardTab() {
     const monthlyIncome = financialSummary?.monthlyIncome || 0
     const monthlyExpenses = financialSummary?.monthlyExpenses || 0
     
-    return months.map((month, index) => ({
+    return months.map((month) => ({
       month,
       income: monthlyIncome * (0.9 + Math.random() * 0.2),
       expenses: monthlyExpenses * (0.85 + Math.random() * 0.3)

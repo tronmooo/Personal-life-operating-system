@@ -10,8 +10,10 @@ interface NetWorthTrendProps {
 }
 
 export function NetWorthTrendChart({ data, height = 160 }: NetWorthTrendProps) {
-  // Ensure data is always an array
-  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  // Ensure data is always an array - memoized to avoid re-creating on every render
+  const safeData = useMemo(() => 
+    Array.isArray(data) && data.length > 0 ? data : []
+  , [data])
   
   const { maxValue, minValue } = useMemo(() => {
     if (safeData.length === 0) return { maxValue: 1, minValue: 0 }
@@ -123,8 +125,10 @@ interface CashFlowBarChartProps {
 }
 
 export function CashFlowBarChart({ data, height = 160 }: CashFlowBarChartProps) {
-  // Ensure data is always an array
-  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  // Ensure data is always an array - memoized
+  const safeData = useMemo(() => 
+    Array.isArray(data) && data.length > 0 ? data : []
+  , [data])
   
   const maxValue = useMemo(() => {
     if (safeData.length === 0) return 1
@@ -306,15 +310,15 @@ interface UpcomingBillsListProps {
 
 export function UpcomingBillsList({ bills, maxItems = 5, limit }: UpcomingBillsListProps) {
   const itemLimit = limit ?? maxItems
-  // Ensure bills is always an array
-  const safeBills = Array.isArray(bills) ? bills : []
   
   const sortedBills = useMemo(() => {
+    // Ensure bills is always an array
+    const safeBills = Array.isArray(bills) ? bills : []
     return [...safeBills]
       .filter(b => b && b.status !== 'paid')
       .sort((a, b) => new Date(a.dueDate || '').getTime() - new Date(b.dueDate || '').getTime())
       .slice(0, itemLimit)
-  }, [safeBills, itemLimit])
+  }, [bills, itemLimit])
 
   const formatDate = (dateStr: string) => {
     try {
@@ -394,9 +398,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export function SpendingDonutChart({ data }: SpendingDonutChartProps) {
-  // Ensure data is always an array
-  const safeData = Array.isArray(data) ? data : []
-  const total = safeData.reduce((sum, d) => sum + (d.amount || 0), 0)
+  // Ensure data is always an array - memoized
+  const safeData = useMemo(() => Array.isArray(data) ? data : [], [data])
+  const total = useMemo(() => safeData.reduce((sum, d) => sum + (d.amount || 0), 0), [safeData])
   
   const segments = useMemo(() => {
     let currentAngle = 0
@@ -554,8 +558,10 @@ interface AssetValueTrendChartProps {
 }
 
 export function AssetValueTrendChart({ data }: AssetValueTrendChartProps) {
-  // Ensure data is always an array
-  const safeData = Array.isArray(data) && data.length > 0 ? data : []
+  // Ensure data is always an array - memoized
+  const safeData = useMemo(() => 
+    Array.isArray(data) && data.length > 0 ? data : []
+  , [data])
   
   const { maxValue, minValue } = useMemo(() => {
     if (safeData.length === 0) return { maxValue: 1, minValue: 0 }
@@ -641,11 +647,12 @@ interface DebtComparisonChartProps {
 }
 
 export function DebtComparisonChart({ data }: DebtComparisonChartProps) {
-  // Ensure data is always an array
-  const safeData = Array.isArray(data) ? data : []
-  const maxValue = safeData.length > 0 
+  // Ensure data is always an array - memoized
+  const safeData = useMemo(() => Array.isArray(data) ? data : [], [data])
+  const maxValue = useMemo(() => safeData.length > 0 
     ? Math.max(...safeData.flatMap(d => [d.currentBalance || 0, d.originalBalance || 0]), 1) 
     : 1
+  , [safeData])
 
   if (safeData.length === 0) {
     return (
@@ -693,15 +700,14 @@ interface PayoffTimelineProps {
 }
 
 export function PayoffTimeline({ debts }: PayoffTimelineProps) {
-  // Ensure debts is always an array
-  const safeDebts = Array.isArray(debts) ? debts : []
-  
   const sortedDebts = useMemo(() => {
+    // Ensure debts is always an array
+    const safeDebts = Array.isArray(debts) ? debts : []
     return [...safeDebts]
       .filter(d => d && d.payoffDate)
       .sort((a, b) => new Date(a.payoffDate!).getTime() - new Date(b.payoffDate!).getTime())
       .slice(0, 4)
-  }, [safeDebts])
+  }, [debts])
 
   if (sortedDebts.length === 0) {
     return (
@@ -794,9 +800,6 @@ interface BillsCalendarProps {
 }
 
 export function BillsCalendar({ bills }: BillsCalendarProps) {
-  // Ensure bills is always an array
-  const safeBills = Array.isArray(bills) ? bills : []
-  
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
@@ -804,6 +807,8 @@ export function BillsCalendar({ bills }: BillsCalendarProps) {
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
 
   const billsByDay = useMemo(() => {
+    // Ensure bills is always an array
+    const safeBills = Array.isArray(bills) ? bills : []
     const map: Record<number, typeof safeBills> = {}
     safeBills.forEach(bill => {
       if (!bill || !bill.dueDate) return
@@ -817,7 +822,7 @@ export function BillsCalendar({ bills }: BillsCalendarProps) {
       } catch {}
     })
     return map
-  }, [safeBills, currentMonth, currentYear])
+  }, [bills, currentMonth, currentYear])
 
   const days = []
   for (let i = 0; i < firstDay; i++) {
@@ -872,11 +877,13 @@ interface BudgetAllocationDonutProps {
 }
 
 export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDonutProps) {
-  const total = data.reduce((sum, d) => sum + (d.amount ?? d.budgeted ?? 0), 0)
+  // Ensure data is always an array - memoized
+  const safeData = useMemo(() => Array.isArray(data) ? data : [], [data])
+  const total = useMemo(() => safeData.reduce((sum, d) => sum + (d.amount ?? d.budgeted ?? 0), 0), [safeData])
   
   const segments = useMemo(() => {
     let currentAngle = 0
-    return data.map((d, i) => {
+    return safeData.map((d, i) => {
       const amount = d.amount ?? d.budgeted ?? 0
       const percent = total > 0 ? amount / total : 0
       const angle = percent * 360
@@ -903,7 +910,7 @@ export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDo
         color: d.color || colors[i % colors.length]
       }
     })
-  }, [data, total])
+  }, [safeData, total])
 
   const describeArc = (cx: number, cy: number, radius: number, startAngle: number, endAngle: number) => {
     const start = polarToCartesian(cx, cy, radius, endAngle)
@@ -920,7 +927,7 @@ export function BudgetAllocationDonut({ data, height = 200 }: BudgetAllocationDo
     }
   }
 
-  if (data.length === 0) {
+  if (safeData.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-slate-400 text-sm">
         No budget data
@@ -980,24 +987,28 @@ interface MonthOverMonthComparisonProps {
 }
 
 export function MonthOverMonthComparison({ current, previous, currentMonth, previousMonth }: MonthOverMonthComparisonProps) {
+  // Ensure arrays are safe - memoized
+  const safeCurrentMonth = useMemo(() => Array.isArray(currentMonth) ? currentMonth : [], [currentMonth])
+  const safePreviousMonth = useMemo(() => Array.isArray(previousMonth) ? previousMonth : [], [previousMonth])
+  
   // If using category arrays, aggregate them
   const currentData = useMemo(() => {
     if (current) return current
-    if (currentMonth) {
-      const totalSpent = currentMonth.reduce((sum, c) => sum + c.spent, 0)
+    if (safeCurrentMonth.length > 0) {
+      const totalSpent = safeCurrentMonth.reduce((sum, c) => sum + (c.spent || 0), 0)
       return { budgeted: totalSpent * 1.1, spent: totalSpent }
     }
     return { budgeted: 0, spent: 0 }
-  }, [current, currentMonth])
+  }, [current, safeCurrentMonth])
 
   const previousData = useMemo(() => {
     if (previous) return previous
-    if (previousMonth) {
-      const totalSpent = previousMonth.reduce((sum, c) => sum + c.spent, 0)
+    if (safePreviousMonth.length > 0) {
+      const totalSpent = safePreviousMonth.reduce((sum, c) => sum + (c.spent || 0), 0)
       return { budgeted: totalSpent * 1.1, spent: totalSpent }
     }
     return { budgeted: 0, spent: 0 }
-  }, [previous, previousMonth])
+  }, [previous, safePreviousMonth])
 
   const spentChange = previousData.spent > 0
     ? ((currentData.spent - previousData.spent) / previousData.spent) * 100
@@ -1008,7 +1019,7 @@ export function MonthOverMonthComparison({ current, previous, currentMonth, prev
     : 0
 
   // If using category arrays, show per-category comparison
-  if (currentMonth && previousMonth) {
+  if (safeCurrentMonth.length > 0 && safePreviousMonth.length > 0) {
     return (
       <div className="space-y-4">
         {/* Overall comparison */}
@@ -1038,17 +1049,17 @@ export function MonthOverMonthComparison({ current, previous, currentMonth, prev
 
         {/* Top category changes */}
         <div className="space-y-2">
-          {currentMonth.slice(0, 4).map((cat, i) => {
-            const prevCat = previousMonth.find(p => p.category === cat.category)
-            const change = prevCat && prevCat.spent > 0
-              ? ((cat.spent - prevCat.spent) / prevCat.spent) * 100
+          {safeCurrentMonth.slice(0, 4).map((cat, i) => {
+            const prevCat = safePreviousMonth.find(p => p.category === cat.category)
+            const change = prevCat && (prevCat.spent || 0) > 0
+              ? (((cat.spent || 0) - (prevCat.spent || 0)) / (prevCat.spent || 1)) * 100
               : 0
 
             return (
               <div key={i} className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
                 <span className="text-sm text-slate-300">{cat.category}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-white">${cat.spent.toLocaleString()}</span>
+                  <span className="text-sm text-white">${(cat.spent || 0).toLocaleString()}</span>
                   {prevCat && (
                     <span className={cn(
                       "text-xs",

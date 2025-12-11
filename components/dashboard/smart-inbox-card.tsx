@@ -88,7 +88,7 @@ export function SmartInboxCard() {
       let { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         console.log('👤 Not signed in - skipping Gmail sync')
-        alert('📭 Gmail sync unavailable - Not signed in')
+        alert('🔑 Gmail Sync Requires Sign-In\n\nPlease sign in with Google to sync your emails.')
         return
       }
 
@@ -101,10 +101,10 @@ export function SmartInboxCard() {
           console.log('✅ Session refreshed, provider token:', session.provider_token ? 'Present' : 'Still missing')
         }
         
-        // If still no token after refresh, show unavailable message
+        // If still no token after refresh, user needs to re-authenticate
         if (!session.provider_token) {
-          console.log('⚠️ No provider token available - Gmail sync not available')
-          alert('📭 Already up to date!\n\n(Gmail sync requires additional permissions)')
+          console.log('⚠️ No provider token available - Gmail sync requires re-auth')
+          alert('🔄 Gmail Re-authentication Required\n\nTo enable Gmail sync:\n\n1. Click your profile icon (top right)\n2. Sign out\n3. Sign back in with Google\n4. Accept all permissions when prompted\n\nThis will grant the app access to read your emails for smart suggestions.')
           return
         }
       }
@@ -155,9 +155,9 @@ export function SmartInboxCard() {
           }
         }
         
-        // If refresh failed or retry failed, show status message
+        // If refresh failed or retry failed, show re-auth message
         console.log('ℹ️ Gmail sync unavailable - token refresh failed')
-        alert('📭 Already up to date!\n\n(Your existing suggestions are current)')
+        alert('🔄 Gmail Re-authentication Required\n\nYour Gmail access token has expired.\n\nPlease sign out and sign back in with Google to refresh your permissions.')
         return
       }
       
@@ -171,12 +171,16 @@ export function SmartInboxCard() {
           alert('📭 No new suggestions found')
         }
       } else {
-        throw new Error(data.error)
+        // Show specific error from API
+        const errorMsg = data.error || 'Unknown error'
+        const hint = data.hint || ''
+        console.error('Gmail sync error:', errorMsg)
+        alert(`⚠️ Gmail Sync Issue\n\n${errorMsg}${hint ? `\n\n${hint}` : ''}`)
       }
     } catch (error: any) {
       // Log errors and show status message
-      console.log('ℹ️ Gmail sync unavailable:', error.message)
-      alert('📭 Already up to date!\n\n(Your current suggestions are showing)')
+      console.error('ℹ️ Gmail sync error:', error.message)
+      alert(`⚠️ Gmail Sync Failed\n\n${error.message}\n\nTry signing out and back in with Google.`)
     } finally {
       setSyncing(false)
     }
