@@ -1,4 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -6,26 +6,44 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/'
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  const next = searchParams.get('next') ?? '/'
 
   if (code) {
     const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Ignore errors in Server Components
+            }
+          },
+        },
+      }
+    )
     
     try {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
       
       if (error) {
         console.error('❌ Auth callback error:', error)
-        return NextResponse.redirect(new URL('/auth/signin?error=auth_failed', requestUrl.origin))
+        return NextResponse.redirect(`${origin}/auth/signin?error=auth_failed`)
       }
       
       console.log('✅ Auth callback SUCCESS - User:', data.user?.email)
       
       // Store Google OAuth tokens for Calendar/Drive API access
-      // These tokens come from the Supabase OAuth flow with Google
       if (data.session) {
         const { provider_token, provider_refresh_token } = data.session
         
@@ -64,19 +82,13 @@ export async function GET(request: Request) {
         }
       }
       
-      // Create response with redirect
-      const response = NextResponse.redirect(new URL(next, requestUrl.origin))
-      
-      // Ensure cookies are set
-      response.headers.set('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
-      
-      return response
+      return NextResponse.redirect(`${origin}${next}`)
     } catch (error) {
       console.error('❌ Auth callback exception:', error)
-      return NextResponse.redirect(new URL('/auth/signin?error=callback_error', requestUrl.origin))
+      return NextResponse.redirect(`${origin}/auth/signin?error=callback_error`)
     }
   }
 
   // No code, just redirect
-  return NextResponse.redirect(new URL('/auth/signin', requestUrl.origin))
+  return NextResponse.redirect(`${origin}/auth/signin`)
 }

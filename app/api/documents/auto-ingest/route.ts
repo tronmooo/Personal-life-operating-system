@@ -40,11 +40,10 @@ export async function POST(request: NextRequest) {
   try {
     // Auth check
     console.log('🔐 Step 1: Checking authentication...')
-    const cookieStore = cookies()
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabaseAuth = await createServerClient()
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (authError || !user) {
       console.error('❌ Auth failed: No session')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

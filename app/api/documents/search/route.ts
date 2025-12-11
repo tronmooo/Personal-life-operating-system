@@ -74,11 +74,10 @@ function getLocalExpansion(term: string): string[] {
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabaseAuth = await createServerClient()
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 import { createClient } from '@supabase/supabase-js'
 import { extractStructuredMetadata, ExtractedMetadata } from '@/lib/ocr-processor'
@@ -11,18 +10,19 @@ import { extractStructuredMetadata, ExtractedMetadata } from '@/lib/ocr-processo
  */
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    // Get session for provider token
+    const { data: { session } } = await supabase.auth.getSession()
+    
     // Get Google access token from session
-    const accessToken = session.provider_token
-    const refreshToken = session.provider_refresh_token
+    const accessToken = session?.provider_token
+    const refreshToken = session?.provider_refresh_token
 
     if (!accessToken) {
       return NextResponse.json({ error: 'No Google access token' }, { status: 401 })
@@ -40,10 +40,6 @@ export async function POST(request: Request) {
     }
 
     console.log(`📤 Uploading ${file.name} to Google Drive (${domain})...`)
-    console.log('   Access token exists:', accessToken.substring(0, 20) + '...')
-    console.log('   GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID)
-    console.log('   GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET)
-    console.log('   Domain folder:', domain)
 
     // Extract structured metadata from OCR text (if available)
     let extractedMetadata: ExtractedMetadata = {}
@@ -156,4 +152,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

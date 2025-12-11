@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,7 +51,7 @@ export function UniversalAITool({
   const loadSavedItems = async () => {
     try {
       setLoadingItems(true)
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+      
       const supabase = createClientComponentClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -125,7 +126,7 @@ export function UniversalAITool({
   const saveResult = async () => {
     if (!output) return
 
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -175,7 +176,7 @@ export function UniversalAITool({
   }
 
   const deleteItem = async (id: string) => {
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 

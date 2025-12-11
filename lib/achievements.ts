@@ -1,5 +1,11 @@
 // Achievement/Badge System
 
+// Helper to get Supabase client (dynamic import for SSR safety)
+async function getSupabaseClient() {
+  const { createClientComponentClient } = await import('@/lib/supabase/browser-client')
+  return createClientComponentClient()
+}
+
 export interface Achievement {
   id: string
   title: string
@@ -182,8 +188,7 @@ export class AchievementManager {
     if (typeof window === 'undefined') return ACHIEVEMENTS
 
     try {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createClientComponentClient()
+      const supabase = await getSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
@@ -234,8 +239,7 @@ export class AchievementManager {
     if (typeof window === 'undefined') return
 
     try {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createClientComponentClient()
+      const supabase = await getSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
@@ -386,8 +390,7 @@ export class AchievementManager {
     const newlyUnlocked: Achievement[] = []
 
     try {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createClientComponentClient()
+      const supabase = await getSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return []
 

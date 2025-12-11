@@ -84,7 +84,6 @@ export function useDomainCRUD(domain: Domain) {
   const create = useCallback(async (data: Partial<DomainData>) => {
     // Check authentication before creating
     if (!requireAuth('add items')) {
-      toast.info('Demo Mode', 'Sign in to save your own data. This is demo data.')
       return null
     }
 
@@ -115,7 +114,6 @@ export function useDomainCRUD(domain: Domain) {
   const update = useCallback(async (id: string, data: Partial<DomainData>) => {
     // Check authentication before updating
     if (!requireAuth('save changes')) {
-      toast.info('Demo Mode', 'Sign in to edit your own data. This is demo data.')
       return null
     }
 
@@ -139,7 +137,6 @@ export function useDomainCRUD(domain: Domain) {
   const remove = useCallback(async (id: string, skipConfirm = false) => {
     // Check authentication before deleting
     if (!requireAuth('delete items')) {
-      toast.info('Demo Mode', 'Sign in to manage your own data. This is demo data.')
       return false
     }
 
@@ -188,7 +185,6 @@ export function useDomainCRUD(domain: Domain) {
 
     // Check authentication before deleting
     if (!requireAuth('delete items')) {
-      toast.info('Demo Mode', 'Sign in to manage your own data. This is demo data.')
       return 0
     }
 

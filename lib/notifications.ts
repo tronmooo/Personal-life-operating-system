@@ -1,5 +1,11 @@
 // Browser Notifications System
 
+// Helper to get Supabase client (dynamic import for SSR safety)
+async function getSupabaseClient() {
+  const { createClientComponentClient } = await import('@/lib/supabase/browser-client')
+  return createClientComponentClient()
+}
+
 export interface NotificationOptions {
   title: string
   body: string
@@ -172,8 +178,7 @@ export class NotificationScheduler {
     if (!notificationManager.isGranted()) return
 
     try {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createClientComponentClient()
+      const supabase = await getSupabaseClient()
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return

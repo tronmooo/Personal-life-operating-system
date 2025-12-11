@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { idbGet, idbSet } from '@/lib/utils/idb-cache'
 import { EnhancedDomainData } from '@/types/enhanced-domains'
 import { UploadedDocument } from '@/components/document-uploader'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 interface EnhancedDataContextType {
   enhancedData: EnhancedDomainData[]
@@ -27,7 +28,6 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
       const supabase = createClientComponentClient()
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -76,7 +76,6 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addEnhancedItem = async (item: Omit<EnhancedDomainData, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -124,7 +123,6 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
   }
 
   const updateEnhancedItem = async (id: string, updates: Partial<EnhancedDomainData>) => {
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -172,7 +170,7 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteEnhancedItem = async (id: string) => {
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     

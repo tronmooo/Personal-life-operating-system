@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,7 +21,7 @@ export function AIDiagnosticsDialog({ open, onOpenChange }: Props) {
     if (open) {
       // Check for pre-loaded text from document OCR (Supabase first, then IndexedDB fallback)
       const loadPreloadedText = async () => {
-        const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+        
         const supabase = createClientComponentClient()
         const { data: { user } } = await supabase.auth.getUser()
 

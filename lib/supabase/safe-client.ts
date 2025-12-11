@@ -1,6 +1,7 @@
 'use client'
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 // Safe client that doesn't throw at module load time
 let _browserClient: SupabaseClient | null = null
@@ -36,14 +37,7 @@ export function createSafeBrowserClient(): SupabaseClient | null {
     return null
   }
 
-  _browserClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      flowType: 'pkce',
-      detectSessionInUrl: true,
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  })
+  _browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
   return _browserClient
 }

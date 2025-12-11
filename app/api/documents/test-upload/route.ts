@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-
 /**
  * Test endpoint to verify upload functionality without OpenAI
  * curl -X POST http://localhost:3009/api/documents/test-upload -F "file=@test.jpg"
@@ -11,11 +10,10 @@ export async function POST(request: NextRequest) {
     console.log('✅ Test upload endpoint reached')
     
     // Auth check
-    const cookieStore = cookies()
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (authError || !user) {
       console.log('❌ No session found')
       return NextResponse.json({ 
         error: 'Unauthorized',

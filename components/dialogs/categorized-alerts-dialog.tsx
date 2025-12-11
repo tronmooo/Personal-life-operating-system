@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +35,7 @@ export function CategorizedAlertsDialog({ open, onClose }: CategorizedAlertsDial
   // Load checked alerts from Supabase (with IndexedDB fallback)
   useEffect(() => {
     const loadCheckedAlerts = async () => {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+      
       const supabase = createClientComponentClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -72,7 +73,7 @@ export function CategorizedAlertsDialog({ open, onClose }: CategorizedAlertsDial
       
       // Persist to Supabase (with IndexedDB fallback)
       const saveCheckedAlerts = async () => {
-        const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+        
         const supabase = createClientComponentClient()
         const { data: { user } } = await supabase.auth.getUser()
 

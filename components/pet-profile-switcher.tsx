@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -66,7 +67,7 @@ export function PetProfileSwitcher({ onPetSelected, selectedPetId }: PetProfileS
   // Load pets from Supabase (with IndexedDB fallback)
   useEffect(() => {
     const loadPets = async () => {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+      
       const supabase = createClientComponentClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -136,7 +137,7 @@ export function PetProfileSwitcher({ onPetSelected, selectedPetId }: PetProfileS
   const savePets = async (updatedPets: PetProfile[]) => {
     setPets(updatedPets)
     
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -155,7 +156,7 @@ export function PetProfileSwitcher({ onPetSelected, selectedPetId }: PetProfileS
       return
     }
 
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -223,7 +224,7 @@ export function PetProfileSwitcher({ onPetSelected, selectedPetId }: PetProfileS
   const handleDeletePet = async (petId: string) => {
     if (!confirm('Are you sure you want to delete this pet profile?')) return
 
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 

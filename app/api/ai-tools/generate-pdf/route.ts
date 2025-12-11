@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -210,34 +207,3 @@ function generateHTMLForType(type: string, data: any): string {
   const generator = generators[type] || generators.report
   return generator(data)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

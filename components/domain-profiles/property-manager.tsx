@@ -71,10 +71,24 @@ export function PropertyManager() {
       const rapidApiResponse = await fetch('/api/zillow-scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ address: fullAddress })
       })
       
-      const rapidApiResult = await rapidApiResponse.json()
+      let rapidApiResult;
+      try {
+        rapidApiResult = await rapidApiResponse.json()
+      } catch (e) {
+        console.error('Failed to parse response:', e)
+        throw new Error('Invalid response from server')
+      }
+
+      if (!rapidApiResponse.ok) {
+         if (rapidApiResponse.status === 401) {
+            throw new Error('Authentication required. Please refresh the page or sign in again.')
+         }
+         throw new Error(rapidApiResult.error || 'Failed to fetch property value')
+      }
       
       // If RapidAPI fails, fallback to AI estimate
       let result = rapidApiResult

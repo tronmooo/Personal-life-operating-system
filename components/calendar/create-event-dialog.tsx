@@ -49,7 +49,9 @@ export function CreateEventDialog({ trigger }: CreateEventDialogProps) {
       console.log('📡 Calendar API Response:', { status: response.status, data })
 
       if (!response.ok) {
-        if (data.requiresAuth) {
+        if (response.status === 401) {
+          setError('Authentication required. Please sign in.')
+        } else if (data.requiresAuth) {
           setError('⚠️ Calendar not connected. Please click "Grant Calendar Access" on the dashboard first, then try again.')
         } else {
           setError(data.error || 'Failed to create event')

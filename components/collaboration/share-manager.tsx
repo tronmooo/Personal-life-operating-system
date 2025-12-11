@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +47,7 @@ export function ShareManager({ domainId, domainName }: ShareManagerProps) {
   // Load sharing data from Supabase (with IndexedDB fallback)
   useEffect(() => {
     const loadSharingData = async () => {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+      
       const supabase = createClientComponentClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -90,7 +91,7 @@ export function ShareManager({ domainId, domainName }: ShareManagerProps) {
     setLinkSharing(true)
     
     // Save to Supabase (with IndexedDB fallback)
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -148,7 +149,7 @@ export function ShareManager({ domainId, domainName }: ShareManagerProps) {
     setSharedUsers(updated)
     
     // Save to Supabase (with IndexedDB fallback)
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -186,7 +187,7 @@ export function ShareManager({ domainId, domainName }: ShareManagerProps) {
     const updated = sharedUsers.filter(u => u.id !== userId)
     setSharedUsers(updated)
     
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -217,7 +218,7 @@ export function ShareManager({ domainId, domainName }: ShareManagerProps) {
     )
     setSharedUsers(updated)
     
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -246,7 +247,7 @@ export function ShareManager({ domainId, domainName }: ShareManagerProps) {
     setLinkSharing(false)
     setShareLink('')
     
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
 

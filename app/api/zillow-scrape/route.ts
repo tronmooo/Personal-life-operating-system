@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // RapidAPI credentials for Zillow property data
 const RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY || '2657638a72mshdc028c9a0485f14p157dbbjsn28df901ae355'
@@ -9,6 +11,39 @@ export async function POST(request: Request) {
   console.log('🕐 Timestamp:', new Date().toISOString())
   
   try {
+    // Verify authentication
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Ignore errors in Server Components
+            }
+          },
+        },
+      }
+    )
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      console.error('❌ Authentication failed:', authError)
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      )
+    }
+
     const { address } = await request.json()
 
     if (!address) {

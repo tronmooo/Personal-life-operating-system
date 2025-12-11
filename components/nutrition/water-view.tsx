@@ -33,7 +33,11 @@ export function WaterView() {
       const isWaterEntry = item.metadata?.type === 'water' || 
                           item.metadata?.itemType === 'water' || 
                           item.metadata?.logType === 'water'
-      if (isWaterEntry) {
+      
+      // Filter for today's entries only
+      const itemDate = new Date(item.createdAt).toISOString().split('T')[0]
+      
+      if (isWaterEntry && itemDate === today) {
         entries.push({
           id: item.id,
           amount: Number(item.metadata.water || item.metadata.value || item.metadata.amount || 0),
@@ -59,7 +63,10 @@ export function WaterView() {
       const isWaterEntry = item.metadata?.type === 'water' || 
                           item.metadata?.itemType === 'water' || 
                           item.metadata?.logType === 'water'
-      if (isWaterEntry) {
+      
+      const itemDate = new Date(item.createdAt).toISOString().split('T')[0]
+      
+      if (isWaterEntry && itemDate === today) {
         entries.push({
           id: item.id,
           amount: Number(item.metadata.water || item.metadata.value || item.metadata.amount || 0),

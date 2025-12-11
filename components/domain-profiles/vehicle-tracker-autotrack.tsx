@@ -459,6 +459,7 @@ export function VehicleTrackerAutoTrack() {
       const response = await fetch('/api/vehicles/fetch-value', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           year: vehicleForm.year.toString(),
           make: vehicleForm.make,
@@ -479,6 +480,9 @@ export function VehicleTrackerAutoTrack() {
       const data = await response.json()
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please refresh the page or sign in again.')
+        }
         throw new Error(data.error || 'Failed to fetch value')
       }
 

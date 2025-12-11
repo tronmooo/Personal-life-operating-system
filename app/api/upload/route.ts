@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Get session for provider token
+    const { data: { session } } = await supabase.auth.getSession()
 
     const form = await req.formData()
     const file = form.get('file') as File | null
@@ -50,11 +51,8 @@ export async function POST(req: NextRequest) {
     let driveLink: string | null = null
     let driveFileId: string | null = null
     
-    if (session.provider_token) {
+    if (session?.provider_token) {
       console.log('🔑 Google provider token found - attempting Google Drive upload...')
-      console.log('   Provider token exists:', session.provider_token.substring(0, 20) + '...')
-      console.log('   GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID)
-      console.log('   GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET)
       try {
         const driveService = new GoogleDriveService(
           session.provider_token,
@@ -107,5 +105,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message || 'Upload failed' }, { status: 500 })
   }
 }
-
-

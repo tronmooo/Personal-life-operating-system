@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import {
   Dialog,
   DialogContent,
@@ -415,7 +416,7 @@ export function useTrackedAssets() {
 
   useEffect(() => {
     const loadAssets = async () => {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+      
       const supabase = createClientComponentClient()
       
       const { data: { user } } = await supabase.auth.getUser()
@@ -475,7 +476,7 @@ export function useTrackedAssets() {
 
 // Save asset to Supabase
 export async function saveTrackedAsset(asset: any) {
-  const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+  
   const supabase = createClientComponentClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -555,7 +556,7 @@ export async function saveTrackedAsset(asset: any) {
 
 // Delete asset from Supabase
 export async function deleteTrackedAsset(assetId: string) {
-  const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+  
   const supabase = createClientComponentClient()
   
   const { data: { user } } = await supabase.auth.getUser()

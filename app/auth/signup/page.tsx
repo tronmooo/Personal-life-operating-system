@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase/client'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { UserPlus, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const supabase = createClientComponentClient()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

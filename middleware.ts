@@ -2,19 +2,16 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// GUEST_MODE_ENABLED: v4 - Simplified for debugging
+// GUEST_MODE_ENABLED: v5 - With enhanced debug logging
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   
-  console.log('[Middleware v4] Path:', pathname)
-
   // Create a simple pass-through response
   const response = NextResponse.next()
 
   // For non-API pages: ALWAYS allow through (guest viewing mode)
   // No authentication checks, no redirects
   if (!pathname.startsWith('/api/')) {
-    console.log('[Middleware] Allowing page:', pathname)
     return response
   }
 
@@ -37,7 +34,7 @@ export async function middleware(req: NextRequest) {
       }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     // Public APIs - always allow
     const publicApiPaths = ['/api/auth', '/api/cron', '/api/webhooks', '/api/plaid/webhook']
@@ -49,6 +46,15 @@ export async function middleware(req: NextRequest) {
     const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
     
     if (isWriteOperation && !user) {
+      // Log auth failure for debugging
+      console.log('[Middleware] Auth check failed:', {
+        path: pathname,
+        method: req.method,
+        hasUser: !!user,
+        authError: authError?.message,
+        cookieCount: req.cookies.getAll().length
+      })
+      
       return NextResponse.json(
         { error: 'Authentication required. Please sign in.' },
         { status: 401 }

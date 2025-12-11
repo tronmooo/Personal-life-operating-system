@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
 import { getOpenAI } from '@/lib/openai/client'
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user?.id) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -134,34 +131,3 @@ function getPromptForDocumentType(documentType: string): string {
 
   return prompts[documentType] || prompts.document
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import {
   Dialog,
   DialogContent,
@@ -118,7 +119,6 @@ export function ExpirationTracker({ expiration, open, onClose, onConfirm }: Expi
     }
 
     // Save to expiration alerts in Supabase
-    const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -424,7 +424,6 @@ export function useExpirationAlerts() {
 
   useEffect(() => {
     const loadAlerts = async () => {
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
       const supabase = createClientComponentClient()
       const { data: { user } } = await supabase.auth.getUser()
       

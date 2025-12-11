@@ -5,7 +5,8 @@
  * but doesn't throw during static build time when env vars aren't available
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 let _browserClient: SupabaseClient | null = null
 let _initializationAttempted = false
@@ -51,14 +52,7 @@ export function createClientComponentClient(): SupabaseClient {
     return createDummyClient() as unknown as SupabaseClient
   }
 
-  _browserClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      flowType: 'pkce',
-      detectSessionInUrl: true,
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  })
+  _browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
 
   return _browserClient
 }
@@ -94,4 +88,3 @@ function createDummyClient() {
 
 // Re-export for convenience
 export { createClientComponentClient as createBrowserClient }
-
