@@ -2809,15 +2809,20 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
     if (simpleWorkoutMatch) {
       const duration = parseInt(simpleWorkoutMatch[1])
       const exercise = simpleWorkoutMatch[2].trim().replace(/workout|exercise|session/gi, '').trim() || 'workout'
+      const capitalizedExercise = exercise.charAt(0).toUpperCase() + exercise.slice(1)
       
       console.log(`✅ SIMPLE WORKOUT: ${duration} min ${exercise}`)
       
       await saveToSupabase(supabase, userId, 'fitness', {
         id: randomUUID(),
         type: 'workout',
+        itemType: 'activity',        // For fitness dashboard filter
+        activityType: capitalizedExercise,  // Required by fitness dashboard!
         exercise,
         duration,
+        calories: Math.round(duration * 8), // Rough estimate
         timestamp: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
         source: 'voice_ai'
       })
       
@@ -2830,36 +2835,62 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
   }
   
   // Activity verbs (running, walking, etc): "ran X minutes", "I cycled 20 min", etc.
-  if (lowerMessage.match(/\b(?:ran|run|jogged|jog|walked|walk|cycled|cycle|biked|bike|swam|swim|hiked|hike)\b/)) {
-    const activityMatch = lowerMessage.match(/(?:ran|run|jogged|jog|walked|walk|cycled|cycle|biked|bike|swam|swim|hiked|hike)\s+(?:for\s+)?(\d+)\s*(?:minutes?|mins?|hours?|hrs?)/)
-    if (activityMatch) {
-      const duration = parseInt(activityMatch[1])
+  // Enhanced pattern to catch more variations
+  if (lowerMessage.match(/\b(?:ran|run|running|jogged|jog|jogging|walked|walk|walking|cycled|cycle|cycling|biked|bike|biking|swam|swim|swimming|hiked|hike|hiking)\b/)) {
+    // Multiple patterns to catch duration - try each one
+    const patterns = [
+      // "ran for 32 minutes" or "ran 32 minutes"
+      /(?:ran|run|running|jogged|jog|jogging|walked|walk|walking|cycled|cycle|cycling|biked|bike|biking|swam|swim|swimming|hiked|hike|hiking)\s+(?:for\s+)?(\d+)\s*(?:minutes?|mins?|hours?|hrs?)/i,
+      // "32 minutes of running" or "32 min run"
+      /(\d+)\s*(?:minutes?|mins?|hours?|hrs?)\s+(?:of\s+)?(?:running|jogging|walking|cycling|biking|swimming|hiking|run|jog|walk|cycle|bike|swim|hike)/i,
+      // "did 32 minutes running" or "completed 32 min jog"
+      /(?:did|completed|finished)\s+(\d+)\s*(?:minutes?|mins?|hours?|hrs?)\s+(?:of\s+)?(?:running|jogging|walking|cycling|biking|swimming|hiking)/i,
+      // Just "ran 32" or "walked 45" when followed by minutes-like context
+      /\b(?:ran|run|jogged|walked|cycled|biked|swam|hiked)\b.*?(\d+)\s*(?:minutes?|mins?)/i,
+    ]
+    
+    let duration = 0
+    for (const pattern of patterns) {
+      const match = lowerMessage.match(pattern)
+      if (match) {
+        duration = parseInt(match[1])
+        break
+      }
+    }
+    
+    if (duration > 0) {
       const isHours = lowerMessage.includes('hour')
       const durationInMinutes = isHours ? duration * 60 : duration
       
       // Detect activity type
       let activity = 'cardio'
-      if (lowerMessage.match(/\b(?:ran|run|jog)/)) activity = 'running'
-      else if (lowerMessage.match(/\bwalk/)) activity = 'walking'
-      else if (lowerMessage.match(/\b(?:cycl|bik)/)) activity = 'cycling'
-      else if (lowerMessage.match(/\bswim/)) activity = 'swimming'
-      else if (lowerMessage.match(/\bhik/)) activity = 'hiking'
+      if (lowerMessage.match(/\b(?:ran|run|running|jog|jogging)\b/i)) activity = 'running'
+      else if (lowerMessage.match(/\b(?:walk|walking)\b/i)) activity = 'walking'
+      else if (lowerMessage.match(/\b(?:cycl|bik|cycling|biking)\b/i)) activity = 'cycling'
+      else if (lowerMessage.match(/\b(?:swim|swimming)\b/i)) activity = 'swimming'
+      else if (lowerMessage.match(/\b(?:hik|hiking)\b/i)) activity = 'hiking'
+      
+      const capitalizedActivity = activity.charAt(0).toUpperCase() + activity.slice(1)
       
       console.log(`✅ SIMPLE ACTIVITY: ${activity} for ${durationInMinutes} min (from: "${lowerMessage}")`)
       
       await saveToSupabase(supabase, userId, 'fitness', {
         id: randomUUID(),
         type: 'workout',
+        itemType: 'activity',        // For fitness dashboard filter
+        activityType: capitalizedActivity,  // Required by fitness dashboard!
         exercise: activity,
         duration: durationInMinutes,
+        calories: Math.round(durationInMinutes * 8), // Rough estimate
         timestamp: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
         source: 'voice_ai'
       })
       
       return {
         isCommand: true,
         action: 'save_workout',
-        message: `✅ Logged ${durationInMinutes}-minute ${activity} workout`
+        message: `✅ Logged ${durationInMinutes}-minute ${activity} workout in Fitness domain`
       }
     }
   }
@@ -3095,15 +3126,20 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
     
     // Remove trailing "workout", "exercise", "session" if present
     exercise = exercise.replace(/\s+(workout|exercise|session)$/i, '')
+    const capitalizedExercise = exercise.charAt(0).toUpperCase() + exercise.slice(1)
     
     console.log(`✅ Workout: ${exercise} for ${duration} min`)
     
     await saveToSupabase(supabase, userId, 'fitness', {
       id: randomUUID(),
       type: 'workout',
+      itemType: 'activity',        // For fitness dashboard filter
+      activityType: capitalizedExercise,  // Required by fitness dashboard!
       exercise,
       duration,
+      calories: Math.round(duration * 8), // Rough estimate
       timestamp: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
       source: 'voice_ai'
     })
     
@@ -3120,15 +3156,19 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
     const sets = parseInt(repsMatch[1])
     const exercise = repsMatch[2].trim()
     const reps = parseInt(repsMatch[3])
+    const capitalizedExercise = exercise.charAt(0).toUpperCase() + exercise.slice(1)
     console.log(`✅ Exercise: ${exercise} ${sets} sets x ${reps} reps`)
     
     await saveToSupabase(supabase, userId, 'fitness', {
       id: randomUUID(),
       type: 'strength',
+      itemType: 'activity',        // For fitness dashboard filter
+      activityType: capitalizedExercise,  // Required by fitness dashboard!
       exercise,
       sets,
       reps,
       timestamp: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
       source: 'voice_ai'
     })
     
@@ -3148,8 +3188,13 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
     await saveToSupabase(supabase, userId, 'fitness', {
       id: randomUUID(),
       type: 'calories_burned',
+      itemType: 'activity',        // For fitness dashboard filter
+      activityType: 'Workout',     // Generic activity type
+      calories: calories,
+      caloriesBurned: calories,
       value: calories,
       timestamp: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
       source: 'voice_ai'
     })
     
@@ -5525,6 +5570,13 @@ async function saveToSupabase(supabase: any, userId: string, domain: string, ent
     else if (entry.type === 'workout') {
       const exerciseName = entry.exercise || entry.exercise_type || entry.activityType || 'workout'
       title = `${entry.duration || 0} min ${exerciseName}`
+      // Ensure activityType is set for fitness dashboard compatibility
+      if (!entry.activityType) {
+        entry.activityType = exerciseName.charAt(0).toUpperCase() + exerciseName.slice(1)
+      }
+      if (!entry.itemType) {
+        entry.itemType = 'activity'
+      }
     } 
     // FINANCIAL
     else if (entry.type === 'expense') {
