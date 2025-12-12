@@ -21,6 +21,7 @@ import {
   BillSummary,
   InvestmentPortfolio,
   MonthlyBudgetSummary,
+  FinancialInsight,
   AccountFormData,
   TransactionFormData,
   AssetFormData,
@@ -31,12 +32,12 @@ import {
 } from '@/types/finance'
 
 // Stub functions - TODO: implement or import from correct location
-const calculateFinancialSummary = (data: any): FinancialSummary => ({} as FinancialSummary)
-const calculateDebtSummary = (data: any): DebtSummary => ({} as DebtSummary)
-const calculateBillSummary = (data: any): BillSummary => ({} as BillSummary)
-const calculateInvestmentPortfolio = (data: any): InvestmentPortfolio => ({} as InvestmentPortfolio)
-const calculateMonthlyBudgetSummary = (data: any): MonthlyBudgetSummary => ({} as MonthlyBudgetSummary)
-const generateFinancialInsights = (data: any): string[] => []
+const calculateFinancialSummary = (..._args: any[]): FinancialSummary => ({} as FinancialSummary)
+const calculateDebtSummary = (..._args: any[]): DebtSummary => ({} as DebtSummary)
+const calculateBillSummary = (..._args: any[]): BillSummary => ({} as BillSummary)
+const calculateInvestmentPortfolio = (..._args: any[]): InvestmentPortfolio => ({} as InvestmentPortfolio)
+const calculateMonthlyBudgetSummary = (..._args: any[]): MonthlyBudgetSummary => ({} as MonthlyBudgetSummary)
+const generateFinancialInsights = (..._args: any[]): FinancialInsight[] => []
 import { format } from 'date-fns'
 
 interface FinanceContextType {

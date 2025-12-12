@@ -226,6 +226,14 @@ export function SleepTrackingTab({ onLogSleep }: SleepTrackingTabProps) {
           ) : (
               sleepEntries.slice(0, 5).map(entry => {
                 const metadata = entry.metadata || {}
+                const sleepQuality = String(metadata.sleepQuality || 'Good')
+                const sleepHours = metadata.sleepHours !== undefined ? String(metadata.sleepHours) : '7.5'
+                const bedtime = String(metadata.bedtime || '10:30 PM')
+                const wakeTime = String(metadata.wakeTime || '6:00 AM')
+                const deepSleep = metadata.deepSleep !== undefined ? String(metadata.deepSleep) : '2.1'
+                const remSleep = metadata.remSleep !== undefined ? String(metadata.remSleep) : '1.8'
+                const notes = metadata.notes ? String(metadata.notes) : null
+                
                 return (
                   <div key={entry.id} className="p-4 bg-white dark:bg-gray-900 rounded-lg">
                     <div className="flex items-start justify-between mb-3">
@@ -237,19 +245,19 @@ export function SleepTrackingTab({ onLogSleep }: SleepTrackingTabProps) {
                           <Badge 
                             variant="outline" 
                             className={`mt-1 ${
-                              metadata?.sleepQuality === 'Good' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              metadata?.sleepQuality === 'Excellent' ? 'bg-green-50 text-green-700 border-green-200' :
+                              sleepQuality === 'Good' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              sleepQuality === 'Excellent' ? 'bg-green-50 text-green-700 border-green-200' :
                               'bg-yellow-50 text-yellow-700 border-yellow-200'
                             }`}
                           >
-                            {String(metadata?.sleepQuality || 'Good')}
+                            {sleepQuality}
                           </Badge>
                         </div>
                       </div>
                       <div className="text-right flex items-center gap-4">
                         <div>
                           <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                            {metadata?.sleepHours || 7.5}h
+                            {sleepHours}h
                           </p>
                           <p className="text-xs text-gray-500">total sleep</p>
                         </div>
@@ -268,32 +276,32 @@ export function SleepTrackingTab({ onLogSleep }: SleepTrackingTabProps) {
                       <div>
                         <p className="font-medium text-purple-700">Bedtime</p>
                         <p className="text-purple-900 dark:text-purple-100">
-                          {String(metadata?.bedtime || '10:30 PM')}
+                          {bedtime}
                         </p>
                       </div>
                       <div>
                         <p className="font-medium text-purple-700">Wake</p>
                         <p className="text-purple-900 dark:text-purple-100">
-                          {String(metadata?.wakeTime || '6:00 AM')}
+                          {wakeTime}
                         </p>
                       </div>
                       <div>
                         <p className="font-medium text-blue-700">Deep</p>
                         <p className="text-blue-900 dark:text-blue-100">
-                          {metadata?.deepSleep || 2.1}h
+                          {deepSleep}h
                         </p>
                       </div>
                       <div>
                         <p className="font-medium text-cyan-700">REM</p>
                         <p className="text-cyan-900 dark:text-cyan-100">
-                          {metadata?.remSleep || 1.8}h
+                          {remSleep}h
                         </p>
                       </div>
                     </div>
 
-                    {metadata?.notes && (
+                    {notes && (
                       <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 italic">
-                        {String(metadata.notes)}
+                        {notes}
                       </p>
                     )}
                   </div>

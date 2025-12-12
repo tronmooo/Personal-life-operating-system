@@ -95,11 +95,13 @@ export function MedicationsTabEnhanced({ onAddMedication }: MedicationsTabEnhanc
           <CardDescription>Track your daily medications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {medications.filter(m => m.metadata?.frequency !== 'as-needed').length === 0 ? (
+          {medications.filter(m => String(m.metadata?.frequency || '') !== 'as-needed').length === 0 ? (
             <p className="text-center py-4 text-gray-500">No scheduled medications</p>
           ) : (
-            medications.filter(m => m.metadata?.frequency !== 'as-needed').map(med => {
-              const taken = Boolean(med.metadata?.taken)
+            medications.filter(m => String(m.metadata?.frequency || '') !== 'as-needed').map(med => {
+              const metadata = med.metadata || {}
+              const taken = Boolean(metadata.taken)
+              const scheduledTime = String(metadata.scheduledTime || '8:00 AM')
               return (
                 <div 
                   key={med.id} 
@@ -120,7 +122,7 @@ export function MedicationsTabEnhanced({ onAddMedication }: MedicationsTabEnhanc
                         {med.title}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {med.metadata?.scheduledTime || '8:00 AM'}
+                        {scheduledTime}
                       </p>
                     </div>
                   </div>
@@ -147,7 +149,15 @@ export function MedicationsTabEnhanced({ onAddMedication }: MedicationsTabEnhanc
             </div>
           ) : (
             medications.map(med => {
-              const refillStatus = getRefillStatus(med.metadata?.refillDate)
+              const metadata = med.metadata || {}
+              const refillDate = metadata.refillDate ? String(metadata.refillDate) : ''
+              const refillStatus = getRefillStatus(refillDate)
+              const frequency = String(metadata.frequency || 'Once daily')
+              const scheduledTime = String(metadata.scheduledTime || '8:00 AM')
+              const prescribedBy = String(metadata.prescribedBy || 'Dr. Sarah Smith')
+              const startDate = String(metadata.startDate || '5/31/2024')
+              const instructions = metadata.instructions ? String(metadata.instructions) : null
+              
               return (
                 <div key={med.id} className="p-4 border rounded-lg">
                   <div className="flex items-start justify-between mb-3">
@@ -158,8 +168,8 @@ export function MedicationsTabEnhanced({ onAddMedication }: MedicationsTabEnhanc
                       <div>
                         <h3 className="font-semibold text-lg">{med.title}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline">{med.metadata?.frequency || 'Once daily'}</Badge>
-                          <Badge variant="outline">{med.metadata?.scheduledTime || '8:00 AM'}</Badge>
+                          <Badge variant="outline">{frequency}</Badge>
+                          <Badge variant="outline">{scheduledTime}</Badge>
                         </div>
                       </div>
                     </div>
@@ -184,28 +194,28 @@ export function MedicationsTabEnhanced({ onAddMedication }: MedicationsTabEnhanc
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Prescribed by</p>
-                      <p className="font-medium">{med.metadata?.prescribedBy || 'Dr. Sarah Smith'}</p>
+                      <p className="font-medium">{prescribedBy}</p>
                     </div>
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Start date</p>
-                      <p className="font-medium">{med.metadata?.startDate || '5/31/2024'}</p>
+                      <p className="font-medium">{startDate}</p>
                     </div>
                   </div>
 
-                  {med.metadata?.instructions && (
+                  {instructions && (
                     <div className="mt-3">
                       <p className="text-gray-600 dark:text-gray-400 text-sm">Instructions</p>
-                      <p className="text-sm">{String(med.metadata.instructions)}</p>
+                      <p className="text-sm">{instructions}</p>
                     </div>
                   )}
 
-                  {refillStatus && med.metadata?.refillDate && (
+                  {refillStatus && refillDate && (
                     <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-950 rounded border border-yellow-200">
                       <div className="flex items-center gap-2 text-sm">
                         <AlertCircle className="w-4 h-4 text-yellow-600" />
                         <span className="text-yellow-900 dark:text-yellow-100">
-                          Refill needed in {differenceInDays(new Date(med.metadata.refillDate), new Date())} days 
-                          ({format(new Date(med.metadata.refillDate), 'M/d/yyyy')})
+                          Refill needed in {differenceInDays(new Date(refillDate), new Date())} days 
+                          ({format(new Date(refillDate), 'M/d/yyyy')})
                         </span>
                       </div>
                     </div>

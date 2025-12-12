@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     console.log('📞 Call status webhook:', { callSid, callStatus, callDuration, answeredBy })
 
     // Find call session by provider call ID
+    const supabase = getSupabase()
     const { data: callSession, error: fetchError } = await supabase
       .from('call_sessions')
       .select('*, call_task:call_tasks(*)')
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update call session
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabase()
       .from('call_sessions')
       .update(updateData)
       .eq('id', callSession.id)
@@ -120,14 +121,15 @@ export async function POST(request: NextRequest) {
         console.log('✅ Call completed, waiting for transcript processing')
       } else if (mappedStatus === 'failed') {
         // Check if we should retry
-        const { data: assistantSettings } = await supabase
+        const supabaseClient = getSupabase()
+        const { data: assistantSettings } = await supabaseClient
           .from('assistant_settings')
           .select('auto_retry_failed_calls, max_retry_attempts')
           .eq('user_id', callTask.user_id)
           .single()
 
         // Count existing failed sessions
-        const { count } = await supabase
+        const { count } = await supabaseClient
           .from('call_sessions')
           .select('*', { count: 'exact', head: true })
           .eq('call_task_id', callTask.id)
@@ -140,7 +142,7 @@ export async function POST(request: NextRequest) {
           failedAttempts < (assistantSettings.max_retry_attempts || 2)
         ) {
           // Mark task as ready_to_call for retry
-          await supabase
+          await supabaseClient
             .from('call_tasks')
             .update({
               status: 'ready_to_call',
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
           console.log('🔄 Scheduling retry for call task:', callTask.id)
         } else {
           // Mark task as failed
-          await supabase
+          await supabaseClient
             .from('call_tasks')
             .update({
               status: 'failed',

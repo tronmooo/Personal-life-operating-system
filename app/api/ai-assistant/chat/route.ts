@@ -3,6 +3,105 @@ import { createServerClient } from '@/lib/supabase/server'
 import { randomUUID } from 'crypto'
 
 // ============================================
+// AI SETTINGS INTERFACE AND HELPER
+// ============================================
+interface AISettings {
+  aiName: string
+  responseStyle: 'concise' | 'detailed' | 'conversational'
+  proactiveInsights: boolean
+  learningMode: boolean
+  tone: 'professional' | 'friendly' | 'casual'
+  expertiseLevel: 'beginner' | 'intermediate' | 'advanced'
+  modelVersion: 'gpt-4' | 'gpt-3.5' | 'claude-3'
+  maxTokens: number
+  temperature: number
+  contextWindow: number
+  focusAreas: string[]
+  priorityDomains: string[]
+}
+
+const DEFAULT_AI_SETTINGS: AISettings = {
+  aiName: 'AI Assistant',
+  responseStyle: 'conversational',
+  proactiveInsights: true,
+  learningMode: true,
+  tone: 'friendly',
+  expertiseLevel: 'intermediate',
+  modelVersion: 'gpt-4',
+  maxTokens: 2000,
+  temperature: 0.7,
+  contextWindow: 8000,
+  focusAreas: ['Financial Health', 'Physical Health', 'Productivity'],
+  priorityDomains: ['financial', 'health', 'career']
+}
+
+async function getUserAISettings(supabase: any, userId: string): Promise<AISettings> {
+  try {
+    const { data } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (data?.settings) {
+      // Merge with defaults to ensure all fields exist
+      return { ...DEFAULT_AI_SETTINGS, ...data.settings }
+    }
+  } catch (error) {
+    console.error('Error fetching AI settings:', error)
+  }
+  return DEFAULT_AI_SETTINGS
+}
+
+function buildSystemPromptWithSettings(basePrompt: string, settings: AISettings): string {
+  const toneInstructions = {
+    professional: 'Maintain a formal, precise, and business-like tone. Use proper terminology and structured responses.',
+    friendly: 'Be warm, approachable, and conversational. Use encouraging language while remaining helpful and informative.',
+    casual: 'Be relaxed and informal, like chatting with a friend. Use natural language and occasional humor where appropriate.'
+  }
+
+  const expertiseInstructions = {
+    beginner: 'Explain concepts simply without jargon. Provide step-by-step guidance and define any technical terms you use.',
+    intermediate: 'Use balanced explanations with some technical detail when relevant. Assume basic familiarity with concepts.',
+    advanced: 'You can use technical language freely. Provide in-depth analysis and assume familiarity with advanced concepts.'
+  }
+
+  const styleInstructions = {
+    concise: 'Keep responses brief and to the point. Use bullet points for lists. Focus on the essential information.',
+    detailed: 'Provide comprehensive explanations with context, examples, and thorough analysis.',
+    conversational: 'Engage naturally in dialogue. Ask clarifying questions when needed and reference previous context.'
+  }
+
+  const enhancedPrompt = `Your name is ${settings.aiName}. ${basePrompt}
+
+COMMUNICATION STYLE:
+${toneInstructions[settings.tone]}
+${expertiseInstructions[settings.expertiseLevel]}
+${styleInstructions[settings.responseStyle]}
+
+FOCUS AREAS: ${settings.focusAreas.join(', ')}
+PRIORITY DOMAINS: ${settings.priorityDomains.join(', ')}
+
+When providing insights, prioritize information related to the user's focus areas and priority domains.
+${settings.proactiveInsights ? 'Proactively offer relevant insights and suggestions based on the data you observe.' : 'Only provide insights when explicitly asked.'}`
+
+  return enhancedPrompt
+}
+
+function getOpenAIModel(modelVersion: string): string {
+  switch (modelVersion) {
+    case 'gpt-4':
+      return 'gpt-4o-mini' // Using gpt-4o-mini as the default GPT-4 variant
+    case 'gpt-3.5':
+      return 'gpt-3.5-turbo'
+    case 'claude-3':
+      return 'gpt-4o-mini' // Fallback to GPT-4 since we're using OpenAI
+    default:
+      return 'gpt-4o-mini'
+  }
+}
+
+// ============================================
 // GOOGLE CALENDAR HELPER
 // ============================================
 async function createGoogleCalendarEvent(
@@ -217,7 +316,13 @@ Return ONLY valid JSON.`
 // ============================================
 // SEND HANDLER - Share documents/data via email or SMS
 // ============================================
-async function intelligentSendHandler(message: string, userId: string, supabase: any) {
+async function intelligentSendHandler(
+  message: string,
+  userId: string,
+  supabase: any,
+  baseUrl: string,
+  cookieHeader: string
+) {
   const openAIKey = process.env.OPENAI_API_KEY
   if (!openAIKey) return { isSend: false }
 
@@ -322,13 +427,12 @@ Only respond with valid JSON.`
 
     console.log('✅ Detected SEND command to:', parsed.recipient_name || parsed.recipient_type)
 
-    // Execute the send via the send API
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Execute the send via the send API (forward cookies so auth works server-side)
     const sendResponse = await fetch(new URL('/api/ai-assistant/send', baseUrl), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Cookie': `sb-access-token=${supabase.auth?.currentSession?.access_token || ''}`
+        ...(cookieHeader ? { Cookie: cookieHeader } : {})
       },
       body: JSON.stringify({
         action: 'send',
@@ -361,7 +465,13 @@ Only respond with valid JSON.`
 // ============================================
 // ACTION HANDLER - Delete, Update, Predict, Export
 // ============================================
-async function intelligentActionHandler(message: string, userId: string, supabase: any) {
+async function intelligentActionHandler(
+  message: string,
+  userId: string,
+  supabase: any,
+  baseUrl: string,
+  cookieHeader: string
+) {
   const openAIKey = process.env.OPENAI_API_KEY
   if (!openAIKey) return { isAction: false }
 
@@ -482,10 +592,13 @@ Only respond with valid JSON.`
 
     console.log('✅ Detected ACTION:', parsed.actionType, 'for domain:', parsed.domain)
 
-    // Execute the action via the actions API
-    const actionResponse = await fetch(new URL('/api/ai-assistant/actions', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'), {
+    // Execute the action via the actions API (forward cookies so auth works server-side)
+    const actionResponse = await fetch(new URL('/api/ai-assistant/actions', baseUrl), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cookieHeader ? { Cookie: cookieHeader } : {})
+      },
       body: JSON.stringify({
         action: parsed.actionType,
         domain: parsed.domain,
@@ -509,7 +622,13 @@ Only respond with valid JSON.`
 }
 
 // Intelligent AI-powered command parser
-async function intelligentCommandParser(message: string, userId: string, supabase: any) {
+async function intelligentCommandParser(
+  message: string,
+  userId: string,
+  supabase: any,
+  baseUrl: string,
+  cookieHeader: string
+) {
   const openAIKey = process.env.OPENAI_API_KEY
   if (!openAIKey) {
     return { isCommand: false }
@@ -967,10 +1086,13 @@ ONLY respond with valid JSON, nothing else.`
         try {
           // Call the actions API to handle Google Calendar creation
           const actionResponse = await fetch(
-            new URL('/api/ai-assistant/actions', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+            new URL('/api/ai-assistant/actions', baseUrl),
             {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...(cookieHeader ? { Cookie: cookieHeader } : {})
+              },
               body: JSON.stringify({
                 action: 'add_to_google_calendar',
                 domain: 'calendar',
@@ -2144,6 +2266,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Base URL + cookies for any server-to-server calls made during this request.
+    // Using request origin keeps production working even if NEXT_PUBLIC_APP_URL is misconfigured.
+    const baseUrl = request.nextUrl.origin
+    const cookieHeader = request.headers.get('cookie') || ''
+
     // STEP 1: Check if it's a QUERY (read operation)
     console.log('🧠 Step 1: Checking if message is a QUERY...')
     console.log('👤 User ID:', user.id)
@@ -2174,7 +2301,7 @@ export async function POST(request: NextRequest) {
     console.log('🧠 Step 1.25: Checking if message is a SEND command...')
     
     try {
-      const sendResult = await intelligentSendHandler(message, user.id, supabase)
+      const sendResult = await intelligentSendHandler(message, user.id, supabase, baseUrl, cookieHeader)
       
       if (sendResult.isSend) {
         console.log('✅ AI detected SEND command!')
@@ -2201,7 +2328,7 @@ export async function POST(request: NextRequest) {
     console.log('🧠 Step 1.5: Checking if message is an ACTION...')
     
     try {
-      const actionResult = await intelligentActionHandler(message, user.id, supabase)
+      const actionResult = await intelligentActionHandler(message, user.id, supabase, baseUrl, cookieHeader)
       
       if (actionResult.isAction) {
         console.log('✅ AI detected ACTION:', actionResult.actionType)
@@ -2254,7 +2381,7 @@ export async function POST(request: NextRequest) {
     console.log('🧠 Step 2: Checking if message is a COMMAND...')
     
     try {
-      const commandResult = await intelligentCommandParser(message, user.id, supabase)
+      const commandResult = await intelligentCommandParser(message, user.id, supabase, baseUrl, cookieHeader)
       
       if (commandResult.isCommand) {
         console.log('✅ AI detected command and executed:', commandResult.action)
@@ -2317,15 +2444,23 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Fetch user's AI settings
+    console.log('⚙️ Fetching user AI settings...')
+    const aiSettings = await getUserAISettings(supabase, user.id)
+    console.log(`✅ AI Settings loaded: ${aiSettings.aiName}, tone: ${aiSettings.tone}, model: ${aiSettings.modelVersion}`)
+
     // Fetch recent mindfulness journal entries for context
     console.log('📖 Fetching recent mindfulness journal entries...')
     const mindfulnessContext = await fetchMindfulnessContext(supabase, user.id)
     console.log(`✅ Found ${mindfulnessContext.journalCount} journal entries`)
 
-    // Build enhanced system prompt with mindfulness context
-    let systemPrompt = `You are a helpful, empathetic AI assistant for a life management app. You have access to the user's data across 21 life domains including health, fitness, financial, tasks, mindfulness, and more. 
+    // Build base system prompt
+    let basePrompt = `You are a helpful, empathetic AI assistant for a life management app called LifeHub. You have access to the user's data across 21 life domains including health, fitness, financial, tasks, mindfulness, and more. 
             
-Provide helpful, conversational responses. Be concise but informative. You can reference the user's data to give personalized insights.`
+You can reference the user's data to give personalized insights.`
+
+    // Apply user's AI settings to the system prompt
+    let systemPrompt = buildSystemPromptWithSettings(basePrompt, aiSettings)
 
     if (mindfulnessContext.hasJournals) {
       systemPrompt += `\n\n🧠 MINDFULNESS CONTEXT:
@@ -2341,6 +2476,9 @@ When relevant, you can:
 Don't force mindfulness references, but use this context when it adds value.`
     }
 
+    // Get model based on user preference
+    const selectedModel = getOpenAIModel(aiSettings.modelVersion)
+
     // Call OpenAI API with function calling for document retrieval
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -2349,7 +2487,7 @@ Don't force mindfulness references, but use this context when it adds value.`
         'Authorization': `Bearer ${openAIKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: selectedModel,
         messages: [
           {
             role: 'system',
@@ -2364,8 +2502,8 @@ Don't force mindfulness references, but use this context when it adds value.`
             content: `User question: ${message}\n\nUser data summary: ${JSON.stringify(userData).substring(0, 2000)}`
           }
         ],
-        temperature: 0.7,
-        max_tokens: 500,
+        temperature: aiSettings.temperature,
+        max_tokens: Math.min(aiSettings.maxTokens, 4000),
         functions: [
           {
             name: 'search_documents',
@@ -2484,7 +2622,8 @@ Don't force mindfulness references, but use this context when it adds value.`
     const aiResponse = aiMessage?.content
 
     return NextResponse.json({
-      response: aiResponse || 'I received your message but had trouble generating a response.'
+      response: aiResponse || 'I received your message but had trouble generating a response.',
+      aiName: aiSettings.aiName
     })
 
   } catch (error) {
@@ -5389,12 +5528,22 @@ async function saveToSupabase(supabase: any, userId: string, domain: string, ent
   console.log(`💾 [SAVE START] Domain: ${domain}, User: ${userId}`)
   console.log(`📝 Entry to save:`, JSON.stringify(entry, null, 2))
   
-  // Get active person ID from user settings
-  const { getUserSettings } = await import('@/lib/supabase/user-settings')
-  const settings = await getUserSettings()
-  const activePersonId = settings?.activePersonId || 
-                        settings?.people?.find((p: any) => p.isActive)?.id || 
-                        'me'
+  // Get active person ID from user settings (server-side query)
+  let activePersonId = 'me'
+  try {
+    const { data: settingsData } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', userId)
+      .maybeSingle()
+    
+    const settings = settingsData?.settings as Record<string, any> | null
+    activePersonId = settings?.activePersonId || 
+                    settings?.people?.find((p: any) => p.isActive)?.id || 
+                    'me'
+  } catch (e) {
+    console.warn('⚠️ Could not fetch user settings for person_id, using default')
+  }
   
   try {
     const now = new Date().toISOString()

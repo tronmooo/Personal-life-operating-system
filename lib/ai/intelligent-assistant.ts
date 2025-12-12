@@ -24,18 +24,14 @@ interface AssistantResponse {
 }
 
 export interface AIContext {
-  userId: string
-  domainData: Partial<Record<Domain, any[]>>
-  recentActivity: { domain: string; action: string; timestamp: string }[]
-  goals: { id: string; title: string; domain: string; target: any; progress: number }[]
+  userId?: string
+  domainData?: Partial<Record<Domain, any[]>>
+  recentActivity?: { domain: string; action: string; timestamp: string }[]
+  goals?: { id: string; title: string; domain: string; target: any; progress: number }[]
   userProfile?: {
     name?: string
     preferences?: Record<string, any>
   }
-}
-
-export interface AIContext {
-  userId?: string
   data?: Record<string, any>
   [key: string]: any
 }

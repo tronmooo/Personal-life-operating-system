@@ -326,11 +326,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Get active person ID from user settings (once, before the loop)
-    const { getUserSettings } = await import('@/lib/supabase/user-settings')
-    const settings = await getUserSettings()
-    const activePersonId = settings?.activePersonId || 
-                          settings?.people?.find((p: any) => p.isActive)?.id || 
-                          'me'
+    // Use server-side query directly instead of client-side hook
+    let activePersonId = 'me'
+    try {
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('settings')
+        .eq('user_id', user.id)
+        .single()
+      
+      const settings = settingsData?.settings as Record<string, any> | null
+      activePersonId = settings?.activePersonId || 
+                      settings?.people?.find((p: any) => p.isActive)?.id || 
+                      'me'
+    } catch (settingsError) {
+      console.warn('⚠️ [MULTI-ENTRY] Could not fetch user settings, using default person_id')
+    }
     console.log(`👤 [MULTI-ENTRY] Active person ID: ${activePersonId}`)
 
     // STEP 4: Create database entries (batch operation)

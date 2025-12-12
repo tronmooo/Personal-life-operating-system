@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient()
     
-    const { data: { session }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !session?.user) {
+    if (authError || !user) {
       return NextResponse.redirect(new URL('/auth/signin?error=unauthorized', request.url))
     }
 

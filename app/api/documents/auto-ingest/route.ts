@@ -269,16 +269,19 @@ Return ONLY JSON:
     let driveWebContentLink: string | null = null
     let driveThumbnailLink: string | null = null
 
-    if (session?.provider_token) {
+    const providerToken = session?.provider_token
+    const providerRefreshToken = session?.provider_refresh_token
+
+    if (providerToken) {
       console.log('🔑 Google provider token found - attempting Google Drive upload...')
-      console.log('   Provider token exists:', session?.provider_token.substring(0, 20) + '...')
+      console.log('   Provider token exists:', providerToken.substring(0, 20) + '...')
       console.log('   GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID)
       console.log('   GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET)
       console.log('   Domain folder:', storageCategory)
       try {
         const driveService = new GoogleDriveService(
-          session?.provider_token!,
-          session?.provider_refresh_token || undefined
+          providerToken,
+          providerRefreshToken || undefined
         )
 
         // Re-read the file for Drive upload

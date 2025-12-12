@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
 
     // Initialize Google Drive service
     const driveService = new GoogleDriveService(
-      session?.provider_token!,
-      session?.provider_refresh_token || undefined
+      session.provider_token,
+      session.provider_refresh_token || undefined
     )
 
     // Map domain to folder name

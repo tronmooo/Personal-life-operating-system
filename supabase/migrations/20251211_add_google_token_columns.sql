@@ -68,3 +68,6 @@ WHERE table_name = 'user_settings'
 AND column_name LIKE 'google_%'
 ORDER BY column_name;
 
+
+
+

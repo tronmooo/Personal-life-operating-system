@@ -211,6 +211,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     console.log(`📡 Loading domain data from Supabase... (attempt ${retryCount + 1}/${maxRetries + 1})`)
     console.log('🔐 Supabase Auth:', session?.user?.email)
 
+    // Ensure supabase client is initialized
+    if (!supabase) {
+      console.warn('⚠️ Supabase client not initialized yet, skipping data load')
+      setIsLoading(false)
+      return
+    }
+
     try {
       // Use the session state from the provider
       const user = session?.user
@@ -483,8 +490,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Reload a specific domain (optimized)
   const reloadDomain = useCallback(async (domain: Domain) => {
-    if (!session?.user) {
-      console.warn('⚠️ Not authenticated - cannot reload domain')
+    if (!session?.user || !supabase) {
+      console.warn('⚠️ Not authenticated or Supabase not initialized - cannot reload domain')
       return
     }
 
@@ -521,7 +528,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Realtime subscriptions for core tables (debounced domain reload)
   useEffect(() => {
-    if (!session?.user) return
+    if (!session?.user || !supabase) return
 
     const userId = session.user.id
     const currentPersonId = activePersonId
@@ -768,6 +775,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Authenticated - saving to database as user:', session.user.email)
 
+      if (!supabase) {
+        console.error('❌ Supabase client not initialized')
+        return
+      }
+
       const savedEntry = await createDomainEntryRecord(supabase, {
         id: entryId,
         domain,
@@ -878,6 +890,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (!supabase) {
+        console.error('❌ Supabase client not initialized')
+        return
+      }
+
       const updatedEntry = await updateDomainEntryRecord(supabase, {
         id,
         title: updates.title,
@@ -967,6 +984,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (!supabase) {
+        console.error('❌ Supabase client not initialized')
+        return
+      }
+
       await deleteDomainEntryRecord(supabase, id)
       console.log('✅ Successfully deleted from database:', id)
 
@@ -1017,7 +1039,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Persist to Supabase
     try {
       // Use the session state from the provider
-      if (session?.user) {
+      if (session?.user && supabase) {
         const personId = await getActivePersonId()
         const { data, error } = await supabase
           .from('tasks')
@@ -1057,6 +1079,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setTasks(prev => prev.map(task => task.id === id ? { ...task, ...updates } : task))
 
     // Persist to Supabase
+    if (!supabase) return
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
@@ -1086,7 +1109,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Persist to Supabase
     try {
       // Use the session state from the provider
-      if (session?.user) {
+      if (session?.user && supabase) {
         await supabase
           .from('tasks')
           .delete()
@@ -1133,6 +1156,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('🔵 Attempting to insert habit into database...')
+      if (!supabase) {
+        console.error('❌ Supabase not initialized')
+        return
+      }
       const personId = await getActivePersonId()
       const { data: insertedData, error: insertError } = await supabase
         .from('habits')
@@ -1166,6 +1193,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setHabits(prev => prev.map(habit => habit.id === id ? { ...habit, ...updates } : habit))
 
     // Persist to Supabase
+    if (!supabase) return
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
@@ -1194,7 +1222,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Persist to Supabase
     try {
       // Use the session state from the provider
-      if (session?.user) {
+      if (session?.user && supabase) {
         await supabase
           .from('habits')
           .delete()
@@ -1222,6 +1250,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Get current habit from database
       console.log('🟢 Fetching habit from database...')
+      if (!supabase) {
+        console.error('❌ Supabase not initialized')
+        return
+      }
       const { data: habitData, error: fetchError } = await supabase
         .from('habits')
         .select('*')
@@ -1344,6 +1376,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (!supabase) {
+        console.error('❌ Supabase not initialized')
+        return
+      }
       const personId = await getActivePersonId()
       const { error } = await supabase
         .from('bills')
@@ -1402,6 +1438,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (!supabase) {
+        console.error('❌ Supabase not initialized')
+        return
+      }
+
       const { error } = await supabase
         .from('bills')
         .update(payload)
@@ -1425,8 +1466,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     try {
       // Use the session state from the provider
-      if (!session?.user) {
-        console.warn('⚠️ Cannot delete bill - no authenticated user')
+      if (!session?.user || !supabase) {
+        console.warn('⚠️ Cannot delete bill - no authenticated user or supabase not initialized')
         return
       }
 

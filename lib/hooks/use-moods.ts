@@ -40,11 +40,12 @@ export function useMoods() {
         }))
       )
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to load moods:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to load moods')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to load moods')
       setMoods([])
     } finally {
       setLoading(false)
@@ -82,11 +83,12 @@ export function useMoods() {
       setMoods(prev => [newMood, ...prev])
       return newMood
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to add mood:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to add mood')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to add mood')
       throw err
     }
   }, [supabase])
@@ -98,11 +100,12 @@ export function useMoods() {
       if (error) throw error
       setMoods(prev => prev.filter(m => m.id !== id))
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to delete mood:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to delete mood')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to delete mood')
       throw err
     }
   }, [supabase])

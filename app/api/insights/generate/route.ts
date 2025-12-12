@@ -1,55 +1,101 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { generateWeeklyInsightsForUser, saveInsights } from '@/lib/ai/insights-generator'
+import { createServerClient } from '@/lib/supabase/server'
+import { generateProactiveInsights, getDailySummary, type InsightContext } from '@/lib/ai/proactive-insights-engine'
 
-export const runtime = 'nodejs'
-export const maxDuration = 300
-
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET || 'your-secret-token'
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    // Optionally accept context from the request
+    const body = await request.json().catch(() => ({}))
+    const { includeSummary = false, domains: requestDomains } = body
 
-    // Weekly run: iterate users
-    const { data: users, error: usersError } = await supabase.auth.admin.listUsers()
-    if (usersError) throw usersError
+    // Fetch all user data for insights
+    const [
+      domainEntriesResult,
+      tasksResult,
+      billsResult,
+      habitsResult,
+      eventsResult
+    ] = await Promise.all([
+      supabase.from('domain_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(500),
+      supabase.from('tasks').select('*').eq('user_id', user.id),
+      supabase.from('bills').select('*').eq('user_id', user.id),
+      supabase.from('habits').select('*').eq('user_id', user.id),
+      supabase.from('events').select('*').eq('user_id', user.id).gte('date', new Date().toISOString())
+    ])
 
-    let total = 0
-    for (const user of users.users) {
-      const userId = user.id
-      // Load domains we actively use
-      const domains = ['finance', 'health', 'vehicles', 'home', 'relationships', 'goals', 'nutrition']
-      const data: Record<string, any[]> = {}
-      for (const d of domains) {
-        const { data: rows } = await supabase
-          .from('domains')
-          .select('data')
-          .eq('user_id', userId)
-          .eq('domain_name', d)
-          .limit(1)
-        data[d] = (rows?.[0]?.data as any[]) || []
+    // Organize domain data
+    const domains: Record<string, any[]> = {}
+    for (const entry of domainEntriesResult.data || []) {
+      const domain = entry.domain as string
+      if (!domains[domain]) {
+        domains[domain] = []
       }
-
-      const insights = await generateWeeklyInsightsForUser(userId, data)
-      if (insights.length > 0) {
-        await saveInsights(userId, insights)
-        total += insights.length
-      }
+      domains[domain].push({
+        ...entry,
+        metadata: entry.metadata
+      })
     }
 
-    return NextResponse.json({ success: true, generated: total })
+    // Build context
+    const context: InsightContext = {
+      userId: user.id,
+      domains: domains as InsightContext['domains'],
+      tasks: tasksResult.data || [],
+      bills: billsResult.data || [],
+      habits: habitsResult.data || [],
+      events: eventsResult.data || [],
+      goals: (domains as any).goals || []
+    }
+
+    // Generate insights
+    const insights = generateProactiveInsights(context)
+
+    // Optionally filter by requested domains
+    let filteredInsights = insights
+    if (requestDomains && requestDomains.length > 0) {
+      filteredInsights = insights.filter(i => 
+        !i.domain || requestDomains.includes(i.domain)
+      )
+    }
+
+    // Generate summary if requested
+    let summary: string | undefined
+    if (includeSummary) {
+      summary = getDailySummary(filteredInsights)
+    }
+
+    return NextResponse.json({
+      success: true,
+      insights: filteredInsights,
+      summary,
+      counts: {
+        total: filteredInsights.length,
+        high: filteredInsights.filter(i => i.priority === 'high').length,
+        medium: filteredInsights.filter(i => i.priority === 'medium').length,
+        low: filteredInsights.filter(i => i.priority === 'low').length,
+        celebrations: filteredInsights.filter(i => i.type === 'celebration').length,
+        warnings: filteredInsights.filter(i => i.type === 'anomaly').length,
+        reminders: filteredInsights.filter(i => i.type === 'reminder').length
+      }
+    })
+
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed' }, { status: 500 })
+    console.error('Generate insights error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to generate insights' },
+      { status: 500 }
+    )
   }
 }
 
-
+export async function GET(request: NextRequest) {
+  // GET method also supported for simple fetch
+  return POST(request)
+}

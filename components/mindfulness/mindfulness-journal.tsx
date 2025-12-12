@@ -1,35 +1,85 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Mic, MicOff, Save, BookOpen, Calendar, Sparkles, Lightbulb, Heart } from 'lucide-react'
+import { Mic, MicOff, Save, BookOpen, Calendar, Sparkles, Lightbulb, Heart, Loader2 } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 
+interface JournalEntry {
+  id: string
+  content: string
+  date: string
+  wordCount: number
+  aiInsight?: string
+}
+
 export function MindfulnessJournal() {
-  const { addData } = useData()
+  const { addData, getData, reloadDomain } = useData()
   const [entry, setEntry] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
-  const [recentEntries, setRecentEntries] = useState<any[]>([])
+  const [recentEntries, setRecentEntries] = useState<JournalEntry[]>([])
   const [showInsights, setShowInsights] = useState(false)
   const [insights, setInsights] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   
-  // Load recent entries from DataProvider domain items
-  useEffect(() => {
+  // Load journal entries from DataProvider
+  const loadJournalEntries = useCallback(() => {
     try {
-      // We only need a lightweight preview; fetch from window event or skip
-      window.addEventListener('mindfulness-data-updated', () => {})
+      const mindfulnessData = getData('mindfulness')
+      if (!Array.isArray(mindfulnessData)) return
+      
+      const journals = mindfulnessData
+        .filter((item: any) => {
+          if (!item?.metadata) return false
+          return (
+            item.metadata?.type === 'journal' ||
+            item.metadata?.entryType === 'Journal' ||
+            item.metadata?.logType === 'journal-entry'
+          )
+        })
+        .map((item: any): JournalEntry => ({
+          id: item.id,
+          content: item.metadata?.fullContent || item.description || '',
+          date: item.metadata?.date || item.createdAt,
+          wordCount: item.metadata?.wordCount || 0,
+          aiInsight: item.metadata?.aiInsight
+        }))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10) // Show last 10 entries
+      
+      console.log('📖 Loaded journal entries:', journals.length)
+      setRecentEntries(journals)
     } catch (error) {
-      console.error('Failed to setup mindfulness event listener:', error)
-      // Non-critical, journal still functional
+      console.error('Failed to load journal entries:', error)
     }
-  }, [])
+  }, [getData])
+
+  // Initial load and listen for data updates
+  useEffect(() => {
+    loadJournalEntries()
+    
+    const handleDataUpdate = () => {
+      console.log('📖 Data updated, reloading journal entries...')
+      loadJournalEntries()
+    }
+    
+    window.addEventListener('data-updated', handleDataUpdate)
+    window.addEventListener('mindfulness-data-updated', handleDataUpdate)
+    window.addEventListener('data-provider-loaded', handleDataUpdate)
+    
+    return () => {
+      window.removeEventListener('data-updated', handleDataUpdate)
+      window.removeEventListener('mindfulness-data-updated', handleDataUpdate)
+      window.removeEventListener('data-provider-loaded', handleDataUpdate)
+    }
+  }, [loadJournalEntries])
 
   // Initialize speech recognition
   useEffect(() => {
@@ -72,48 +122,55 @@ export function MindfulnessJournal() {
     }
   }
 
-  const handleSave = () => {
-    if (!entry.trim()) return
-
-    const journalEntry = {
-      id: Date.now().toString(),
-      content: entry,
-      date: new Date().toISOString(),
-      wordCount: entry.split(' ').length
-    }
-
-    // Keep recent entries in memory (top 5)
-    setRecentEntries(prev => [journalEntry, ...prev].slice(0, 5))
-
-    // Save to DataProvider with AI insights if available
-    addData('mindfulness', {
-      title: `Journal Entry - ${new Date().toLocaleDateString()}`,
-      description: entry.substring(0, 200),
-      metadata: {
-        type: 'journal',
-        entryType: 'Journal',
-        logType: 'journal-entry',
-        fullContent: entry,
-        wordCount: entry.split(' ').length,
-        date: journalEntry.date,
-        aiInsight: insights ? insights.overview : undefined
+  const handleSave = async () => {
+    if (!entry.trim() || isSaving) return
+    
+    setIsSaving(true)
+    
+    try {
+      const journalEntry: JournalEntry = {
+        id: Date.now().toString(),
+        content: entry,
+        date: new Date().toISOString(),
+        wordCount: entry.split(' ').filter(w => w).length,
+        aiInsight: insights?.overview
       }
-    })
 
-    console.log('✅ Journal saved with AI insights:', insights ? 'Yes' : 'No')
+      // Save to DataProvider with AI insights if available
+      await addData('mindfulness', {
+        title: `Journal Entry - ${new Date().toLocaleDateString()}`,
+        description: entry.substring(0, 200),
+        metadata: {
+          type: 'journal',
+          entryType: 'Journal',
+          logType: 'journal-entry',
+          fullContent: entry,
+          wordCount: journalEntry.wordCount,
+          date: journalEntry.date,
+          aiInsight: insights ? insights.overview : undefined
+        }
+      })
 
-    // Update recent entries
-    setRecentEntries([journalEntry, ...recentEntries.slice(0, 4)])
-    
-    // Trigger data reload event
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('mindfulness-data-updated'))
+      console.log('✅ Journal saved with AI insights:', insights ? 'Yes' : 'No')
+
+      // Trigger data reload event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('mindfulness-data-updated'))
+      }
+      
+      // Reload entries from database to show the new entry
+      await reloadDomain('mindfulness')
+      loadJournalEntries()
+      
+      // Clear form
+      setEntry('')
+      setInsights(null)
+      setShowInsights(false)
+    } catch (error) {
+      console.error('❌ Failed to save journal entry:', error)
+    } finally {
+      setIsSaving(false)
     }
-    
-    // Clear form
-    setEntry('')
-    setInsights(null)
-    setShowInsights(false)
   }
 
   const analyzeEntry = async () => {
@@ -278,9 +335,18 @@ export function MindfulnessJournal() {
               </Button>
 
               {/* Save Button */}
-              <Button onClick={handleSave} disabled={!entry.trim()}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Entry
+              <Button onClick={handleSave} disabled={!entry.trim() || isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Entry
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -383,15 +449,20 @@ export function MindfulnessJournal() {
       </Dialog>
 
       {/* Recent Entries */}
-      {recentEntries.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Recent Entries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Recent Entries
+          </CardTitle>
+          <CardDescription>
+            {recentEntries.length > 0 
+              ? `Your last ${recentEntries.length} journal entries` 
+              : 'No journal entries yet. Start writing above!'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentEntries.length > 0 ? (
             <div className="space-y-3">
               {recentEntries.map((journalEntry) => (
                 <Card key={journalEntry.id} className="bg-accent/50">
@@ -410,13 +481,24 @@ export function MindfulnessJournal() {
                     <p className="text-sm text-muted-foreground line-clamp-3">
                       {journalEntry.content}
                     </p>
+                    {journalEntry.aiInsight && (
+                      <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-950/50 rounded text-xs text-purple-700 dark:text-purple-300">
+                        <Sparkles className="h-3 w-3 inline mr-1" />
+                        {journalEntry.aiInsight.substring(0, 150)}...
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <BookOpen className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Write your first journal entry to get started</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

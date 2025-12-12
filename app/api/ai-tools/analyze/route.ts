@@ -5,11 +5,10 @@ import { getOpenAI } from '@/lib/openai/client'
 export async function POST(request: Request) {
   try {
     const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Allow guest access to try AI tools with a limit
+    const isGuest = !user
 
     const { type, data, prompt, format } = await request.json()
     

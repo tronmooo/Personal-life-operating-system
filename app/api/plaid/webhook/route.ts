@@ -136,6 +136,7 @@ async function handleTransactionsWebhook(webhook: any) {
   const { webhook_code, item_id, new_transactions, removed_transactions } = webhook
 
   // Get the Plaid item and user
+  const supabase = getSupabase()
   const { data: plaidItem } = await supabase
     .from('plaid_items')
     .select('*')
@@ -181,6 +182,7 @@ async function handleItemWebhook(webhook: any) {
 
   console.log(`   Item webhook code: ${webhook_code}`)
 
+  const supabase = getSupabase()
   switch (webhook_code) {
     case 'ERROR':
       // Item has an error (e.g., user needs to re-authenticate)
@@ -252,6 +254,7 @@ async function syncTransactionsForItem(plaidItem: any) {
     console.log(`   Fetched ${data.transactions.length} transactions`)
 
     // Get linked accounts for this item
+    const supabase = getSupabase()
     const { data: linkedAccounts } = await supabase
       .from('linked_accounts')
       .select('id, plaid_account_id')
@@ -264,7 +267,7 @@ async function syncTransactionsForItem(plaidItem: any) {
 
     // Create account ID map
     const accountMap = new Map(
-      linkedAccounts.map(acc => [acc.plaid_account_id, acc.id])
+      linkedAccounts.map((acc: any) => [acc.plaid_account_id, acc.id])
     )
 
     // Store transactions
@@ -288,7 +291,7 @@ async function syncTransactionsForItem(plaidItem: any) {
       country: tx.location?.country,
     }))
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('transactions')
       .upsert(transactionsToInsert, {
         onConflict: 'plaid_transaction_id',
@@ -323,7 +326,7 @@ async function syncTransactionsForItem(plaidItem: any) {
  * Remove deleted transactions
  */
 async function removeTransactions(transactionIds: string[]) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('transactions')
     .delete()
     .in('plaid_transaction_id', transactionIds)

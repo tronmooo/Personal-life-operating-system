@@ -395,28 +395,33 @@ export function ProfileTabEnhanced() {
               <Button variant="outline" size="sm" onClick={() => setFamilyHistoryOpen(true)}>Add Family Health History</Button>
             </div>
           ) : (
-            familyHistory.map(entry => (
-              <div key={entry.id} className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950 rounded-lg">
-                <div>
-                  <p className="font-semibold">{entry.title}</p>
-                  <p className="text-sm text-gray-600">{entry.metadata?.relation || 'Father'}</p>
-                </div>
-                <div className="text-right flex items-center gap-2">
+            familyHistory.map(entry => {
+              const metadata = entry.metadata || {}
+              const relation = String(metadata.relation || 'Father')
+              const ageAtDiagnosis = metadata.ageAtDiagnosis ? String(metadata.ageAtDiagnosis) : '65'
+              return (
+                <div key={entry.id} className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950 rounded-lg">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Age at diagnosis</p>
-                    <p className="font-semibold">{entry.metadata?.ageAtDiagnosis || 65}</p>
+                    <p className="font-semibold">{entry.title}</p>
+                    <p className="text-sm text-gray-600">{relation}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-600"
-                    onClick={() => remove(entry.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Age at diagnosis</p>
+                      <p className="font-semibold">{ageAtDiagnosis}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600"
+                      onClick={() => remove(entry.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>
@@ -440,28 +445,33 @@ export function ProfileTabEnhanced() {
               <p className="text-gray-500">No immunization records</p>
             </div>
           ) : (
-            immunizations.map(entry => (
-              <div key={entry.id} className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200">
-                <div>
-                  <p className="font-semibold">{entry.title}</p>
-                  <p className="text-sm text-gray-600">Last: {entry.metadata?.lastDate || '9/14/2024'}</p>
-                </div>
-                <div className="text-right flex items-center gap-2">
+            immunizations.map(entry => {
+              const metadata = entry.metadata || {}
+              const lastDate = String(metadata.lastDate || '9/14/2024')
+              const nextDue = String(metadata.nextDue || '9/14/2025')
+              return (
+                <div key={entry.id} className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Next Due</p>
-                    <p className="font-medium text-red-600">{entry.metadata?.nextDue || '9/14/2025'}</p>
+                    <p className="font-semibold">{entry.title}</p>
+                    <p className="text-sm text-gray-600">Last: {lastDate}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-600"
-                    onClick={() => remove(entry.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Next Due</p>
+                      <p className="font-medium text-red-600">{nextDue}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600"
+                      onClick={() => remove(entry.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>
@@ -486,7 +496,9 @@ export function ProfileTabEnhanced() {
             </div>
           ) : (
             allergies.map(entry => {
-              const severity = entry.metadata?.severity || 'Moderate'
+              const metadata = entry.metadata || {}
+              const severity = String(metadata.severity || 'Moderate')
+              const reaction = String(metadata.reaction || 'Hives, swelling')
               return (
                 <div key={entry.id} className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200">
                   <div>
@@ -501,7 +513,7 @@ export function ProfileTabEnhanced() {
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Reaction: {entry.metadata?.reaction || 'Hives, swelling'}
+                      Reaction: {reaction}
                     </p>
                   </div>
                   <Button
@@ -538,35 +550,40 @@ export function ProfileTabEnhanced() {
               <p className="text-gray-500">No medical conditions recorded</p>
             </div>
           ) : (
-            conditions.map(entry => (
-              <div key={entry.id} className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-lg">{entry.title}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-600"
-                    onClick={() => remove(entry.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600 dark:text-gray-400">Diagnosed</p>
-                    <p className="font-medium text-red-600">
-                      {entry.metadata?.diagnosedDate || '8/21/2019'}
-                    </p>
+            conditions.map(entry => {
+              const metadata = entry.metadata || {}
+              const diagnosedDate = String(metadata.diagnosedDate || '8/21/2019')
+              const status = String(metadata.status || 'Managed')
+              return (
+                <div key={entry.id} className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-lg">{entry.title}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600"
+                      onClick={() => remove(entry.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-gray-600 dark:text-gray-400">Status</p>
-                    <Badge className="bg-green-100 text-green-800 border-green-300">
-                      {entry.metadata?.status || 'Managed'}
-                    </Badge>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Diagnosed</p>
+                      <p className="font-medium text-red-600">
+                        {diagnosedDate}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Status</p>
+                      <Badge className="bg-green-100 text-green-800 border-green-300">
+                        {status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>

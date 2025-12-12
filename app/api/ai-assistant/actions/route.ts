@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
     const body: ActionRequest = await request.json()
     const { action, domain, parameters, confirmation, confirmationId } = body
 
+    // Use request origin + forward cookies for any internal API calls.
+    // This avoids relying on NEXT_PUBLIC_APP_URL (often misconfigured in prod).
+    const baseUrl = request.nextUrl.origin
+    const cookieHeader = request.headers.get('cookie') || ''
+
     console.log(`🤖 AI Action Request: ${action} on ${domain}`, parameters)
 
     // Handle confirmation of pending action
@@ -44,11 +49,11 @@ export async function POST(request: NextRequest) {
       }
       pendingActions.delete(confirmationId)
       // Execute the confirmed action
-      return executeAction(supabase, user.id, pending.action, pending.domain, pending.params, true)
+      return executeAction(supabase, user.id, pending.action, pending.domain, pending.params, true, baseUrl, cookieHeader)
     }
 
     // Route to appropriate handler
-    return executeAction(supabase, user.id, action, domain, parameters, false)
+    return executeAction(supabase, user.id, action, domain, parameters, false, baseUrl, cookieHeader)
   } catch (error: any) {
     console.error('❌ AI Action error:', error)
     return NextResponse.json({ error: error.message || 'Action failed' }, { status: 500 })
@@ -61,7 +66,9 @@ async function executeAction(
   action: AIAction,
   domain: string,
   params: any,
-  confirmed: boolean
+  confirmed: boolean,
+  baseUrl: string,
+  cookieHeader: string
 ) {
   switch (action) {
     case 'delete':
@@ -107,7 +114,7 @@ async function executeAction(
     case 'custom_chart':
       return handleCustomChart(supabase, userId, params)
     case 'add_to_google_calendar':
-      return handleAddToGoogleCalendar(supabase, userId, params)
+      return handleAddToGoogleCalendar(supabase, userId, params, baseUrl, cookieHeader)
     default:
       return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })
   }
@@ -296,7 +303,7 @@ async function handleUpdate(
   const entryToUpdate = matches[0]
 
   // Merge metadata updates if provided
-  let finalUpdates: any = { updated_at: new Date().toISOString() }
+  const finalUpdates: any = { updated_at: new Date().toISOString() }
   
   if (updates.title) finalUpdates.title = updates.title
   if (updates.description) finalUpdates.description = updates.description
@@ -1908,7 +1915,9 @@ async function handleCustomChart(
 async function handleAddToGoogleCalendar(
   supabase: any,
   userId: string,
-  params: any
+  params: any,
+  baseUrl: string,
+  cookieHeader: string
 ) {
   const { 
     title, 
@@ -1960,10 +1969,13 @@ async function handleAddToGoogleCalendar(
     if (message && !eventTitle) {
       // Call the AI calendar event creation endpoint
       const calendarResponse = await fetch(
-        new URL('/api/ai/create-calendar-event', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+        new URL('/api/ai/create-calendar-event', baseUrl),
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(cookieHeader ? { Cookie: cookieHeader } : {})
+          },
           body: JSON.stringify({ message })
         }
       )

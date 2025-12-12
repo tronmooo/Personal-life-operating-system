@@ -1,20 +1,22 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import {
   Send, Mic, Sparkles, TrendingUp, AlertCircle, Lightbulb, Target,
-  Calendar, DollarSign, Heart, Activity, Brain, CheckCircle, Clock,
-  Zap, MessageSquare, BarChart3, Settings, ThumbsUp, ThumbsDown,
-  ArrowRight, ChevronDown, ChevronUp, Bell, Star, Award, Flame
+  Calendar, DollarSign, Heart, Brain, Clock,
+  Zap, MessageSquare, BarChart3, Settings,
+  ArrowRight, ChevronDown, ChevronUp, Flame, Loader2, RefreshCw
 } from 'lucide-react'
 import { format } from 'date-fns'
+import Link from 'next/link'
 
 // AI Response Type
 type AIMessage = {
@@ -30,7 +32,19 @@ type AIMessage = {
   quickActions?: Array<{
     label: string
     action: string
+    path?: string
   }>
+}
+
+// Proactive insight type
+type ProactiveInsight = {
+  id: string
+  type: 'warning' | 'success' | 'info' | 'celebration'
+  category: string
+  message: string
+  action?: string
+  actionPath?: string
+  priority: 'high' | 'medium' | 'low'
 }
 
 // Suggested questions based on user data
@@ -63,6 +77,9 @@ export default function AIAssistantPage() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showInsights, setShowInsights] = useState(true)
+  const [proactiveInsights, setProactiveInsights] = useState<ProactiveInsight[]>([])
+  const [isLoadingInsights, setIsLoadingInsights] = useState(true)
+  const [aiName, setAiName] = useState('AI Assistant')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -73,237 +90,193 @@ export default function AIAssistantPage() {
     scrollToBottom()
   }, [messages])
 
-  // Generate AI insights based on user data
-  const generateDailyInsights = () => {
-    const insights = []
+  // Fetch proactive insights from AI on page load
+  const fetchProactiveInsights = useCallback(async () => {
+    setIsLoadingInsights(true)
+    try {
+      const response = await fetch('/api/ai-assistant/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Generate proactive insights for today. Analyze my data and tell me: 1) What needs immediate attention, 2) Positive achievements to celebrate, 3) Recommendations for improvement. Be specific and reference my actual data.',
+          userData: data,
+          conversationHistory: [],
+          requestType: 'proactive_insights'
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        
+        // Parse the AI response into structured insights
+        const insights = parseInsightsFromResponse(result.response || '')
+        setProactiveInsights(insights)
+        
+        // Get AI name from settings if available
+        if (result.aiName) {
+          setAiName(result.aiName)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch proactive insights:', error)
+      // Fall back to local insights
+      setProactiveInsights(generateLocalInsights())
+    } finally {
+      setIsLoadingInsights(false)
+    }
+  }, [data])
+
+  useEffect(() => {
+    // Fetch insights when data changes
+    if (Object.keys(data).length > 0) {
+      fetchProactiveInsights()
+    } else {
+      setIsLoadingInsights(false)
+    }
+  }, [data, fetchProactiveInsights])
+
+  // Parse AI response into structured insights
+  const parseInsightsFromResponse = (response: string): ProactiveInsight[] => {
+    const insights: ProactiveInsight[] = []
+    const lines = response.split('\n').filter(l => l.trim())
+    
+    let currentType: 'warning' | 'success' | 'info' | 'celebration' = 'info'
+    
+    for (const line of lines) {
+      const trimmed = line.trim()
+      
+      // Detect section headers
+      if (trimmed.toLowerCase().includes('attention') || trimmed.toLowerCase().includes('warning') || trimmed.includes('⚠️')) {
+        currentType = 'warning'
+        continue
+      }
+      if (trimmed.toLowerCase().includes('celebration') || trimmed.toLowerCase().includes('achievement') || trimmed.includes('🎉') || trimmed.includes('✅')) {
+        currentType = 'celebration'
+        continue
+      }
+      if (trimmed.toLowerCase().includes('recommendation') || trimmed.toLowerCase().includes('suggest') || trimmed.includes('💡')) {
+        currentType = 'info'
+        continue
+      }
+      
+      // Parse bullet points or numbered items
+      if (trimmed.match(/^[-•*\d.]\s*/) || trimmed.startsWith('- ')) {
+        const message = trimmed.replace(/^[-•*\d.]\s*/, '').trim()
+        if (message.length > 10) {
+          insights.push({
+            id: `insight-${insights.length}`,
+            type: currentType === 'celebration' ? 'success' : currentType,
+            category: currentType === 'warning' ? 'Attention Needed' : 
+                     currentType === 'celebration' ? 'Achievement' : 'Recommendation',
+            message,
+            priority: currentType === 'warning' ? 'high' : 'medium'
+          })
+        }
+      }
+    }
+    
+    // If no insights were parsed, create a generic one from the response
+    if (insights.length === 0 && response.length > 50) {
+      insights.push({
+        id: 'insight-0',
+        type: 'info',
+        category: 'AI Insight',
+        message: response.slice(0, 200) + (response.length > 200 ? '...' : ''),
+        priority: 'medium'
+      })
+    }
+    
+    return insights.slice(0, 6) // Limit to 6 insights
+  }
+
+  // Generate local insights as fallback
+  const generateLocalInsights = (): ProactiveInsight[] => {
+    const insights: ProactiveInsight[] = []
     
     // Financial insights
     const financialData = (data.financial || []) as any[]
     if (financialData.length > 0) {
-      const recentExpenses = financialData.filter(item => 
-        item.type === 'expense' && 
-        new Date(item.date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      )
-      const weeklyTotal = recentExpenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
+      const recentExpenses = financialData.filter(item => {
+        const meta = item.metadata || item
+        return (meta.type === 'expense') && 
+          new Date(item.createdAt || item.date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      })
+      const weeklyTotal = recentExpenses.reduce((sum, item) => {
+        const meta = item.metadata || item
+        return sum + parseFloat(meta.amount || 0)
+      }, 0)
       
       if (weeklyTotal > 500) {
         insights.push({
-          type: 'warning' as const,
-          icon: AlertCircle,
-          message: `You've spent $${weeklyTotal.toFixed(2)} this week - 25% above average`,
-          action: 'Review expenses'
+          id: 'financial-warning',
+          type: 'warning',
+          category: 'Financial',
+          message: `You've spent $${weeklyTotal.toFixed(2)} this week. Consider reviewing your expenses.`,
+          action: 'Review expenses',
+          actionPath: '/domains/financial',
+          priority: 'high'
+        })
+      } else if (weeklyTotal > 0) {
+        insights.push({
+          id: 'financial-info',
+          type: 'info',
+          category: 'Financial',
+          message: `Weekly spending: $${weeklyTotal.toFixed(2)}. You're tracking well!`,
+          priority: 'low'
         })
       }
     }
 
     // Health insights
     const healthData = (data.health || []) as any[]
-    const workouts = healthData.filter(item => item.workout_type)
-    if (workouts.length >= 7) {
+    const workouts = healthData.filter(item => {
+      const meta = item.metadata || item
+      return meta.workout_type || meta.type === 'workout'
+    })
+    if (workouts.length >= 3) {
       insights.push({
-        type: 'success' as const,
-        icon: Flame,
-        message: `${workouts.length}-day workout streak - you're crushing it!`,
-        action: 'View progress'
+        id: 'health-success',
+        type: 'success',
+        category: 'Health',
+        message: `Great job! You've logged ${workouts.length} workouts recently. Keep up the momentum!`,
+        action: 'View progress',
+        actionPath: '/domains/health',
+        priority: 'medium'
       })
     }
 
-    // Goal insights
-    const totalDomains = Object.keys(data).length
+    // Domain coverage insights
     const activeDomains = Object.values(data).filter((items: any) => 
       Array.isArray(items) && items.length > 0
     ).length
     
     if (activeDomains < 5) {
       insights.push({
-        type: 'info' as const,
-        icon: Target,
-        message: `You're tracking ${activeDomains} domains. Consider expanding to build a complete life picture.`,
-        action: 'Explore domains'
+        id: 'coverage-info',
+        type: 'info',
+        category: 'Life Tracking',
+        message: `You're tracking ${activeDomains} life domains. Expand to more areas for comprehensive insights.`,
+        action: 'Explore domains',
+        actionPath: '/domains',
+        priority: 'medium'
+      })
+    } else {
+      insights.push({
+        id: 'coverage-success',
+        type: 'success',
+        category: 'Life Tracking',
+        message: `Excellent! You're actively tracking ${activeDomains} life domains. Well organized!`,
+        priority: 'low'
       })
     }
 
     return insights
   }
 
-  // Generate AI response based on user question
-  const generateAIResponse = (question: string): string => {
-    const q = question.toLowerCase()
-    
-    // Financial queries
-    if (q.includes('net worth') || q.includes('financial') || q.includes('money')) {
-      const financialData = (data.financial || []) as any[]
-      const income = financialData.filter(item => item.type === 'income')
-        .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
-      const expenses = financialData.filter(item => item.type === 'expense')
-        .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
-      const netWorth = income - expenses
-      const savingsRate = income > 0 ? ((income - expenses) / income * 100) : 0
-      
-      return `Your current net worth is **$${netWorth.toLocaleString()}**. 
+  // Send message to AI API
+  const handleSendMessage = async () => {
+    if (!input.trim() || isTyping) return
 
-📊 **Financial Breakdown:**
-- Total Income: $${income.toLocaleString()}
-- Total Expenses: $${expenses.toLocaleString()}
-- Savings Rate: ${savingsRate.toFixed(1)}%
-
-${savingsRate > 20 
-  ? "🎉 Excellent! You're saving over 20% - keep up the great work!" 
-  : "💡 Consider aiming for a 20% savings rate for optimal financial health."}
-
-Your biggest expense categories are ready to review in the Financial domain.`
-    }
-
-    // Health queries
-    if (q.includes('health') || q.includes('weight') || q.includes('fitness')) {
-      const healthData = (data.health || []) as any[]
-      const weights = healthData.filter(item => item.weight)
-        .map(item => ({ date: item.date, weight: parseFloat(item.weight) }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      
-      if (weights.length >= 2) {
-        const firstWeight = weights[0].weight
-        const lastWeight = weights[weights.length - 1].weight
-        const change = lastWeight - firstWeight
-        
-        return `Your health journey is looking ${change < 0 ? 'great' : 'interesting'}! 
-
-⚖️ **Weight Tracking:**
-- Current: ${lastWeight.toFixed(1)} lbs
-- Change: ${change > 0 ? '+' : ''}${change.toFixed(1)} lbs
-- Total logs: ${weights.length}
-
-${change < -5 
-  ? "🎉 You've lost over 5 pounds - fantastic progress!" 
-  : change > 5 
-    ? "📈 Weight is trending up. Would you like tips for getting back on track?"
-    : "📊 Weight is stable. Consistent tracking is key!"}
-
-Keep logging daily to see detailed trends and patterns.`
-      } else {
-        return `Let's start tracking your health! 💪
-
-Currently, I have limited health data to analyze. To give you better insights, try logging:
-- Daily weight measurements
-- Workout sessions
-- Water intake
-- Blood pressure readings
-
-The more data you track, the smarter my insights become!`
-      }
-    }
-
-    // Goals queries
-    if (q.includes('goal') || q.includes('track') || q.includes('progress')) {
-      const activeDomains = Object.entries(data)
-        .filter(([_, items]: [string, any]) => Array.isArray(items) && items.length > 0)
-        .length
-      
-      return `Let's check your goals! 🎯
-
-📊 **Current Status:**
-- Active Domains: ${activeDomains}
-- Total Items Tracked: ${Object.values(data).flat().length}
-- Life Coverage: ${Math.round((activeDomains / 16) * 100)}%
-
-${activeDomains >= 10
-  ? "🌟 Outstanding! You're tracking almost every aspect of your life."
-  : activeDomains >= 5
-    ? "👍 Good progress! You're building a comprehensive life picture."
-    : "💡 You're just getting started. Consider tracking a few more domains for better insights."}
-
-**Suggested focus areas:**
-${activeDomains < 16 ? "• Expand to uncovered domains\n• Set specific goals in active areas\n• Review progress weekly" : "• Set stretch goals\n• Optimize your tracking\n• Share your success!"}
-
-Would you like help setting up specific goals in any domain?`
-    }
-
-    // Focus/attention queries
-    if (q.includes('focus') || q.includes('attention') || q.includes('priority')) {
-      const insights = generateDailyInsights()
-      const warnings = insights.filter(i => i.type === 'warning')
-      
-      return `Here's what needs your attention this week: 🎯
-
-${warnings.length > 0 
-  ? `⚠️ **High Priority:**\n${warnings.map(w => `• ${w.message}`).join('\n')}\n\n`
-  : ''}
-
-💡 **Recommended Focus:**
-• Review your budget and adjust spending
-• Schedule upcoming maintenance and appointments  
-• Update your health metrics for the week
-• Check in on long-term goals
-
-**Quick wins for this week:**
-1. Log 3+ workouts for fitness momentum
-2. Track all meals for nutrition awareness
-3. Update your net worth calculation
-4. Schedule any overdue maintenance
-
-Need specific help with any of these? Just ask!`
-    }
-
-    // Spending/expense queries
-    if (q.includes('spend') || q.includes('expense') || q.includes('cost')) {
-      const financialData = (data.financial || []) as any[]
-      const expenses = financialData.filter(item => item.type === 'expense')
-      const total = expenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
-      
-      // Group by category if available
-      const byCategory: Record<string, number> = {}
-      expenses.forEach(item => {
-        const cat = item.category || 'Uncategorized'
-        byCategory[cat] = (byCategory[cat] || 0) + parseFloat(item.amount || 0)
-      })
-      
-      const sortedCategories = Object.entries(byCategory)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-      
-      return `Let's analyze your spending! 💸
-
-📊 **Expense Overview:**
-- Total Tracked: $${total.toLocaleString()}
-- Transaction Count: ${expenses.length}
-- Average per transaction: $${(total / Math.max(expenses.length, 1)).toFixed(2)}
-
-${sortedCategories.length > 0 
-  ? `**Top Spending Categories:**\n${sortedCategories.map(([cat, amount]) => 
-      `• ${cat}: $${amount.toLocaleString()} (${((amount / total) * 100).toFixed(1)}%)`
-    ).join('\n')}`
-  : ''}
-
-💡 **Insights:**
-${total > 2000 
-  ? "Your spending is quite high. Review categories to find savings opportunities."
-  : "Spending looks reasonable. Keep tracking to maintain control!"}
-
-Would you like tips on reducing spending in any category?`
-    }
-
-    // Default response
-    return `I'm here to help you understand your life data! 🤖
-
-I can answer questions about:
-• **Financial** - net worth, spending, savings rate
-• **Health** - weight trends, fitness progress
-• **Goals** - tracking status, recommendations
-• **General** - what to focus on, patterns, insights
-
-Try asking:
-- "Show me my financial summary"
-- "How is my health progress?"
-- "What should I focus on this week?"
-- "Am I on track with my goals?"
-
-The more data you track, the smarter my insights become! 📊`
-  }
-
-  const handleSendMessage = () => {
-    if (!input.trim()) return
-
-    // Add user message
     const userMessage: AIMessage = {
       id: Date.now().toString(),
       type: 'user',
@@ -311,33 +284,85 @@ The more data you track, the smarter my insights become! 📊`
       timestamp: new Date()
     }
     setMessages(prev => [...prev, userMessage])
+    const currentInput = input
     setInput('')
     setIsTyping(true)
 
-    // Simulate AI thinking
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(input)
+    try {
+      const response = await fetch('/api/ai-assistant/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: currentInput,
+          userData: data,
+          conversationHistory: messages.map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content
+          }))
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response')
+      }
+
+      const result = await response.json()
+      
       const aiMessage: AIMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: aiResponse,
+        content: result.response || result.message || "I couldn't process that request. Please try again.",
         timestamp: new Date(),
-        quickActions: [
+        quickActions: result.quickActions || [
           { label: 'View Details', action: 'details' },
-          { label: 'Export Report', action: 'export' }
+          { label: 'Ask Follow-up', action: 'followup' }
         ]
       }
+      
       setMessages(prev => [...prev, aiMessage])
+      
+      // Update AI name if returned
+      if (result.aiName) {
+        setAiName(result.aiName)
+      }
+
+    } catch (error) {
+      console.error('AI Chat error:', error)
+      
+      const aiMessage: AIMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: "I'm having trouble connecting right now. Please try again in a moment.",
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, aiMessage])
+    } finally {
       setIsTyping(false)
-    }, 1500)
+    }
   }
 
   const handleQuickCommand = (command: string) => {
     setInput(command)
-    handleSendMessage()
+    setTimeout(() => handleSendMessage(), 100)
   }
 
-  const dailyInsights = generateDailyInsights()
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'warning': return AlertCircle
+      case 'success': return Flame
+      case 'celebration': return Sparkles
+      default: return Lightbulb
+    }
+  }
+
+  const getInsightColor = (type: string) => {
+    switch (type) {
+      case 'warning': return 'bg-orange-100 dark:bg-orange-950/30 text-orange-600'
+      case 'success': return 'bg-green-100 dark:bg-green-950/30 text-green-600'
+      case 'celebration': return 'bg-purple-100 dark:bg-purple-950/30 text-purple-600'
+      default: return 'bg-blue-100 dark:bg-blue-950/30 text-blue-600'
+    }
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -352,54 +377,88 @@ The more data you track, the smarter my insights become! 📊`
             Your AI-powered life coach that knows your data and helps you improve
           </p>
         </div>
-        <Button variant="outline" size="icon">
-          <Settings className="h-5 w-5" />
-        </Button>
+        <Link href="/ai-assistant-settings">
+          <Button variant="outline" size="icon">
+            <Settings className="h-5 w-5" />
+          </Button>
+        </Link>
       </div>
 
       {/* Proactive Daily Insights */}
-      {dailyInsights.length > 0 && (
-        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
-          <CardHeader className="cursor-pointer" onClick={() => setShowInsights(!showInsights)}>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-blue-600" />
-                Today's Insights
-                <Badge variant="secondary">{dailyInsights.length}</Badge>
-              </CardTitle>
+      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <CardHeader className="cursor-pointer" onClick={() => setShowInsights(!showInsights)}>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-blue-600" />
+              Today's AI Insights
+              {!isLoadingInsights && (
+                <Badge variant="secondary">{proactiveInsights.length}</Badge>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  fetchProactiveInsights()
+                }}
+                disabled={isLoadingInsights}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoadingInsights ? 'animate-spin' : ''}`} />
+              </Button>
               {showInsights ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
             </div>
-          </CardHeader>
-          {showInsights && (
-            <CardContent className="space-y-3">
-              {dailyInsights.map((insight, index) => (
-                <div
-                  key={index}
-                  className={`flex items-start gap-3 p-4 rounded-lg ${
-                    insight.type === 'warning' ? 'bg-orange-100 dark:bg-orange-950/30' :
-                    insight.type === 'success' ? 'bg-green-100 dark:bg-green-950/30' :
-                    'bg-blue-100 dark:bg-blue-950/30'
-                  }`}
-                >
-                  <insight.icon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                    insight.type === 'warning' ? 'text-orange-600' :
-                    insight.type === 'success' ? 'text-green-600' :
-                    'text-blue-600'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{insight.message}</p>
-                    {insight.action && (
-                      <Button variant="link" className="h-auto p-0 mt-1 text-xs">
-                        {insight.action} <ArrowRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    )}
+          </div>
+        </CardHeader>
+        {showInsights && (
+          <CardContent className="space-y-3">
+            {isLoadingInsights ? (
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : proactiveInsights.length > 0 ? (
+              proactiveInsights.map((insight) => {
+                const IconComponent = getInsightIcon(insight.type)
+                return (
+                  <div
+                    key={insight.id}
+                    className={`flex items-start gap-3 p-4 rounded-lg ${getInsightColor(insight.type).split(' ')[0]} dark:${getInsightColor(insight.type).split(' ')[1]}`}
+                  >
+                    <IconComponent className={`h-5 w-5 flex-shrink-0 mt-0.5 ${getInsightColor(insight.type).split(' ')[2]}`} />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-muted-foreground">{insight.category}</span>
+                        {insight.priority === 'high' && (
+                          <Badge variant="destructive" className="text-xs py-0">Urgent</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium">{insight.message}</p>
+                      {insight.action && (
+                        <Link href={insight.actionPath || '#'}>
+                          <Button variant="link" className="h-auto p-0 mt-1 text-xs">
+                            {insight.action} <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          )}
-        </Card>
-      )}
+                )
+              })
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Lightbulb className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Add more data to get personalized AI insights!</p>
+                <Link href="/domains">
+                  <Button variant="link" size="sm">Explore Domains</Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
 
       {/* Quick Commands */}
       <Card>
@@ -417,6 +476,7 @@ The more data you track, the smarter my insights become! 📊`
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-center gap-2"
                 onClick={() => handleQuickCommand(cmd.label)}
+                disabled={isTyping}
               >
                 <cmd.icon className={`h-6 w-6 ${cmd.color}`} />
                 <span className="text-xs text-center">{cmd.label}</span>
@@ -431,7 +491,7 @@ The more data you track, the smarter my insights become! 📊`
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Chat with Your AI Assistant
+            Chat with {aiName}
           </CardTitle>
           <CardDescription>
             Ask me anything about your data, goals, and progress
@@ -445,7 +505,7 @@ The more data you track, the smarter my insights become! 📊`
                 <Brain className="h-16 w-16 text-purple-600 mb-4 opacity-50" />
                 <h3 className="text-lg font-semibold mb-2">Start a conversation!</h3>
                 <p className="text-sm text-muted-foreground mb-6 max-w-md">
-                  I'm here to help you understand your life data. Try asking a question or use one of the suggestions below.
+                  I have full access to your life data and can provide personalized insights. Try asking a question!
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-2xl">
                   {SUGGESTED_QUESTIONS.slice(0, 4).map((question, index) => (
@@ -453,11 +513,9 @@ The more data you track, the smarter my insights become! 📊`
                       key={index}
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setInput(question)
-                        setTimeout(handleSendMessage, 100)
-                      }}
+                      onClick={() => handleQuickCommand(question)}
                       className="text-xs"
+                      disabled={isTyping}
                     >
                       {question}
                     </Button>
@@ -481,14 +539,26 @@ The more data you track, the smarter my insights become! 📊`
                       {message.type === 'ai' && (
                         <div className="flex items-center gap-2 mb-2">
                           <Brain className="h-4 w-4 text-purple-600" />
-                          <span className="text-xs font-semibold text-purple-600">AI Assistant</span>
+                          <span className="text-xs font-semibold text-purple-600">{aiName}</span>
                         </div>
                       )}
                       <div className="text-sm whitespace-pre-wrap">{message.content}</div>
                       {message.quickActions && message.quickActions.length > 0 && (
-                        <div className="flex gap-2 mt-3">
+                        <div className="flex flex-wrap gap-2 mt-3">
                           {message.quickActions.map((action, index) => (
-                            <Button key={index} size="sm" variant="outline" className="text-xs">
+                            <Button 
+                              key={index} 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs"
+                              onClick={() => {
+                                if (action.path) {
+                                  window.location.href = action.path
+                                } else if (action.action === 'followup') {
+                                  setInput('Tell me more about this')
+                                }
+                              }}
+                            >
                               {action.label}
                             </Button>
                           ))}
@@ -504,8 +574,8 @@ The more data you track, the smarter my insights become! 📊`
                   <div className="flex justify-start">
                     <div className="bg-accent rounded-lg p-4 max-w-[80%]">
                       <div className="flex items-center gap-2">
-                        <Brain className="h-4 w-4 text-purple-600 animate-pulse" />
-                        <span className="text-sm">AI is thinking...</span>
+                        <Loader2 className="h-4 w-4 text-purple-600 animate-spin" />
+                        <span className="text-sm">{aiName} is thinking...</span>
                       </div>
                     </div>
                   </div>
@@ -518,17 +588,14 @@ The more data you track, the smarter my insights become! 📊`
           {/* Suggested Questions (when no messages) */}
           {messages.length === 0 && (
             <div className="mb-4">
-              <p className="text-sm font-medium mb-2 text-muted-foreground">Suggested questions:</p>
+              <p className="text-sm font-medium mb-2 text-muted-foreground">More suggestions:</p>
               <div className="flex flex-wrap gap-2">
                 {SUGGESTED_QUESTIONS.slice(4).map((question, index) => (
                   <Badge
                     key={index}
                     variant="outline"
                     className="cursor-pointer hover:bg-accent"
-                    onClick={() => {
-                      setInput(question)
-                      setTimeout(handleSendMessage, 100)
-                    }}
+                    onClick={() => handleQuickCommand(question)}
                   >
                     {question}
                   </Badge>
@@ -543,40 +610,44 @@ The more data you track, the smarter my insights become! 📊`
               placeholder="Ask me anything about your life data..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
               className="flex-1"
+              disabled={isTyping}
             />
-            <Button size="icon" variant="outline">
+            <Button size="icon" variant="outline" disabled>
               <Mic className="h-4 w-4" />
             </Button>
-            <Button size="icon" onClick={handleSendMessage} disabled={!input.trim()}>
-              <Send className="h-4 w-4" />
+            <Button size="icon" onClick={handleSendMessage} disabled={!input.trim() || isTyping}>
+              {isTyping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Pattern Recognition */}
+      {/* Pattern Recognition - Now powered by AI */}
       <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-600" />
-            Patterns I've Noticed
+            AI Pattern Recognition
           </CardTitle>
-          <CardDescription>AI-discovered insights from your data</CardDescription>
+          <CardDescription>Insights discovered from analyzing your data</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-4 rounded-lg bg-white dark:bg-gray-900 border">
             <div className="flex items-start gap-3">
               <TrendingUp className="h-5 w-5 text-green-600 mt-1" />
               <div>
-                <p className="font-medium text-sm">Correlation Found</p>
+                <p className="font-medium text-sm">Cross-Domain Correlation</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  When you log workouts, you tend to spend 30% less on takeout food. 
-                  Exercise might be helping your financial health too!
+                  AI analyzes patterns across all your life domains to find hidden connections and opportunities for improvement.
                 </p>
-                <Button variant="link" className="h-auto p-0 mt-2 text-xs">
-                  See detailed analysis <ArrowRight className="h-3 w-3 ml-1" />
+                <Button 
+                  variant="link" 
+                  className="h-auto p-0 mt-2 text-xs"
+                  onClick={() => handleQuickCommand("Find correlations between my different life domains")}
+                >
+                  Analyze correlations <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
             </div>
@@ -586,93 +657,81 @@ The more data you track, the smarter my insights become! 📊`
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-blue-600 mt-1" />
               <div>
-                <p className="font-medium text-sm">Time Pattern</p>
+                <p className="font-medium text-sm">Trend Analysis</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  You're most productive when you start your day before 8 AM. 
-                  Consider scheduling important tasks for mornings.
+                  See how your metrics change over time and predict future patterns based on historical data.
                 </p>
-                <Button variant="link" className="h-auto p-0 mt-2 text-xs">
-                  Optimize schedule <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
+                <Link href="/predictive-analytics">
+                  <Button variant="link" className="h-auto p-0 mt-2 text-xs">
+                    View predictions <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
 
           <div className="p-4 rounded-lg bg-white dark:bg-gray-900 border">
             <div className="flex items-start gap-3">
-              <DollarSign className="h-5 w-5 text-orange-600 mt-1" />
+              <Target className="h-5 w-5 text-pink-600 mt-1" />
               <div>
-                <p className="font-medium text-sm">Spending Pattern</p>
+                <p className="font-medium text-sm">Goal Optimization</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your grocery spending spikes 40% on Sundays. Shopping midweek could save ~$80/month.
+                  Get AI coaching to set better goals and actionable plans to achieve them.
                 </p>
-                <Button variant="link" className="h-auto p-0 mt-2 text-xs">
-                  Get savings tips <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
+                <Link href="/goals-coach">
+                  <Button variant="link" className="h-auto p-0 mt-2 text-xs">
+                    Open Goals Coach <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Goal Coaching Example */}
+      {/* Goal Coaching Preview */}
       <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-green-600" />
-            Goal: Save $10,000 for Emergency Fund
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Progress</span>
-              <Badge variant="secondary">42.5% Complete</Badge>
-            </div>
-            <Progress value={42.5} className="h-2" />
-            <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
-              <span>$4,250</span>
-              <span>$10,000</span>
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-green-600" />
+              AI Goals Coach
+            </CardTitle>
+            <Link href="/goals-coach">
+              <Button variant="outline" size="sm">
+                Open Coach <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Link>
           </div>
-
+        </CardHeader>
+        <CardContent>
           <div className="p-4 rounded-lg bg-white dark:bg-gray-900">
             <div className="flex items-start gap-2 mb-3">
               <Brain className="h-5 w-5 text-green-600 flex-shrink-0" />
               <div>
-                <p className="font-medium text-sm">AI Coach Says:</p>
+                <p className="font-medium text-sm">Get Personalized Coaching</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  You're slightly behind pace. To get back on track, you need to save $720/month 
-                  instead of your current $500/month.
+                  Let AI analyze your goals and create actionable plans to achieve them faster.
                 </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">💡 3 Ways to Close the Gap:</p>
-              <div className="space-y-2 text-sm">
+              <p className="text-sm font-medium">AI Goals Coach can help you:</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
-                  <span className="font-bold">1.</span>
-                  <span>Cancel unused subscriptions ($89/mo saved) - You haven't used: Gym membership, HBO Max</span>
+                  <span>•</span>
+                  <span>Set SMART goals based on your data patterns</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="font-bold">2.</span>
-                  <span>Reduce dining out to 2x/week ($130/mo saved) - Current avg: 4.5x/week</span>
+                  <span>•</span>
+                  <span>Break down big goals into weekly action items</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="font-bold">3.</span>
-                  <span>Sell unused items ($500 one-time boost) - I noticed you have collectibles not valued in 2+ years</span>
+                  <span>•</span>
+                  <span>Track progress and get personalized recommendations</span>
                 </div>
               </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <Button size="sm" className="flex-1">
-                Implement Suggestions
-              </Button>
-              <Button size="sm" variant="outline" className="flex-1">
-                Adjust Goal
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -680,6 +739,3 @@ The more data you track, the smarter my insights become! 📊`
     </div>
   )
 }
-
-
-

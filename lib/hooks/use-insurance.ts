@@ -59,11 +59,12 @@ export function useInsurance() {
       setPolicies((policiesRes.data || []) as InsurancePolicyRow[])
       setClaims((claimsRes.data || []) as InsuranceClaimRow[])
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('❌ Failed to load insurance data:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to load insurance data')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to load insurance data')
       setPolicies([])
       setClaims([])
     } finally {
@@ -87,11 +88,12 @@ export function useInsurance() {
       setPolicies(prev => [data as InsurancePolicyRow, ...prev])
       return data as InsurancePolicyRow
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to add policy:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to add policy')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to add policy')
       throw err
     }
   }, [supabase])
@@ -109,11 +111,12 @@ export function useInsurance() {
       setPolicies(prev => prev.map(p => p.id === id ? (data as InsurancePolicyRow) : p))
       return data as InsurancePolicyRow
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to update policy:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to update policy')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to update policy')
       throw err
     }
   }, [supabase])
@@ -140,11 +143,12 @@ export function useInsurance() {
       console.log(`✅ Deleted insurance policy ${id}`)
       setPolicies(prev => prev.filter(p => p.id !== id))
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('❌ Failed to delete policy:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to delete policy')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to delete policy')
       throw err
     }
   }, [supabase])
@@ -163,11 +167,12 @@ export function useInsurance() {
       setClaims(prev => [data as InsuranceClaimRow, ...prev])
       return data as InsuranceClaimRow
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to add claim:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to add claim')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to add claim')
       throw err
     }
   }, [supabase])
@@ -185,11 +190,12 @@ export function useInsurance() {
       setClaims(prev => prev.map(c => c.id === id ? (data as InsuranceClaimRow) : c))
       return data as InsuranceClaimRow
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('Failed to update claim:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to update claim')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to update claim')
       throw err
     }
   }, [supabase])
@@ -216,11 +222,12 @@ export function useInsurance() {
       console.log(`✅ Deleted insurance claim ${id}`)
       setClaims(prev => prev.filter(c => c.id !== id))
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('❌ Failed to delete claim:', {
-    error: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined
-  })
-      setError(err.message || 'Failed to delete claim')
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      setError(errorMessage || 'Failed to delete claim')
       throw err
     }
   }, [supabase])

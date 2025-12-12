@@ -3,6 +3,16 @@
 // Based on Financial Command Center specification
 // ===================================================================
 
+// ============ CATEGORY TYPE ============
+export interface Category {
+  id: string
+  name: string
+  icon: string
+  color: string
+  type: 'income' | 'expense'
+  isDefault?: boolean
+}
+
 // ============ BASE DOMAIN ENTRY ============
 export interface FinancialDomainEntry {
   id: string

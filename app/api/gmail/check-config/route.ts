@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerClient()
     
     // Get current user and session
-    const { data: { session }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
     
     const diagnostics = {
       timestamp: new Date().toISOString(),
@@ -35,14 +36,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Check authentication
-    if (!authError && session?.user) {
+    if (!authError && user) {
       diagnostics.checks.authenticated = true
-      diagnostics.userId = user.id
+      diagnostics.session.userId = user.id
       diagnostics.session.email = user.email || null
       diagnostics.session.provider = user.app_metadata?.provider || null
       
       // Check for provider token
-      if (session.provider_token) {
+      if (session?.provider_token) {
         diagnostics.checks.hasProviderToken = true
       } else {
         diagnostics.recommendations.push('No Google OAuth provider token found. You need to sign in with Google and grant Gmail permissions.')

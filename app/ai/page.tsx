@@ -120,40 +120,44 @@ export default function AIPage() {
         </Link>
 
         {/* AI Goals Coach */}
-        <Card className="hover:shadow-lg transition-all h-full">
-          <CardHeader>
-            <div className="h-12 w-12 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center mb-4">
-              <Target className="h-6 w-6 text-pink-600 dark:text-pink-400" />
-            </div>
-            <CardTitle>AI Goals Coach</CardTitle>
-            <CardDescription>
-              Let AI help you set, track, and achieve your personal goals
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" variant="outline">
-              Get Coaching
-            </Button>
-          </CardContent>
-        </Card>
+        <Link href="/goals-coach">
+          <Card className="hover:shadow-lg transition-all cursor-pointer h-full">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center mb-4">
+                <Target className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+              </div>
+              <CardTitle>AI Goals Coach</CardTitle>
+              <CardDescription>
+                Let AI help you set, track, and achieve your personal goals
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full bg-pink-600 hover:bg-pink-700">
+                Get Coaching
+              </Button>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* Predictive Analytics */}
-        <Card className="hover:shadow-lg transition-all h-full">
-          <CardHeader>
-            <div className="h-12 w-12 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center mb-4">
-              <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <CardTitle>Predictive Analytics</CardTitle>
-            <CardDescription>
-              AI predictions for expenses, habits, and life patterns
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" variant="outline">
-              View Predictions
-            </Button>
-          </CardContent>
-        </Card>
+        <Link href="/predictive-analytics">
+          <Card className="hover:shadow-lg transition-all cursor-pointer h-full">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center mb-4">
+                <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <CardTitle>Predictive Analytics</CardTitle>
+              <CardDescription>
+                AI predictions for expenses, habits, and life patterns
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+                View Predictions
+              </Button>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Features List */}

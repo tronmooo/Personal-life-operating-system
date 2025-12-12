@@ -159,10 +159,11 @@ async function buildUserContext(supabase: any, userId: string): Promise<AIContex
       // Group by domain
       for (const entry of entries) {
         const domain = entry.domain as Domain
-        if (!context.domainData[domain]) {
-          context.domainData[domain] = []
+        const domainData = context.domainData!
+        if (!domainData[domain]) {
+          domainData[domain] = []
         }
-        context.domainData[domain]!.push({
+        domainData[domain]!.push({
           id: entry.id,
           domain: entry.domain,
           title: entry.title,

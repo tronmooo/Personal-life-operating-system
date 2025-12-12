@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
     console.log('🔄 Starting daily transaction sync for all users...')
 
     // Get all active Plaid items
+    const supabase = getSupabase()
     const { data: plaidItems, error: itemsError } = await supabase
       .from('plaid_items')
       .select('*')
@@ -150,7 +151,8 @@ async function syncItemTransactions(item: any) {
     const data = await response.json()
 
     // Get linked accounts for this item
-    const { data: linkedAccounts } = await supabase
+    const supabaseClient = getSupabase()
+    const { data: linkedAccounts } = await supabaseClient
       .from('linked_accounts')
       .select('id, plaid_account_id')
       .eq('plaid_item_id', item.plaid_item_id)
@@ -166,7 +168,7 @@ async function syncItemTransactions(item: any) {
 
     // Create account ID map
     const accountMap = new Map(
-      linkedAccounts.map(acc => [acc.plaid_account_id, acc.id])
+      linkedAccounts.map((acc: any) => [acc.plaid_account_id, acc.id])
     )
 
     // Store transactions
@@ -190,7 +192,7 @@ async function syncItemTransactions(item: any) {
       country: tx.location?.country,
     }))
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('transactions')
       .upsert(transactionsToInsert, {
         onConflict: 'plaid_transaction_id',
@@ -202,7 +204,7 @@ async function syncItemTransactions(item: any) {
 
     // Update account balances
     for (const account of data.accounts) {
-      await supabase
+      await supabaseClient
         .from('linked_accounts')
         .update({
           current_balance: account.balances.current,
@@ -251,6 +253,7 @@ async function syncItemTransactions(item: any) {
  * Calculate net worth for all users with linked accounts
  */
 async function calculateAllNetWorth() {
+  const supabase = getSupabase()
   const { data: users } = await supabase
     .from('linked_accounts')
     .select('user_id')
@@ -259,14 +262,14 @@ async function calculateAllNetWorth() {
   if (!users) return
 
   // Get unique user IDs
-  const userIds = [...new Set(users.map(u => u.user_id))]
+  const userIds = [...new Set(users.map((u: any) => u.user_id))]
 
   console.log(`   Calculating for ${userIds.length} users`)
 
   for (const userId of userIds) {
     try {
       // Get user's accounts
-      const { data: accounts } = await supabase
+      const { data: accounts } = await getSupabase()
         .from('linked_accounts')
         .select('*')
         .eq('user_id', userId)

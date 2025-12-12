@@ -41,14 +41,9 @@ export function QuickLogDialog({ open, onOpenChange }: QuickLogDialogProps) {
   async function handleSave() {
     try {
       setSaving(true)
-      
-      const baseData = {
-        domain: 'health',
-      }
 
       if (activeTab === 'weight' && weight) {
         await create({
-          ...baseData,
           title: `Weight: ${weight} lbs`,
           metadata: {
             logType: 'weight',
@@ -58,7 +53,6 @@ export function QuickLogDialog({ open, onOpenChange }: QuickLogDialogProps) {
         })
       } else if (activeTab === 'bp' && bpSystolic && bpDiastolic) {
         await create({
-          ...baseData,
           title: `Blood Pressure: ${bpSystolic}/${bpDiastolic}`,
           metadata: {
             logType: 'blood_pressure',
@@ -69,7 +63,6 @@ export function QuickLogDialog({ open, onOpenChange }: QuickLogDialogProps) {
         })
       } else if (activeTab === 'hr' && heartRate) {
         await create({
-          ...baseData,
           title: `Heart Rate: ${heartRate} bpm`,
           metadata: {
             logType: 'heart_rate',
@@ -80,7 +73,6 @@ export function QuickLogDialog({ open, onOpenChange }: QuickLogDialogProps) {
         })
       } else if (activeTab === 'glucose' && glucose) {
         await create({
-          ...baseData,
           title: `Blood Sugar: ${glucose} mg/dL`,
           metadata: {
             logType: 'glucose',
@@ -90,7 +82,6 @@ export function QuickLogDialog({ open, onOpenChange }: QuickLogDialogProps) {
         })
       } else if (activeTab === 'sleep' && sleepHours) {
         await create({
-          ...baseData,
           title: `Sleep: ${sleepHours} hours`,
           metadata: {
             logType: 'sleep',

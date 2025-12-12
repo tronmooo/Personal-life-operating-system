@@ -118,17 +118,21 @@ export function formatDateHeader(dateString: string): string {
 }
 
 // ============ NET WORTH CALCULATIONS ============
+
+// Account type definitions for helper functions
+type AccountType = 'checking' | 'savings' | 'credit' | 'investment' | 'loan' | 'mortgage' | 'asset' | 'retirement'
+
 export function calculateNetWorth(accounts: FinancialAccount[]): {
   assets: number
   liabilities: number
   netWorth: number
 } {
   const assets = accounts
-    .filter(a => a.isActive && ['checking', 'savings', 'investment', 'asset'].includes(a.type))
+    .filter(a => a.isActive && ['checking', 'savings', 'investment', 'asset', 'retirement'].includes(a.accountType))
     .reduce((sum, a) => sum + a.balance, 0)
   
   const liabilities = accounts
-    .filter(a => a.isActive && ['credit', 'loan', 'mortgage'].includes(a.type))
+    .filter(a => a.isActive && ['credit', 'loan', 'mortgage'].includes(a.accountType))
     .reduce((sum, a) => sum + Math.abs(a.balance), 0)
   
   return {
@@ -138,8 +142,8 @@ export function calculateNetWorth(accounts: FinancialAccount[]): {
   }
 }
 
-export function getAccountTypeLabel(type: Account['type']): string {
-  const labels: Record<Account['type'], string> = {
+export function getAccountTypeLabel(type: AccountType): string {
+  const labels: Record<AccountType, string> = {
     checking: 'Checking',
     savings: 'Savings',
     credit: 'Credit Card',
@@ -147,15 +151,16 @@ export function getAccountTypeLabel(type: Account['type']): string {
     loan: 'Loan',
     mortgage: 'Mortgage',
     asset: 'Asset',
+    retirement: 'Retirement',
   }
   return labels[type] || type
 }
 
-export function isAssetAccount(type: Account['type']): boolean {
-  return ['checking', 'savings', 'investment', 'asset'].includes(type)
+export function isAssetAccount(type: AccountType): boolean {
+  return ['checking', 'savings', 'investment', 'asset', 'retirement'].includes(type)
 }
 
-export function isLiabilityAccount(type: Account['type']): boolean {
+export function isLiabilityAccount(type: AccountType): boolean {
   return ['credit', 'loan', 'mortgage'].includes(type)
 }
 

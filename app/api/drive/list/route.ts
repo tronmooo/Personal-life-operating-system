@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     const files = await driveService.listDomainFiles(domain)
 
     // Get metadata from Supabase for these files
+    const supabase = getSupabase()
     const driveFileIds = files.map((f: any) => f.id)
     const { data: metadata } = await supabase
       .from('documents')
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     // Merge metadata with files
     const filesWithMetadata = files.map((file: any) => {
-      const meta = metadata?.find((m) => m.drive_file_id === file.id)
+      const meta = metadata?.find((m: any) => m.drive_file_id === file.id)
       return {
         ...file,
         documentName: meta?.document_name,
