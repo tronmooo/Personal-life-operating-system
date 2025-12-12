@@ -298,7 +298,7 @@ Try asking:
 The more data you track, the smarter my insights become! 📊`
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return
 
     // Add user message
@@ -309,16 +309,81 @@ The more data you track, the smarter my insights become! 📊`
       timestamp: new Date()
     }
     setMessages(prev => [...prev, userMessage])
+    const currentInput = input
     setInput('')
     setIsTyping(true)
 
-    // Simulate AI thinking
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(input)
+    try {
+      // First try multi-entity extraction for data entry commands
+      console.log('🧠 [AI-PAGE] Attempting multi-entity extraction...')
+      const multiEntityResponse = await fetch('/api/ai-assistant/multi-entry', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: currentInput,
+          userContext: {
+            recentEntries: Object.values(data).flat().slice(0, 50),
+            preferences: {
+              defaultPetName: (data.pets as any)?.[0]?.metadata?.petName || (data.pets as any)?.[0]?.title,
+              defaultVehicle: (data.vehicles as any)?.[0]?.title,
+              defaultHome: (data.home as any)?.[0]?.title
+            }
+          }
+        })
+      })
+
+      if (multiEntityResponse.ok) {
+        const multiResult = await multiEntityResponse.json()
+        console.log('📊 [AI-PAGE] Multi-entity result:', multiResult)
+
+        if (multiResult.success && multiResult.results && multiResult.results.length > 0) {
+          // Trigger data reload
+          if (typeof window !== 'undefined') {
+            await new Promise(resolve => setTimeout(resolve, 800))
+            window.dispatchEvent(new CustomEvent('ai-assistant-saved'))
+            console.log('✅ [AI-PAGE] Dispatched ai-assistant-saved event')
+          }
+
+          const aiMessage: AIMessage = {
+            id: (Date.now() + 1).toString(),
+            type: 'ai',
+            content: multiResult.message || 'Data logged successfully!',
+            timestamp: new Date(),
+            quickActions: [
+              { label: 'View Details', action: 'details' }
+            ]
+          }
+          setMessages(prev => [...prev, aiMessage])
+          setIsTyping(false)
+          return
+        }
+      }
+
+      // Fallback: Use regular chat endpoint
+      console.log('💬 [AI-PAGE] Using regular chat endpoint...')
+      const response = await fetch('/api/ai-assistant/chat', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: currentInput,
+          userData: data,
+          conversationHistory: messages.map(m => ({ type: m.type, content: m.content }))
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ [AI-PAGE] Chat response:', result)
+
       const aiMessage: AIMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: aiResponse,
+        content: result.response || result.message || 'I processed your request.',
         timestamp: new Date(),
         quickActions: [
           { label: 'View Details', action: 'details' },
@@ -326,13 +391,80 @@ The more data you track, the smarter my insights become! 📊`
         ]
       }
       setMessages(prev => [...prev, aiMessage])
+
+      // Trigger reload if data was saved
+      if (result.saved || result.triggerReload) {
+        if (typeof window !== 'undefined') {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          window.dispatchEvent(new CustomEvent('ai-assistant-saved'))
+        }
+      }
+    } catch (error) {
+      console.error('❌ [AI-PAGE] Error:', error)
+      // Fallback to local response on error
+      const aiMessage: AIMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: generateAIResponse(currentInput),
+        timestamp: new Date(),
+        quickActions: [
+          { label: 'View Details', action: 'details' }
+        ]
+      }
+      setMessages(prev => [...prev, aiMessage])
+    } finally {
       setIsTyping(false)
-    }, 1500)
+    }
   }
 
   const handleQuickCommand = (command: string) => {
-    setInput(command)
-    handleSendMessage()
+    // Add user message directly
+    const userMessage: AIMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: command,
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, userMessage])
+    setIsTyping(true)
+
+    // Call API directly
+    fetch('/api/ai-assistant/chat', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: command,
+        userData: data,
+        conversationHistory: messages.map(m => ({ type: m.type, content: m.content }))
+      })
+    })
+      .then(res => res.json())
+      .then(result => {
+        const aiMessage: AIMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: result.response || result.message || 'I processed your request.',
+          timestamp: new Date(),
+          quickActions: [
+            { label: 'View Details', action: 'details' }
+          ]
+        }
+        setMessages(prev => [...prev, aiMessage])
+      })
+      .catch(error => {
+        console.error('Quick command error:', error)
+        const aiMessage: AIMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: generateAIResponse(command),
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, aiMessage])
+      })
+      .finally(() => {
+        setIsTyping(false)
+      })
   }
 
   const dailyInsights = generateDailyInsights()
