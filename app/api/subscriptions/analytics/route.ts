@@ -25,10 +25,21 @@ function calculateMonthlyCost(cost: number, frequency: string): number {
 // GET - Fetch subscription analytics
 export async function GET(_request: NextRequest) {
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:start',message:'Analytics GET started',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+    
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:auth',message:'Analytics auth check',data:{hasUser:!!user,userId:user?.id,authError:authError?.message||null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+    // #endregion
+
     if (authError || !user) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:401',message:'Analytics returning 401',data:{authError:authError?.message,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+      // #endregion
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

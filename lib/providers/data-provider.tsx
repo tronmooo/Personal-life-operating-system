@@ -168,11 +168,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) {
       console.warn('⚠️ Supabase not initialized yet')
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-provider.tsx:supabase-null',message:'DataProvider: Supabase not initialized',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+      // #endregion
       return
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-provider.tsx:before-getSession',message:'DataProvider: About to call getSession',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('🔐 DataProvider: Initial session check', session?.user?.email || 'NO USER')
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-provider.tsx:getSession-result',message:'DataProvider: getSession result',data:{hasSession:!!session,hasUser:!!session?.user,userEmail:session?.user?.email||'none'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
       setSession(session)
     })
 

@@ -55,19 +55,28 @@ export class GmailParser {
 
       console.log('📧 Gmail query:', query)
 
+      // Limit to 15 emails to avoid timeout (each email = Gmail API + OpenAI API call)
       const response = await this.gmail.users.messages.list({
         userId: 'me',
         q: query,
-        maxResults: 100
+        maxResults: 15
       })
 
       console.log('📧 Gmail API response received, messages:', response.data.messages?.length || 0)
 
       const messages = response.data.messages || []
       
-      // Fetch full message details for each
-      const emailPromises = messages.map((msg: any) => this.getEmailDetails(msg.id))
-      const emails = await Promise.all(emailPromises)
+      // Fetch full message details for each (process in chunks to avoid timeout)
+      const emails: (EmailMessage | null)[] = []
+      const chunkSize = 5
+      for (let i = 0; i < messages.length; i += chunkSize) {
+        const chunk = messages.slice(i, i + chunkSize)
+        const chunkResults = await Promise.all(
+          chunk.map((msg: any) => this.getEmailDetails(msg.id))
+        )
+        emails.push(...chunkResults)
+        console.log(`📧 Fetched ${Math.min(i + chunkSize, messages.length)}/${messages.length} email details`)
+      }
       
       const validEmails = emails.filter((email): email is EmailMessage => email !== null)
       console.log('📧 Fetched', validEmails.length, 'valid emails')

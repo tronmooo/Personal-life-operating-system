@@ -84,12 +84,28 @@ Always respond with valid JSON only. No additional text.`
   }
 
   /**
-   * Classify multiple emails in batch
+   * Classify multiple emails in batch (with rate limiting to avoid timeouts)
    */
   async classifyBatch(emails: EmailMessage[]): Promise<ClassifiedEmail[]> {
-    const results = await Promise.all(
-      emails.map(email => this.classifyEmail(email))
-    )
+    // Process emails sequentially with a small delay to avoid rate limits and timeouts
+    const results: (ClassifiedEmail | null)[] = []
+    const maxEmails = 10 // Limit batch size to avoid timeouts
+    const emailsToProcess = emails.slice(0, maxEmails)
+    
+    console.log(`🤖 Processing ${emailsToProcess.length} of ${emails.length} emails (limited to ${maxEmails})`)
+    
+    for (const email of emailsToProcess) {
+      try {
+        const result = await this.classifyEmail(email)
+        results.push(result)
+        // Small delay between API calls to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } catch (error) {
+        console.error('Error classifying email:', email.subject, error)
+        results.push(null)
+      }
+    }
+    
     return results.filter((r): r is ClassifiedEmail => r !== null && r.classification !== 'other')
   }
 

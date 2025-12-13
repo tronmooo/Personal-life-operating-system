@@ -7,10 +7,21 @@ export const dynamic = 'force-dynamic'
 // GET - Fetch all subscriptions with optional filters
 export async function GET(request: NextRequest) {
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:start',message:'GET request started',data:{url:request.url},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+    
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:auth',message:'Auth check result',data:{hasUser:!!user,userId:user?.id,authError:authError?.message||null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+    // #endregion
+
     if (authError || !user) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:401',message:'Returning 401 Unauthorized',data:{authError:authError?.message,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+      // #endregion
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

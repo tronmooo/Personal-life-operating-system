@@ -18,6 +18,12 @@ interface GuestBannerProps {
 export function GuestBanner({ redirectPath, compact = false, message }: GuestBannerProps) {
   const { isAuthenticated, isLoading } = useAuthGuard()
   const [dismissed, setDismissed] = useState(false)
+  
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'guest-banner.tsx:render',message:'GuestBanner render',data:{isAuthenticated,isLoading,dismissed,willShow:!isLoading&&!isAuthenticated&&!dismissed},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+  }
+  // #endregion
 
   // Check if banner was dismissed in this session
   useEffect(() => {
