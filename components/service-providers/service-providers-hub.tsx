@@ -165,11 +165,21 @@ function DashboardSection({
   analytics: ReturnType<typeof useServiceProviders>['analytics']
   analyticsLoading: boolean
 }) {
-  if (analyticsLoading || !analytics) {
+  if (analyticsLoading) {
     return <LoadingSkeleton />
   }
 
-  const maxCategory = Math.max(...analytics.spending_by_category.map((c) => c.amount), 1)
+  // Default analytics for unauthenticated users or empty state
+  const safeAnalytics = analytics || {
+    monthly_total: 0,
+    active_providers: 0,
+    pending_payments: 0,
+    expiring_soon: 0,
+    spending_by_category: [],
+    upcoming_payments: [],
+  }
+
+  const maxCategory = Math.max(...safeAnalytics.spending_by_category.map((c) => c.amount), 1)
 
   return (
     <div className="space-y-4">
@@ -177,7 +187,7 @@ function DashboardSection({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-slate-300 text-sm">Monthly Total</p>
-            <p className="text-4xl font-bold mt-1">{formatCurrency(analytics.monthly_total)}</p>
+            <p className="text-4xl font-bold mt-1">{formatCurrency(safeAnalytics.monthly_total)}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center">
             <DollarSign className="w-6 h-6 text-blue-400" />
@@ -189,7 +199,7 @@ function DashboardSection({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-slate-300 text-sm">Active Providers</p>
-            <p className="text-3xl font-bold mt-1">{analytics.active_providers}</p>
+            <p className="text-3xl font-bold mt-1">{safeAnalytics.active_providers}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-green-600/20 flex items-center justify-center">
             <CheckCircle2 className="w-6 h-6 text-green-400" />
@@ -201,7 +211,7 @@ function DashboardSection({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-slate-300 text-sm">Pending Payments</p>
-            <p className="text-3xl font-bold mt-1">{analytics.pending_payments}</p>
+            <p className="text-3xl font-bold mt-1">{safeAnalytics.pending_payments}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
             <Clock className="w-6 h-6 text-amber-300" />
@@ -213,7 +223,7 @@ function DashboardSection({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-slate-300 text-sm">Expiring Soon</p>
-            <p className="text-3xl font-bold mt-1">{analytics.expiring_soon}</p>
+            <p className="text-3xl font-bold mt-1">{safeAnalytics.expiring_soon}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center">
             <AlertCircle className="w-6 h-6 text-rose-400" />
@@ -224,7 +234,7 @@ function DashboardSection({
       <Card className={`${cardClass} p-6 space-y-5`}>
         <h2 className="text-lg font-semibold">Monthly Spending by Category</h2>
         <div className="space-y-4">
-          {analytics.spending_by_category.map((cat) => {
+          {safeAnalytics.spending_by_category.map((cat) => {
             const cfg = CATEGORY_CONFIG[cat.category]
             const Icon = cfg.icon
             const pct = (cat.amount / maxCategory) * 100
@@ -244,7 +254,7 @@ function DashboardSection({
               </div>
             )
           })}
-          {analytics.spending_by_category.length === 0 && (
+          {safeAnalytics.spending_by_category.length === 0 && (
             <p className="text-slate-500 text-center py-4">No spending data yet</p>
           )}
         </div>
@@ -252,10 +262,10 @@ function DashboardSection({
 
       <Card className={`${cardClass} p-6 space-y-3`}>
         <h2 className="text-lg font-semibold">Upcoming Payments</h2>
-        {analytics.upcoming_payments.length === 0 && (
+        {safeAnalytics.upcoming_payments.length === 0 && (
           <p className="text-slate-500 text-center py-6">No upcoming payments</p>
         )}
-        {analytics.upcoming_payments.slice(0, 5).map((payment) => {
+        {safeAnalytics.upcoming_payments.slice(0, 5).map((payment) => {
           const delta = daysUntil(payment.due_date)
           return (
             <div

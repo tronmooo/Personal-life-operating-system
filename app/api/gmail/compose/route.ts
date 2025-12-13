@@ -151,3 +151,4 @@ function parseEmailResponse(content: string, type: string): AIEmailGenerateRespo
   }
 }
 
+
