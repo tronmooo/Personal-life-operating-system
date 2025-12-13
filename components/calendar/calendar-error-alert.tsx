@@ -15,12 +15,25 @@ export function CalendarErrorAlert() {
       try {
         const response = await fetch('/api/calendar/sync')
         
+        // Handle non-JSON responses (e.g., 504 timeout)
+        const text = await response.text()
+        let data
+        try {
+          data = JSON.parse(text)
+        } catch {
+          // Non-JSON response - likely timeout or server error
+          if (response.status === 504) {
+            console.error('Calendar sync timed out')
+            return // Don't show error alert for timeouts
+          }
+          console.error('Calendar sync non-JSON response:', text.substring(0, 100))
+          return
+        }
+        
         if (response.status === 503) {
-          const data = await response.json()
           setHasCredentialError(true)
           setErrorMessage(data.error || 'Calendar service is unavailable')
         } else if (response.status === 401) {
-          const data = await response.json()
           if (data.needsReauth) {
             setHasCredentialError(true)
             setErrorMessage('Calendar access expired. Please sign in again with Google.')

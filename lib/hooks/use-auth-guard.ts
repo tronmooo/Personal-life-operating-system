@@ -18,21 +18,49 @@ export function useAuthGuard() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:useEffect-start',message:'useAuthGuard effect starting',data:{timestamp:new Date().toISOString()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+    
     const supabase = createSafeBrowserClient()
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:after-createClient',message:'Supabase client creation result',data:{clientExists:!!supabase,clientType:supabase ? typeof supabase : 'null'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+    
     if (!supabase) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:client-null',message:'CRITICAL: Supabase client is null, setting isLoading=false',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
       setIsLoading(false)
       return
     }
 
     // Check initial session
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:before-getSession',message:'About to call getSession()',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:getSession-result',message:'getSession() completed',data:{hasSession:!!session,hasUser:!!session?.user,userEmail:session?.user?.email||'none',expiresAt:session?.expires_at||'none'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
+      
       setIsAuthenticated(!!session?.user)
       setUser(session?.user || null)
       setIsLoading(false)
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:state-set',message:'Auth state set after getSession',data:{isAuthenticated:!!session?.user,isLoading:false},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+      // #endregion
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'use-auth-guard.ts:onAuthStateChange',message:'Auth state change event',data:{event:_event,hasSession:!!session,hasUser:!!session?.user,userEmail:session?.user?.email||'none'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
+      
       setIsAuthenticated(!!session?.user)
       setUser(session?.user || null)
     })

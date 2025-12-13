@@ -84,6 +84,11 @@ export function SmartInboxCard() {
     try {
       setSyncing(true)
       
+      // #region agent log
+      console.log('🔍 DEBUG: syncWithGmail started', new Date().toISOString());
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'smart-inbox-card.tsx:87',message:'syncWithGmail started',data:{timestamp:new Date().toISOString()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
+      
       // Get current session with provider token
       let { data: { session } } = await supabase.auth.getSession()
       if (!session) {
@@ -109,6 +114,11 @@ export function SmartInboxCard() {
         }
       }
 
+      // #region agent log
+      console.log('🔍 DEBUG: About to call /api/gmail/sync, hasToken:', !!session.provider_token);
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'smart-inbox-card.tsx:115',message:'About to call /api/gmail/sync',data:{hasProviderToken:!!session.provider_token},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
+      
       // Send provider token in request body
       const response = await fetch('/api/gmail/sync', {
         method: 'POST',
@@ -119,7 +129,23 @@ export function SmartInboxCard() {
         })
       })
 
-      const data = await response.json()
+      // #region agent log
+      const responseText = await response.clone().text();
+      console.log('🔍 DEBUG: Gmail sync response:', response.status, responseText.substring(0, 200));
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'smart-inbox-card.tsx:128',message:'Gmail sync response received',data:{status:response.status,statusText:response.statusText,responsePreview:responseText.substring(0,200),isJson:responseText.startsWith('{')},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+      // #endregion
+      
+      // Handle non-JSON responses (e.g., timeouts, HTML error pages)
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error('ℹ️ Gmail sync returned non-JSON response:', responseText.substring(0, 200));
+        if (response.status === 504) {
+          throw new Error('Request timed out. Gmail sync is taking too long. Try again later.');
+        }
+        throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
+      }
       
       // If we get 401/403, try refreshing session once before giving up
       if (response.status === 401 || response.status === 403) {
@@ -178,6 +204,10 @@ export function SmartInboxCard() {
         alert(`⚠️ Gmail Sync Issue\n\n${errorMsg}${hint ? `\n\n${hint}` : ''}`)
       }
     } catch (error: any) {
+      // #region agent log
+      console.log('🔍 DEBUG: Gmail sync catch error:', error?.message);
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'smart-inbox-card.tsx:185',message:'Gmail sync catch block error',data:{errorMessage:error?.message,errorName:error?.name,errorStack:error?.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+      // #endregion
       // Log errors and show status message
       console.error('ℹ️ Gmail sync error:', error.message)
       alert(`⚠️ Gmail Sync Failed\n\n${error.message}\n\nTry signing out and back in with Google.`)

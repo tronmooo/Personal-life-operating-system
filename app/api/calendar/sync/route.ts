@@ -122,6 +122,10 @@ export async function POST(request: Request) {
  * Fetch upcoming events from Google Calendar
  */
 export async function GET(request: Request) {
+  const startTime = Date.now();
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'calendar/sync/route.ts:125',message:'Calendar sync GET started',data:{startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
   try {
     const supabase = getSupabaseClient()
     if (!supabase) {
@@ -166,6 +170,10 @@ export async function GET(request: Request) {
 
     const events = await calendarSync.fetchUpcomingEvents(days)
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'calendar/sync/route.ts:170',message:'Calendar sync GET success',data:{eventCount:events.length,totalElapsed:Date.now()-startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+
     console.log(`📅 Successfully fetched ${events.length} events`)
 
     return NextResponse.json({
@@ -173,6 +181,9 @@ export async function GET(request: Request) {
       count: events.length,
     })
   } catch (error: any) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'calendar/sync/route.ts:180',message:'Calendar sync GET error',data:{errorMessage:error?.message,totalElapsed:Date.now()-startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
     console.error('📅 Calendar fetch error:', error.message)
     console.error('📅 Error details:', error)
     return NextResponse.json(

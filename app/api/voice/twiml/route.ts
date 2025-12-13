@@ -40,21 +40,23 @@ async function handleTwiML(request: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const wsUrl = appUrl.replace('https://', 'wss://').replace('http://', 'ws://')
     
+    console.log('🔗 TwiML WebSocket URL:', `${wsUrl}/api/voice/stream`)
+    
     // Build TwiML with Media Streams for bidirectional audio
+    // Using Connect > Stream for true bidirectional audio (not Start > Stream)
+    // The AI will handle the greeting via OpenAI Realtime API
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Start>
+  <Connect>
     <Stream url="${wsUrl}/api/voice/stream">
       <Parameter name="userId" value="${callContext.userId}" />
-      <Parameter name="businessName" value="${callContext.businessName}" />
+      <Parameter name="businessName" value="${encodeURIComponent(callContext.businessName)}" />
       <Parameter name="businessPhone" value="${callContext.businessPhone || ''}" />
-      <Parameter name="userRequest" value="${callContext.userRequest}" />
+      <Parameter name="userRequest" value="${encodeURIComponent(callContext.userRequest)}" />
       <Parameter name="category" value="${callContext.category}" />
-      <Parameter name="userData" value="${JSON.stringify(callContext.userData || {}).replace(/"/g, '&quot;')}" />
+      <Parameter name="userData" value="${encodeURIComponent(JSON.stringify(callContext.userData || {}))}" />
     </Stream>
-  </Start>
-  <Say voice="alice">Hello, this is an AI assistant calling regarding ${callContext.userRequest}.</Say>
-  <Pause length="30"/>
+  </Connect>
 </Response>`
 
     // Return TwiML response

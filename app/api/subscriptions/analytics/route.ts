@@ -23,7 +23,7 @@ function calculateMonthlyCost(cost: number, frequency: string): number {
 }
 
 // GET - Fetch subscription analytics
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -130,10 +130,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       summary: {
-        monthly_total: monthlyTotal,
-        daily_total: dailyTotal,
-        weekly_total: weeklyTotal,
-        yearly_total: yearlyTotal,
+        monthly_total: monthlyTotal || 0,
+        daily_total: dailyTotal || 0,
+        weekly_total: weeklyTotal || 0,
+        yearly_total: yearlyTotal || 0,
         total_subscriptions: subscriptions?.length || 0,
         active_count: statusCounts.active,
         trial_count: statusCounts.trial,
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       category_breakdown: Object.entries(categoryBreakdown).map(([category, amount]) => ({
         category,
         amount,
-        percentage: (amount / monthlyTotal) * 100
+        percentage: monthlyTotal > 0 ? (amount / monthlyTotal) * 100 : 0
       })).sort((a, b) => b.amount - a.amount),
       upcoming_renewals: upcomingRenewals,
       due_this_week: dueThisWeek,
@@ -158,5 +158,6 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
 
 

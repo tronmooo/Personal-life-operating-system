@@ -43,18 +43,39 @@ export function DigitalLifeCard() {
   const fetchData = async () => {
     try {
       const response = await fetch('/api/subscriptions/analytics')
+      
+      // Handle unauthorized - show empty state for guests
+      if (response.status === 401) {
+        setSummary({
+          monthly_total: 0,
+          yearly_total: 0,
+          active_count: 0,
+          due_this_week: 0,
+        })
+        setUpcomingRenewals([])
+        return
+      }
+      
       if (response.ok) {
         const data = await response.json()
         setSummary({
-          monthly_total: data.summary.monthly_total,
-          yearly_total: data.summary.yearly_total,
-          active_count: data.summary.active_count + data.summary.trial_count,
-          due_this_week: data.due_this_week.length,
+          monthly_total: data.summary.monthly_total || 0,
+          yearly_total: data.summary.yearly_total || 0,
+          active_count: (data.summary.active_count || 0) + (data.summary.trial_count || 0),
+          due_this_week: data.due_this_week?.length || 0,
         })
-        setUpcomingRenewals(data.upcoming_renewals.slice(0, 3))
+        setUpcomingRenewals(data.upcoming_renewals?.slice(0, 3) || [])
       }
     } catch (error) {
       console.error('Error fetching subscription data:', error)
+      // Set empty data on error
+      setSummary({
+        monthly_total: 0,
+        yearly_total: 0,
+        active_count: 0,
+        due_this_week: 0,
+      })
+      setUpcomingRenewals([])
     } finally {
       setLoading(false)
     }
@@ -193,5 +214,6 @@ export function DigitalLifeCard() {
     </Card>
   )
 }
+
 
 

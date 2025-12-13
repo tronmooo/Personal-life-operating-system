@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
-import { getDemoAnalytics, getDemoSubscriptions } from '@/lib/demo/subscriptions-demo'
 
 export interface Subscription {
   id: string
@@ -53,6 +52,26 @@ export interface SubscriptionAnalytics {
   old_subscriptions: Array<Subscription & { monthly_cost: number; age_in_years: number }>
 }
 
+// Empty analytics for when there's no data
+const getEmptyAnalytics = (): SubscriptionAnalytics => ({
+  summary: {
+    monthly_total: 0,
+    daily_total: 0,
+    weekly_total: 0,
+    yearly_total: 0,
+    total_subscriptions: 0,
+    active_count: 0,
+    trial_count: 0,
+    paused_count: 0,
+    cancelled_count: 0,
+  },
+  category_breakdown: [],
+  upcoming_renewals: [],
+  due_this_week: [],
+  monthly_trend: [],
+  old_subscriptions: [],
+})
+
 interface UseSubscriptionsOptions {
   status?: string
   category?: string
@@ -64,7 +83,6 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
   const [analytics, setAnalytics] = useState<SubscriptionAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
-  const [isDemo, setIsDemo] = useState(false)
 
   // Fetch subscriptions
   const fetchSubscriptions = useCallback(async () => {
@@ -78,29 +96,23 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
 
       const response = await fetch(`/api/subscriptions?${params}`)
       
+      // Handle unauthorized - silently return empty for guests
+      if (response.status === 401) {
+        setSubscriptions([])
+        return
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch subscriptions')
       }
 
       const data = await response.json()
-
-      if (data.subscriptions && data.subscriptions.length > 0) {
-        setSubscriptions(data.subscriptions)
-        setIsDemo(false)
-      } else {
-        // Fallback to demo data when no real data is returned
-        const demoSubs = getDemoSubscriptions()
-        setSubscriptions(demoSubs)
-        setAnalytics(getDemoAnalytics(demoSubs))
-        setIsDemo(true)
-      }
+      // Set real data (even if empty array)
+      setSubscriptions(data.subscriptions || [])
     } catch (error) {
       console.error('Error fetching subscriptions:', error)
-      toast.error('Failed to load subscriptions. Showing demo data.')
-      const demoSubs = getDemoSubscriptions()
-      setSubscriptions(demoSubs)
-      setAnalytics(getDemoAnalytics(demoSubs))
-      setIsDemo(true)
+      toast.error('Failed to load subscriptions')
+      setSubscriptions([])
     } finally {
       setLoading(false)
     }
@@ -112,33 +124,30 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       setAnalyticsLoading(true)
       const response = await fetch('/api/subscriptions/analytics')
       
+      // Handle unauthorized - silently return empty for guests
+      if (response.status === 401) {
+        setAnalytics(getEmptyAnalytics())
+        return
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch analytics')
       }
 
       const data = await response.json()
       setAnalytics(data)
-      setIsDemo(false)
     } catch (error) {
       console.error('Error fetching analytics:', error)
-      // If we are already in demo mode, keep demo analytics
-      if (!isDemo) {
-        toast.error('Failed to load analytics. Showing demo data.')
-        const demoSubs = subscriptions.length ? subscriptions : getDemoSubscriptions()
-        setAnalytics(getDemoAnalytics(demoSubs))
-        setIsDemo(true)
-      }
+      toast.error('Failed to load analytics')
+      // Set empty analytics instead of demo data
+      setAnalytics(getEmptyAnalytics())
     } finally {
       setAnalyticsLoading(false)
     }
-  }, [isDemo, subscriptions])
+  }, [])
 
   // Create subscription
   const createSubscription = async (data: Partial<Subscription>) => {
-    if (isDemo) {
-      toast.info('Demo data only. Connect to Supabase to save subscriptions.')
-      return null
-    }
     try {
       const response = await fetch('/api/subscriptions', {
         method: 'POST',
@@ -147,7 +156,8 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create subscription')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to create subscription')
       }
 
       const result = await response.json()
@@ -159,17 +169,13 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       return result.subscription
     } catch (error) {
       console.error('Error creating subscription:', error)
-      toast.error('Failed to add subscription')
+      toast.error(error instanceof Error ? error.message : 'Failed to add subscription')
       throw error
     }
   }
 
   // Update subscription
   const updateSubscription = async (id: string, data: Partial<Subscription>) => {
-    if (isDemo) {
-      toast.info('Demo data only. Connect to Supabase to save subscriptions.')
-      return null
-    }
     try {
       const response = await fetch(`/api/subscriptions/${id}`, {
         method: 'PATCH',
@@ -178,7 +184,8 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update subscription')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update subscription')
       }
 
       const result = await response.json()
@@ -190,24 +197,21 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       return result.subscription
     } catch (error) {
       console.error('Error updating subscription:', error)
-      toast.error('Failed to update subscription')
+      toast.error(error instanceof Error ? error.message : 'Failed to update subscription')
       throw error
     }
   }
 
   // Delete subscription
   const deleteSubscription = async (id: string) => {
-    if (isDemo) {
-      toast.info('Demo data only. Connect to Supabase to delete subscriptions.')
-      return
-    }
     try {
       const response = await fetch(`/api/subscriptions/${id}`, {
         method: 'DELETE'
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete subscription')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to delete subscription')
       }
 
       toast.success('Subscription deleted successfully')
@@ -216,7 +220,7 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       await Promise.all([fetchSubscriptions(), fetchAnalytics()])
     } catch (error) {
       console.error('Error deleting subscription:', error)
-      toast.error('Failed to delete subscription')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete subscription')
       throw error
     }
   }
@@ -235,12 +239,12 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
     analytics,
     loading,
     analyticsLoading,
-    isDemo,
     createSubscription,
     updateSubscription,
     deleteSubscription,
     refresh: () => Promise.all([fetchSubscriptions(), fetchAnalytics()])
   }
 }
+
 
 

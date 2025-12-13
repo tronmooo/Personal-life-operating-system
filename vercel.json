@@ -23,6 +23,18 @@
     "app/api/documents/**/*": {
       "memory": 1024,
       "maxDuration": 60
+    },
+    "app/api/gmail/**/*": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "app/api/calendar/**/*": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "app/api/integrations/**/*": {
+      "memory": 1024,
+      "maxDuration": 60
     }
   },
   "redirects": [
