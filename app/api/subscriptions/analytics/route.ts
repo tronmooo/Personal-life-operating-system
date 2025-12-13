@@ -1,5 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -26,19 +25,19 @@ function calculateMonthlyCost(cost: number, frequency: string): number {
 export async function GET(_request: NextRequest) {
   try {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:start',message:'Analytics GET started',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:start',message:'Analytics GET started (FIXED)',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
     // #endregion
     
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:auth',message:'Analytics auth check',data:{hasUser:!!user,userId:user?.id,authError:authError?.message||null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:auth',message:'Analytics auth check (FIXED)',data:{hasUser:!!user,userId:user?.id,authError:authError?.message||null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1-H3'})}).catch(()=>{});
     // #endregion
 
     if (authError || !user) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:401',message:'Analytics returning 401',data:{authError:authError?.message,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:401',message:'Analytics returning 401',data:{authError:authError?.message,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1-H3'})}).catch(()=>{});
       // #endregion
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -139,6 +138,10 @@ export async function GET(_request: NextRequest) {
       }))
       .sort((a, b) => b.monthly_cost - a.monthly_cost)
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/analytics/route.ts:GET:success',message:'Analytics computed successfully',data:{totalSubs:subscriptions?.length||0,activeSubs:activeSubscriptions.length,monthlyTotal},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
+
     return NextResponse.json({
       summary: {
         monthly_total: monthlyTotal || 0,
@@ -169,6 +172,3 @@ export async function GET(_request: NextRequest) {
     )
   }
 }
-
-
-

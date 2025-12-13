@@ -12,27 +12,23 @@
     }
   },
   "functions": {
-    "app/api/**/*": {
-      "memory": 1024,
-      "maxDuration": 30
-    },
-    "app/api/ai-assistant/**/*": {
+    "app/api/ai-assistant/**/*.ts": {
       "memory": 1024,
       "maxDuration": 60
     },
-    "app/api/documents/**/*": {
+    "app/api/documents/**/*.ts": {
       "memory": 1024,
       "maxDuration": 60
     },
-    "app/api/gmail/**/*": {
+    "app/api/gmail/**/*.ts": {
       "memory": 1024,
       "maxDuration": 60
     },
-    "app/api/calendar/**/*": {
+    "app/api/calendar/**/*.ts": {
       "memory": 1024,
       "maxDuration": 60
     },
-    "app/api/integrations/**/*": {
+    "app/api/integrations/**/*.ts": {
       "memory": 1024,
       "maxDuration": 60
     }

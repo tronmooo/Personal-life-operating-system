@@ -2,20 +2,15 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// GUEST_MODE_ENABLED: v5 - With enhanced debug logging
+// GUEST_MODE_ENABLED: v6 - FIX: Refresh session for ALL routes (not just API)
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   
-  // Create a simple pass-through response
+  // Create response that we'll modify with refreshed cookies
   const response = NextResponse.next()
 
-  // For non-API pages: ALWAYS allow through (guest viewing mode)
-  // No authentication checks, no redirects
-  if (!pathname.startsWith('/api/')) {
-    return response
-  }
-
-  // For API routes, set up Supabase and check auth for write operations
+  // Always create Supabase client and refresh session for ALL routes
+  // This ensures the browser client gets valid session cookies
   try {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +29,14 @@ export async function middleware(req: NextRequest) {
       }
     )
 
+    // CRITICAL: Call getUser() on EVERY request to refresh session cookies
+    // This ensures the browser client gets valid, refreshed session data
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    // For non-API pages: allow through (guest viewing mode) but with refreshed cookies
+    if (!pathname.startsWith('/api/')) {
+      return response
+    }
 
     // Public APIs - always allow
     const publicApiPaths = ['/api/auth', '/api/cron', '/api/webhooks', '/api/plaid/webhook']

@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  console.log('🔵 [GMAIL SYNC] API request started at', new Date().toISOString());
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gmail/sync/route.ts:14',message:'Gmail sync API started',data:{startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
   // #endregion
