@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -27,50 +28,86 @@ interface AddProviderDialogProps {
   onSubmit: (data: CreateProviderInput) => Promise<unknown>
 }
 
-const CATEGORIES: { value: string; label: string }[] = [
-  { value: 'streaming', label: 'Streaming' },
-  { value: 'software', label: 'Software' },
-  { value: 'ai_tools', label: 'AI Tools' },
-  { value: 'cloud_storage', label: 'Cloud Storage' },
-  { value: 'productivity', label: 'Productivity' },
-  { value: 'gaming', label: 'Gaming' },
-  { value: 'music', label: 'Music' },
-  { value: 'fitness', label: 'Fitness' },
-  { value: 'news', label: 'News' },
+// Categories matching the screenshot exactly
+const CATEGORIES: { value: ProviderCategory; label: string }[] = [
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'utilities', label: 'Utilities' },
+  { value: 'telecom', label: 'Telecom' },
+  { value: 'financial', label: 'Financial' },
+  { value: 'subscriptions', label: 'Subscriptions' },
   { value: 'other', label: 'Other' },
 ]
 
-const FREQUENCIES = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'yearly', label: 'Yearly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'weekly', label: 'Weekly' },
-]
-
-const STATUSES = [
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Trial' },
-  { value: 'cancelled', label: 'Cancelled' },
-]
+// Subcategories based on category
+const SUBCATEGORIES: Record<ProviderCategory, { value: string; label: string }[]> = {
+  insurance: [
+    { value: 'Auto', label: 'Auto' },
+    { value: 'Home', label: 'Home' },
+    { value: 'Health', label: 'Health' },
+    { value: 'Life', label: 'Life' },
+    { value: 'Renters', label: 'Renters' },
+    { value: 'Pet', label: 'Pet' },
+    { value: 'Other', label: 'Other' },
+  ],
+  utilities: [
+    { value: 'Electric', label: 'Electric' },
+    { value: 'Gas', label: 'Gas' },
+    { value: 'Water', label: 'Water' },
+    { value: 'Trash', label: 'Trash' },
+    { value: 'Sewer', label: 'Sewer' },
+    { value: 'Other', label: 'Other' },
+  ],
+  telecom: [
+    { value: 'Internet', label: 'Internet' },
+    { value: 'Mobile', label: 'Mobile' },
+    { value: 'Cable', label: 'Cable' },
+    { value: 'Landline', label: 'Landline' },
+    { value: 'Other', label: 'Other' },
+  ],
+  financial: [
+    { value: 'Banking', label: 'Banking' },
+    { value: 'Credit Card', label: 'Credit Card' },
+    { value: 'Investment', label: 'Investment' },
+    { value: 'Loan', label: 'Loan' },
+    { value: 'Other', label: 'Other' },
+  ],
+  subscriptions: [
+    { value: 'Streaming', label: 'Streaming' },
+    { value: 'Software', label: 'Software' },
+    { value: 'Music', label: 'Music' },
+    { value: 'Gaming', label: 'Gaming' },
+    { value: 'News', label: 'News' },
+    { value: 'Fitness', label: 'Fitness' },
+    { value: 'Entertainment', label: 'Entertainment' },
+    { value: 'Other', label: 'Other' },
+  ],
+  other: [
+    { value: 'Other', label: 'Other' },
+  ],
+}
 
 export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderDialogProps) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     provider_name: '',
+    category: 'insurance' as ProviderCategory,
+    subcategory: '',
+    account_number: '',
     monthly_amount: '',
-    frequency: 'monthly',
-    subcategory: 'streaming',
-    status: 'active',
-    billing_day: '',
-    payment_method: '',
+    billing_day: '1',
+    phone: '',
     website: '',
-    auto_pay_enabled: true,
+    auto_pay_enabled: false,
+    notes: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'add-provider-dialog.tsx:handleSubmit',message:'Form submitted',data:{providerName:formData.provider_name,category:formData.category},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     
-    if (!formData.provider_name || !formData.monthly_amount) {
+    if (!formData.provider_name) {
       return
     }
 
@@ -78,25 +115,29 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
     try {
       await onSubmit({
         provider_name: formData.provider_name,
-        category: 'subscriptions' as ProviderCategory, // Main category
-        subcategory: formData.subcategory,
-        monthly_amount: parseFloat(formData.monthly_amount),
+        category: formData.category,
+        subcategory: formData.subcategory || undefined,
+        account_number: formData.account_number || undefined,
+        monthly_amount: parseFloat(formData.monthly_amount) || 0,
         billing_day: formData.billing_day ? parseInt(formData.billing_day) : undefined,
+        phone: formData.phone || undefined,
         website: formData.website || undefined,
         auto_pay_enabled: formData.auto_pay_enabled,
+        notes: formData.notes || undefined,
       })
 
       // Reset form
       setFormData({
         provider_name: '',
+        category: 'insurance',
+        subcategory: '',
+        account_number: '',
         monthly_amount: '',
-        frequency: 'monthly',
-        subcategory: 'streaming',
-        status: 'active',
-        billing_day: '',
-        payment_method: '',
+        billing_day: '1',
+        phone: '',
         website: '',
-        auto_pay_enabled: true,
+        auto_pay_enabled: false,
+        notes: '',
       })
       
       onOpenChange(false)
@@ -107,77 +148,44 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
     }
   }
 
+  const availableSubcategories = SUBCATEGORIES[formData.category] || []
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">Add Subscription</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Add Provider</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-          {/* Service Name */}
+          {/* Provider Name */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Service Name</Label>
+            <Label className="text-slate-300">Provider Name *</Label>
             <Input
               value={formData.provider_name}
               onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
-              placeholder="e.g., Netflix"
-              className="bg-slate-800 border-slate-700 text-white"
+              placeholder="e.g., State Farm, Xfinity"
+              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
               required
             />
           </div>
 
-          {/* Cost & Frequency */}
+          {/* Category & Subcategory - Side by side matching screenshot */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Cost</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.monthly_amount}
-                  onChange={(e) => setFormData({ ...formData, monthly_amount: e.target.value })}
-                  placeholder="0.00"
-                  className="bg-slate-800 border-slate-700 text-white pl-7"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-slate-300">Frequency</Label>
+              <Label className="text-slate-300">Category *</Label>
               <Select
-                value={formData.frequency}
-                onValueChange={(value) => setFormData({ ...formData, frequency: value })}
-              >
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  {FREQUENCIES.map((freq) => (
-                    <SelectItem key={freq.value} value={freq.value} className="text-white">
-                      {freq.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Category & Status */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-slate-300">Category</Label>
-              <Select
-                value={formData.subcategory}
-                onValueChange={(value) => setFormData({ ...formData, subcategory: value })}
+                value={formData.category}
+                onValueChange={(value: ProviderCategory) => 
+                  setFormData({ ...formData, category: value, subcategory: '' })
+                }
               >
                 <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
                   {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value} className="text-white">
+                    <SelectItem key={cat.value} value={cat.value} className="text-white hover:bg-slate-700">
                       {cat.label}
                     </SelectItem>
                   ))}
@@ -185,18 +193,18 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Status</Label>
+              <Label className="text-slate-300">Subcategory</Label>
               <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                value={formData.subcategory}
+                onValueChange={(value) => setFormData({ ...formData, subcategory: value })}
               >
                 <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                  <SelectValue />
+                  <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  {STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value} className="text-white">
-                      {status.label}
+                  {availableSubcategories.map((sub) => (
+                    <SelectItem key={sub.value} value={sub.value} className="text-white hover:bg-slate-700">
+                      {sub.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -204,56 +212,96 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
             </div>
           </div>
 
-          {/* Next Due Date */}
+          {/* Account Number */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Next Due Date</Label>
+            <Label className="text-slate-300">Account Number</Label>
             <Input
-              type="date"
-              value={formData.billing_day ? `2025-01-${formData.billing_day.padStart(2, '0')}` : ''}
-              onChange={(e) => {
-                const date = new Date(e.target.value)
-                setFormData({ ...formData, billing_day: date.getDate().toString() })
-              }}
-              className="bg-slate-800 border-slate-700 text-white"
+              value={formData.account_number}
+              onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
+              placeholder=""
+              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
             />
           </div>
 
-          {/* Payment Method */}
-          <div className="space-y-2">
-            <Label className="text-slate-300">Payment Method</Label>
-            <Input
-              value={formData.payment_method}
-              onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-              placeholder="e.g., Visa •••• 4242"
-              className="bg-slate-800 border-slate-700 text-white"
-            />
+          {/* Monthly Amount & Billing Day - Side by side matching screenshot */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Monthly Amount</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.monthly_amount}
+                  onChange={(e) => setFormData({ ...formData, monthly_amount: e.target.value })}
+                  placeholder=""
+                  className="bg-slate-800 border-slate-700 text-white pl-7 placeholder:text-slate-500"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Billing Day</Label>
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                value={formData.billing_day}
+                onChange={(e) => setFormData({ ...formData, billing_day: e.target.value })}
+                placeholder="1"
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              />
+            </div>
           </div>
 
-          {/* Account URL */}
-          <div className="space-y-2">
-            <Label className="text-slate-300">Account URL</Label>
-            <Input
-              type="url"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              placeholder="https://..."
-              className="bg-slate-800 border-slate-700 text-white"
-            />
+          {/* Phone & Website - Side by side matching screenshot */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Phone</Label>
+              <Input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder=""
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Website</Label>
+              <Input
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="example.com"
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              />
+            </div>
           </div>
 
-          {/* Auto-renew */}
+          {/* Auto-pay checkbox */}
           <div className="flex items-center space-x-2">
             <Checkbox
-              id="auto_renew"
+              id="auto_pay"
               checked={formData.auto_pay_enabled}
               onCheckedChange={(checked) => 
                 setFormData({ ...formData, auto_pay_enabled: checked as boolean })
               }
-              className="border-slate-600 data-[state=checked]:bg-blue-600"
+              className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
             />
-            <Label htmlFor="auto_renew" className="text-slate-300 cursor-pointer">
-              Auto-renew enabled
+            <Label htmlFor="auto_pay" className="text-slate-300 cursor-pointer">
+              Auto-pay enabled
             </Label>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label className="text-slate-300">Notes</Label>
+            <Textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Any additional notes..."
+              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 min-h-[80px] resize-y"
+            />
           </div>
 
           {/* Actions */}
@@ -278,7 +326,7 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
                   Adding...
                 </>
               ) : (
-                'Add Subscription'
+                'Add Provider'
               )}
             </Button>
           </div>
@@ -287,6 +335,3 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
     </Dialog>
   )
 }
-
-
-

@@ -11,6 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { 
   Mail, 
   CheckCircle, 
   X, 
@@ -21,13 +27,19 @@ import {
   Wrench,
   ShoppingBag,
   Shield,
-  Inbox
+  Inbox,
+  Reply,
+  FileImage,
+  ScanLine
 } from 'lucide-react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useRouter } from 'next/navigation'
+import { AIEmailComposer } from './ai-email-composer'
+import { useToast } from '@/components/ui/use-toast'
 
 interface EmailSuggestion {
   id: string
+  email_id: string
   email_subject: string
   email_from: string
   email_date: string
@@ -35,15 +47,35 @@ interface EmailSuggestion {
   extracted_data: any
   suggestion_text: string
   status: string
+  has_attachments?: boolean
+}
+
+interface ReceiptOCRResult {
+  vendor?: string
+  total?: number
+  date?: string
+  items?: Array<{ name: string; price: number; quantity?: number }>
+  category?: string
+  confidence?: number
 }
 
 export function SmartInboxCard() {
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const { toast } = useToast()
   const [suggestions, setSuggestions] = useState<EmailSuggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  
+  // Receipt extraction state
+  const [extractingReceipt, setExtractingReceipt] = useState<string | null>(null)
+  const [receiptData, setReceiptData] = useState<ReceiptOCRResult | null>(null)
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false)
+  
+  // AI Reply state  
+  const [replyDialogOpen, setReplyDialogOpen] = useState(false)
+  const [selectedEmail, setSelectedEmail] = useState<EmailSuggestion | null>(null)
 
   // Load suggestions on mount
   useEffect(() => {
@@ -276,6 +308,76 @@ export function SmartInboxCard() {
   }
 
   /**
+   * Extract receipt from email attachment
+   */
+  const extractReceiptFromEmail = async (suggestion: EmailSuggestion) => {
+    try {
+      setExtractingReceipt(suggestion.id)
+      
+      const response = await fetch('/api/gmail/extract-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          messageId: suggestion.email_id
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to extract receipt')
+      }
+
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        setReceiptData(result.data)
+        setSelectedEmail(suggestion)
+        setReceiptDialogOpen(true)
+        
+        toast({
+          title: "Receipt Extracted!",
+          description: `Found receipt from ${result.data.vendor || 'vendor'}`,
+        })
+      } else {
+        toast({
+          title: "No Receipt Found",
+          description: "Could not find a receipt attachment in this email.",
+          variant: "destructive"
+        })
+      }
+    } catch (error: any) {
+      console.error('Error extracting receipt:', error)
+      toast({
+        title: "Extraction Failed",
+        description: error.message || "Could not extract receipt from email.",
+        variant: "destructive"
+      })
+    } finally {
+      setExtractingReceipt(null)
+    }
+  }
+
+  /**
+   * Open AI reply dialog for an email
+   */
+  const openReplyDialog = (suggestion: EmailSuggestion) => {
+    setSelectedEmail(suggestion)
+    setReplyDialogOpen(true)
+  }
+
+  /**
+   * Format currency
+   */
+  const formatCurrency = (amount?: number) => {
+    if (amount === undefined || amount === null) return null
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
+
+  /**
    * Get icon for classification
    */
   const getClassificationIcon = (classification: string) => {
@@ -390,12 +492,50 @@ export function SmartInboxCard() {
                     <p className="text-sm font-medium mb-1">
                       {suggestion.suggestion_text}
                     </p>
+                    
+                    {/* Show amount for receipts and bills */}
+                    {(suggestion.classification === 'receipt' || suggestion.classification === 'bill') && 
+                     suggestion.extracted_data?.amount && (
+                      <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        {formatCurrency(suggestion.extracted_data.amount)}
+                      </p>
+                    )}
+                    
                     <p className="text-xs text-gray-500 truncate">
                       From: {suggestion.email_from}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
                       {new Date(suggestion.email_date).toLocaleDateString()}
                     </p>
+                    
+                    {/* Action buttons for receipts and replies */}
+                    <div className="flex gap-1 mt-2">
+                      {suggestion.classification === 'receipt' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs px-2"
+                          onClick={() => extractReceiptFromEmail(suggestion)}
+                          disabled={extractingReceipt === suggestion.id}
+                        >
+                          {extractingReceipt === suggestion.id ? (
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          ) : (
+                            <ScanLine className="w-3 h-3 mr-1" />
+                          )}
+                          Scan Receipt
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-xs px-2"
+                        onClick={() => openReplyDialog(suggestion)}
+                      >
+                        <Reply className="w-3 h-3 mr-1" />
+                        AI Reply
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -436,6 +576,132 @@ export function SmartInboxCard() {
           </div>
         )}
       </CardContent>
+
+      {/* Receipt OCR Result Dialog */}
+      <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileImage className="w-5 h-5 text-green-500" />
+              Extracted Receipt Data
+            </DialogTitle>
+          </DialogHeader>
+          
+          {receiptData && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                {receiptData.vendor && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Vendor</span>
+                    <span className="font-medium">{receiptData.vendor}</span>
+                  </div>
+                )}
+                {receiptData.date && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Date</span>
+                    <span className="font-medium">{receiptData.date}</span>
+                  </div>
+                )}
+                {receiptData.total !== undefined && (
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-sm font-medium">Total</span>
+                    <span className="font-bold text-lg text-green-600">
+                      {formatCurrency(receiptData.total)}
+                    </span>
+                  </div>
+                )}
+                {receiptData.category && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Category</span>
+                    <Badge variant="secondary">{receiptData.category}</Badge>
+                  </div>
+                )}
+              </div>
+
+              {receiptData.items && receiptData.items.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Items</p>
+                  <div className="bg-muted/30 rounded-lg divide-y">
+                    {receiptData.items.slice(0, 5).map((item, i) => (
+                      <div key={i} className="flex justify-between p-2 text-sm">
+                        <span className="text-muted-foreground">
+                          {item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}
+                          {item.name}
+                        </span>
+                        <span>{formatCurrency(item.price)}</span>
+                      </div>
+                    ))}
+                    {receiptData.items.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">
+                        +{receiptData.items.length - 5} more items
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {receiptData.confidence && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Confidence: {Math.round(receiptData.confidence * 100)}%
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setReceiptDialogOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (selectedEmail) {
+                      approveSuggestion(selectedEmail.id)
+                      setReceiptDialogOpen(false)
+                    }
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Add to Finance
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Email Reply Dialog */}
+      <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Reply className="w-5 h-5 text-blue-500" />
+              AI-Powered Reply
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedEmail && (
+            <AIEmailComposer
+              originalEmail={{
+                subject: selectedEmail.email_subject,
+                from: selectedEmail.email_from,
+                body: selectedEmail.suggestion_text,
+                messageId: selectedEmail.email_id
+              }}
+              onEmailSent={() => {
+                setReplyDialogOpen(false)
+                toast({
+                  title: "Reply Sent!",
+                  description: "Your email has been sent via Gmail.",
+                })
+              }}
+              className="border-0 shadow-none"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

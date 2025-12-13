@@ -26,6 +26,11 @@ export function SubscriptionsTab() {
   const { entries, isLoading, createEntry, deleteEntry } = useDomainEntries('digital')
   const [showAddForm, setShowAddForm] = useState(false)
 
+  // #region agent log
+  console.log('🔍 [DEBUG-SUBS-TAB] useDomainEntries("digital") returned:', entries.length, 'entries')
+  console.log('🔍 [DEBUG-SUBS-TAB] Digital entries details:', entries.slice(0, 5).map(e => ({ id: e.id, title: e.title, type: e.metadata?.type, monthlyCost: e.metadata?.monthlyCost, renewalDate: e.metadata?.renewalDate })))
+  // #endregion
+
   // ✅ Filter subscriptions in real-time from entries
   const subscriptions = entries
     .filter(item => item.metadata?.type === 'subscription')

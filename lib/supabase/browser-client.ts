@@ -53,6 +53,9 @@ export function createClientComponentClient(): SupabaseClient {
   }
 
   _browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'browser-client.ts:createClient',message:'Supabase browser client created',data:{url:supabaseUrl?.substring(0,30),hasKey:!!supabaseAnonKey},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+  // #endregion
 
   return _browserClient
 }

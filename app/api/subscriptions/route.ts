@@ -7,19 +7,22 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:start',message:'GET request started (FIXED)',data:{url:request.url},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
+    const reqCookies = request.cookies.getAll()
+    console.log('📋 [SUBSCRIPTIONS API] GET request started')
+    console.log('📋 [SUBSCRIPTIONS API] Request cookies:', reqCookies.map(c => c.name).join(', '))
+    console.log('📋 [SUBSCRIPTIONS API] Has sb-access-token:', reqCookies.some(c => c.name.includes('sb-') && c.name.includes('auth')))
     // #endregion
     
     const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:auth',message:'Auth check result (FIXED)',data:{hasUser:!!user,userId:user?.id,authError:authError?.message||null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1-H3'})}).catch(()=>{});
+    console.log('📋 [SUBSCRIPTIONS API] Auth result:', { hasUser: !!user, userId: user?.id, authError: authError?.message || null })
     // #endregion
 
     if (authError || !user) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:401',message:'Returning 401 Unauthorized',data:{authError:authError?.message,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1-H3'})}).catch(()=>{});
+      console.log('📋 [SUBSCRIPTIONS API] Returning 401 - auth failed, error:', authError?.message)
       // #endregion
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -55,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'subscriptions/route.ts:GET:success',message:'Subscriptions fetched successfully',data:{count:subscriptions?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
+    console.log('📋 [SUBSCRIPTIONS] Success - fetched', subscriptions?.length || 0, 'subscriptions')
     // #endregion
 
     return NextResponse.json({ subscriptions })

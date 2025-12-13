@@ -6,6 +6,13 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   
+  // #region agent log
+  if (pathname.includes('/api/subscriptions')) {
+    console.log('🛡️ [MIDDLEWARE] Processing subscriptions request:', pathname)
+    console.log('🛡️ [MIDDLEWARE] Cookies in request:', req.cookies.getAll().map(c => c.name).join(', '))
+  }
+  // #endregion
+  
   // Create response that we'll modify with refreshed cookies
   const response = NextResponse.next()
 
@@ -32,6 +39,12 @@ export async function middleware(req: NextRequest) {
     // CRITICAL: Call getUser() on EVERY request to refresh session cookies
     // This ensures the browser client gets valid, refreshed session data
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    // #region agent log
+    if (pathname.includes('/api/subscriptions')) {
+      console.log('🛡️ [MIDDLEWARE] Auth result for subscriptions:', { hasUser: !!user, userId: user?.id, authError: authError?.message })
+    }
+    // #endregion
 
     // For non-API pages: allow through (guest viewing mode) but with refreshed cookies
     if (!pathname.startsWith('/api/')) {

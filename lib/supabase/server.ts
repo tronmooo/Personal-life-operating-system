@@ -7,8 +7,12 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
  * Uses the @supabase/ssr package for proper Next.js 14 compatibility
  */
 export const createServerClient = async () => {
-  // Note: cookies() is synchronous; keep this simple to avoid race conditions
-  const cookieStore = cookies()
+  // In Next.js 14.x, cookies() returns a Promise and must be awaited
+  const cookieStore = await cookies()
+  
+  // #region agent log
+  console.log('🔐 [SUPABASE/SERVER] createServerClient called, cookies available:', !!cookieStore)
+  // #endregion
   
   return createSSRClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +20,11 @@ export const createServerClient = async () => {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll()
+          const allCookies = cookieStore.getAll()
+          // #region agent log
+          console.log('🔐 [SUPABASE/SERVER] getAll cookies count:', allCookies.length, 'names:', allCookies.map(c => c.name).join(', '))
+          // #endregion
+          return allCookies
         },
         setAll(cookiesToSet) {
           try {

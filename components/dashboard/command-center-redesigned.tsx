@@ -73,6 +73,46 @@ import {
 import { usePetsStats } from '@/lib/hooks/use-pets-stats'
 import type { GenericMetadata } from '@/lib/dashboard/metrics-normalizers'
 
+// Helper function to get the upcoming occurrence of an annual date (birthday, anniversary)
+function getUpcomingAnnualDate(dateStr: string): Date {
+  const today = new Date()
+  const thisYear = today.getFullYear()
+  
+  // Parse the date - could be "YYYY-MM-DD" or "MM-DD" or other formats
+  let month: number, day: number
+  const parts = dateStr.split('-')
+  
+  if (parts.length === 3) {
+    // YYYY-MM-DD format
+    month = parseInt(parts[1], 10) - 1 // months are 0-indexed
+    day = parseInt(parts[2], 10)
+  } else if (parts.length === 2) {
+    // MM-DD format
+    month = parseInt(parts[0], 10) - 1
+    day = parseInt(parts[1], 10)
+  } else {
+    // Try to parse as a full date
+    const parsed = new Date(dateStr)
+    if (!isNaN(parsed.getTime())) {
+      month = parsed.getMonth()
+      day = parsed.getDate()
+    } else {
+      // If all else fails, return a date far in the future
+      return new Date(thisYear + 100, 0, 1)
+    }
+  }
+  
+  // Create date for this year
+  const thisYearDate = new Date(thisYear, month, day)
+  
+  // If the date has already passed this year, use next year
+  if (thisYearDate < today) {
+    return new Date(thisYear + 1, month, day)
+  }
+  
+  return thisYearDate
+}
+
 export function CommandCenterRedesigned() {
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -97,6 +137,7 @@ export function CommandCenterRedesigned() {
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', notes: '' })
   const [appliancesFromTable, setAppliancesFromTable] = useState<any[]>([])
   const [vehiclesFromTable, setVehiclesFromTable] = useState<any[]>([])
+  const [travelBookings, setTravelBookings] = useState<any[]>([])
   const [refreshTrigger, setRefreshTrigger] = useState(0) // Force re-render on data updates
   
   // 🔥 Listen for immediate data updates from DataProvider mutations
@@ -295,6 +336,45 @@ export function CommandCenterRedesigned() {
     
     if (isLoaded) {
       loadVehicles()
+    }
+  }, [supabase, isLoaded])
+
+  // Load travel bookings for departure alerts
+  useEffect(() => {
+    const loadTravelBookings = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        // Get bookings with start_date within the next 30 days
+        const thirtyDaysFromNow = new Date()
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+        
+        const { data: bookings, error } = await supabase
+          .from('travel_bookings')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('start_date', new Date().toISOString().split('T')[0])
+          .lte('start_date', thirtyDaysFromNow.toISOString().split('T')[0])
+          .order('start_date', { ascending: true })
+        
+        if (error) {
+          // Travel bookings table might not exist - that's OK
+          console.log('⚠️ Travel bookings not accessible:', error.message)
+          setTravelBookings([])
+          return
+        }
+        
+        setTravelBookings(bookings || [])
+        console.log(`✅ Loaded ${(bookings || []).length} upcoming travel bookings`)
+      } catch (error) {
+        console.error('Failed to load travel bookings:', error)
+        setTravelBookings([])
+      }
+    }
+    
+    if (isLoaded) {
+      loadTravelBookings()
     }
   }, [supabase, isLoaded])
 
@@ -636,6 +716,9 @@ export function CommandCenterRedesigned() {
     })
 
     // Add digital subscriptions to utilities category
+    // #region agent log
+    console.log('🔍 [DEBUG-H1] Digital items for monthlyExpenses:', digitalItems.length, digitalItems.slice(0, 5).map((i: any) => ({ title: i.title, type: i.metadata?.type, cost: i.metadata?.monthlyCost || i.metadata?.cost })))
+    // #endregion
     digitalItems.forEach(item => {
       const meta = item?.metadata || {}
       const tokens = normaliseTokens(meta)
@@ -643,8 +726,14 @@ export function CommandCenterRedesigned() {
                             meta?.type === 'subscription' || 
                             meta?.category === 'subscription'
       
+      // #region agent log
+      console.log('🔍 [DEBUG-H2] Checking digital item:', item.title, { isSubscription, type: meta?.type, tokens, monthlyCost: meta?.monthlyCost, cost: meta?.cost })
+      // #endregion
       if (isSubscription) {
         const cost = parseFloat(String(meta?.monthlyCost || meta?.cost || 0))
+        // #region agent log
+        console.log('🔍 [DEBUG-H2] Subscription found:', item.title, 'cost:', cost)
+        // #endregion
         if (cost > 0) {
           result.utilities += cost
         }
@@ -1373,6 +1462,9 @@ export function CommandCenterRedesigned() {
 
   // Pets metrics
   // Digital metrics
+  // #region agent log
+  console.log('🔍 [DEBUG-H1] data.digital for computeDigitalStats:', data.digital?.length ?? 0, data.digital?.slice(0, 3).map((e: any) => ({ id: e.id, title: e.title, type: e.metadata?.type, monthlyCost: e.metadata?.monthlyCost })))
+  // #endregion
   const digitalStats = useMemo(() => computeDigitalStats(data.digital ?? []), [data.digital])
 
   // Assets (Appliances) metrics - merge domain_entries with appliances table
@@ -1530,6 +1622,33 @@ export function CommandCenterRedesigned() {
           })
         }
       }
+
+      // Check upcoming health appointments (within 3 days)
+      const isAppointment = item.metadata?.type === 'appointment' || 
+                           item.metadata?.itemType === 'appointment' ||
+                           item.metadata?.logType === 'appointment'
+      
+      if (isAppointment) {
+        const appointmentDateStr = item.metadata?.date || item.metadata?.appointmentDate
+        if (appointmentDateStr && (typeof appointmentDateStr === 'string' || typeof appointmentDateStr === 'number')) {
+          const appointmentDate = new Date(appointmentDateStr)
+          const daysUntilAppt = differenceInDays(appointmentDate, today)
+          
+          // Alert for appointments within 3 days
+          if (daysUntilAppt >= 0 && daysUntilAppt <= 3) {
+            const alertId = `appointment-${item.id}-${appointmentDateStr}`
+            const doctorName = item.metadata?.doctor || item.metadata?.provider || ''
+            urgentAlerts.push({
+              id: alertId,
+              type: 'appointment',
+              title: `🏥 ${item.title}${doctorName ? ` - ${doctorName}` : ''}`,
+              daysLeft: daysUntilAppt,
+              priority: daysUntilAppt === 0 ? 'high' : 'medium',
+              link: '/domains/health'
+            })
+          }
+        }
+      }
     })
 
     // Check insurance items with expiry
@@ -1578,6 +1697,193 @@ export function CommandCenterRedesigned() {
       })
     })
 
+    // Check vehicle registration and service alerts
+    const allVehicles = [
+      ...(Array.isArray(data.vehicles) ? data.vehicles : []),
+      ...vehiclesFromTable.filter(v => !(data.vehicles || []).some((dv: any) => dv.id === v.id))
+    ]
+    
+    allVehicles.forEach(vehicle => {
+      const meta = vehicle.metadata || {}
+      const vehicleName = vehicle.title || `${meta.year || ''} ${meta.make || ''} ${meta.model || ''}`.trim() || 'Vehicle'
+      
+      // Check registration expiration
+      const regExpiry = meta.registrationExpiration || meta.registrationDate || meta.registrationExpiry
+      if (regExpiry && (typeof regExpiry === 'string' || typeof regExpiry === 'number')) {
+        const regDate = new Date(regExpiry)
+        const daysUntilReg = differenceInDays(regDate, today)
+        
+        if (daysUntilReg < 0) {
+          // Overdue registration
+          const alertId = `vehicle-reg-overdue-${vehicle.id}-${regExpiry}`
+          urgentAlerts.push({
+            id: alertId,
+            type: 'vehicle-registration',
+            title: `🚗 ${vehicleName} - Registration OVERDUE`,
+            daysLeft: daysUntilReg,
+            priority: 'high',
+            link: '/domains/vehicles'
+          })
+        } else if (daysUntilReg <= 30) {
+          // Registration expiring soon
+          const alertId = `vehicle-reg-${vehicle.id}-${regExpiry}`
+          urgentAlerts.push({
+            id: alertId,
+            type: 'vehicle-registration',
+            title: `🚗 ${vehicleName} - Registration`,
+            daysLeft: daysUntilReg,
+            priority: daysUntilReg <= 7 ? 'high' : 'medium',
+            link: '/domains/vehicles'
+          })
+        }
+      }
+      
+      // Check service due
+      const serviceDate = meta.nextServiceDate || meta.serviceDue || meta.nextMaintenance || meta.inspectionDue
+      if (serviceDate && (typeof serviceDate === 'string' || typeof serviceDate === 'number')) {
+        const svcDate = new Date(serviceDate)
+        const daysUntilService = differenceInDays(svcDate, today)
+        
+        if (daysUntilService >= -7 && daysUntilService <= 14) {
+          // Service due within 14 days or up to 7 days overdue
+          const alertId = `vehicle-service-${vehicle.id}-${serviceDate}`
+          urgentAlerts.push({
+            id: alertId,
+            type: 'vehicle-service',
+            title: `🔧 ${vehicleName} - Service ${daysUntilService < 0 ? 'Overdue' : 'Due'}`,
+            daysLeft: daysUntilService,
+            priority: daysUntilService <= 3 ? 'high' : 'medium',
+            link: '/domains/vehicles'
+          })
+        }
+      }
+    })
+
+    // Check home maintenance items due
+    const homeData = Array.isArray(data.home) ? data.home : []
+    homeData.forEach(item => {
+      const meta = item.metadata || {}
+      const dueDateStr = meta.dueDate || meta.targetDate || meta.nextDue
+      
+      if (dueDateStr && (typeof dueDateStr === 'string' || typeof dueDateStr === 'number')) {
+        const dueDate = new Date(dueDateStr)
+        const daysUntilDue = differenceInDays(dueDate, today)
+        
+        // Check for maintenance tasks due within 14 days
+        if (daysUntilDue >= -7 && daysUntilDue <= 14) {
+          const isMaintenance = meta.itemType === 'maintenance' || 
+                                meta.type === 'maintenance' ||
+                                meta.category?.toLowerCase().includes('maintenance')
+          
+          if (isMaintenance || meta.dueDate) {
+            const alertId = `home-maint-${item.id}-${dueDateStr}`
+            urgentAlerts.push({
+              id: alertId,
+              type: 'home-maintenance',
+              title: `🏠 ${item.title}${daysUntilDue < 0 ? ' - Overdue' : ''}`,
+              daysLeft: daysUntilDue,
+              priority: daysUntilDue <= 3 ? 'high' : 'medium',
+              link: '/domains/home'
+            })
+          }
+        }
+      }
+    })
+
+    // Check upcoming birthdays and anniversaries from relationships
+    const relationshipsData = Array.isArray(data.relationships) ? data.relationships : []
+    relationshipsData.forEach(person => {
+      const meta = person.metadata || {}
+      const personName = person.title || meta.name || 'Someone'
+      
+      // Check birthday
+      if (meta.birthday && typeof meta.birthday === 'string') {
+        const birthdayThisYear = getUpcomingAnnualDate(meta.birthday)
+        const daysUntilBirthday = differenceInDays(birthdayThisYear, today)
+        
+        if (daysUntilBirthday >= 0 && daysUntilBirthday <= 7) {
+          const alertId = `birthday-${person.id}-${meta.birthday}`
+          urgentAlerts.push({
+            id: alertId,
+            type: 'birthday',
+            title: `🎂 ${personName}'s Birthday`,
+            daysLeft: daysUntilBirthday,
+            priority: daysUntilBirthday <= 2 ? 'high' : 'medium',
+            link: '/domains/relationships'
+          })
+        }
+      }
+      
+      // Check anniversary
+      if (meta.anniversaryDate && typeof meta.anniversaryDate === 'string') {
+        const anniversaryThisYear = getUpcomingAnnualDate(meta.anniversaryDate)
+        const daysUntilAnniversary = differenceInDays(anniversaryThisYear, today)
+        
+        if (daysUntilAnniversary >= 0 && daysUntilAnniversary <= 7) {
+          const alertId = `anniversary-${person.id}-${meta.anniversaryDate}`
+          urgentAlerts.push({
+            id: alertId,
+            type: 'anniversary',
+            title: `💍 Anniversary with ${personName}`,
+            daysLeft: daysUntilAnniversary,
+            priority: daysUntilAnniversary <= 2 ? 'high' : 'medium',
+            link: '/domains/relationships'
+          })
+        }
+      }
+      
+      // Check importantDates array for more dates
+      const importantDates = Array.isArray(meta.importantDates) ? meta.importantDates : []
+      importantDates.forEach((dateItem: any, idx: number) => {
+        if (dateItem?.date && typeof dateItem.date === 'string') {
+          const label = dateItem.label || dateItem.name || dateItem.type || 'Important Date'
+          const isBirthday = label.toLowerCase().includes('birthday')
+          const isAnniversary = label.toLowerCase().includes('anniversary')
+          
+          if (isBirthday || isAnniversary) {
+            const upcomingDate = getUpcomingAnnualDate(dateItem.date)
+            const daysUntil = differenceInDays(upcomingDate, today)
+            
+            if (daysUntil >= 0 && daysUntil <= 7) {
+              const alertId = `important-date-${person.id}-${idx}-${dateItem.date}`
+              urgentAlerts.push({
+                id: alertId,
+                type: isBirthday ? 'birthday' : 'anniversary',
+                title: `${isBirthday ? '🎂' : '💍'} ${personName} - ${label}`,
+                daysLeft: daysUntil,
+                priority: daysUntil <= 2 ? 'high' : 'medium',
+                link: '/domains/relationships'
+              })
+            }
+          }
+        }
+      })
+    })
+
+    // Check travel bookings (from travelBookings state if loaded)
+    travelBookings.forEach(booking => {
+      if (booking.start_date) {
+        const departureDate = new Date(booking.start_date)
+        const daysUntilDeparture = differenceInDays(departureDate, today)
+        
+        // Alert for trips departing within 7 days
+        if (daysUntilDeparture >= 0 && daysUntilDeparture <= 7) {
+          const alertId = `travel-${booking.id}-${booking.start_date}`
+          const typeIcon = booking.booking_type === 'flight' ? '✈️' : 
+                          booking.booking_type === 'hotel' ? '🏨' : 
+                          booking.booking_type === 'car' ? '🚗' : '🧳'
+          urgentAlerts.push({
+            id: alertId,
+            type: 'travel',
+            title: `${typeIcon} ${booking.name}${booking.destination ? ` to ${booking.destination}` : ''}`,
+            daysLeft: daysUntilDeparture,
+            priority: daysUntilDeparture <= 2 ? 'high' : 'medium',
+            link: '/travel'
+          })
+        }
+      }
+    })
+
     // Filter out dismissed alerts, then sort by priority (high first) then by days left
     return urgentAlerts
       .filter(alert => !dismissedAlerts.has(alert.id))
@@ -1587,8 +1893,8 @@ export function CommandCenterRedesigned() {
         if (priorityDiff !== 0) return priorityDiff
         return a.daysLeft - b.daysLeft
       })
-      .slice(0, 5)
-  }, [data, expiringDocuments, tasks, dismissedAlerts, petsStats, appliancesFromTable])
+      .slice(0, 8) // Increased from 5 to 8 to show more alerts
+  }, [data, expiringDocuments, tasks, dismissedAlerts, petsStats, appliancesFromTable, vehiclesFromTable, travelBookings])
 
   const totalMonthlyExpenses = Object.values(monthlyExpenses).reduce((sum, val) => sum + val, 0)
 

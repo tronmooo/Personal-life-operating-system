@@ -513,8 +513,14 @@ const isDigitalSubscription = (meta: GenericMetadata): boolean => {
 }
 
 export const computeDigitalStats = (entries?: DomainData[] | null): DigitalStats => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'metrics-normalizers.ts:computeDigitalStats:entry',message:'computeDigitalStats called',data:{entriesCount:entries?.length??0,firstFewEntries:entries?.slice(0,3).map(e=>({id:e.id,title:e.title,type:e.metadata?.type,monthlyCost:e.metadata?.monthlyCost}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H2'})}).catch(()=>{});
+  // #endregion
   const mapped = mapEntries(entries)
   if (mapped.length === 0) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'metrics-normalizers.ts:computeDigitalStats:empty',message:'No digital entries found',data:{entriesRaw:entries?.length??0,mapped:0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     return {
       hasData: false,
       entriesCount: 0,
@@ -529,6 +535,9 @@ export const computeDigitalStats = (entries?: DomainData[] | null): DigitalStats
 
   // ✅ FIX: Count only items with type='subscription'
   const subscriptions = mapped.filter(({ meta }) => isDigitalSubscription(meta)).length
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'metrics-normalizers.ts:computeDigitalStats:subs',message:'Subscription filter result',data:{totalMapped:mapped.length,subscriptionCount:subscriptions,allTypes:mapped.map(({meta})=>({type:meta?.type,itemType:meta?.itemType}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
 
   // ✅ FIX: Only sum monthly cost for SUBSCRIPTIONS (type='subscription')
   // Digital assets (itemType='asset') have one-time cost, not monthly

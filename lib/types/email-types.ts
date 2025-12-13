@@ -16,6 +16,14 @@ export type EmailSuggestionStatus =
   | 'rejected'
   | 'ignored'
 
+export interface EmailAttachment {
+  id: string
+  filename: string
+  mimeType: string
+  size: number
+  data?: string // base64 encoded
+}
+
 export interface EmailMessage {
   id: string
   threadId: string
@@ -26,6 +34,7 @@ export interface EmailMessage {
   snippet: string
   body: string
   labels: string[]
+  attachments?: EmailAttachment[]
 }
 
 export interface BillExtraction {
@@ -62,6 +71,16 @@ export interface ReceiptExtraction {
   items?: string[]
   category?: string
   paymentMethod?: string
+  attachmentId?: string
+  attachmentFilename?: string
+  attachmentMimeType?: string
+  ocrExtractedData?: {
+    rawText?: string
+    subtotal?: number
+    tax?: number
+    total?: number
+    itemDetails?: Array<{ name: string; price: number; quantity?: number }>
+  }
 }
 
 export interface InsuranceExtraction {
@@ -114,6 +133,49 @@ export interface EmailSuggestion extends ProcessedEmail {
   onApprove: () => Promise<void>
   onReject: () => Promise<void>
   onIgnore: () => Promise<void>
+}
+
+// Email Composition Types
+export interface ComposeEmailRequest {
+  to: string | string[]
+  cc?: string | string[]
+  bcc?: string | string[]
+  subject: string
+  body: string
+  bodyType?: 'text' | 'html'
+  replyToMessageId?: string
+  threadId?: string
+  attachments?: Array<{
+    filename: string
+    mimeType: string
+    data: string // base64
+  }>
+}
+
+export interface ComposeEmailResponse {
+  success: boolean
+  messageId?: string
+  threadId?: string
+  error?: string
+}
+
+export interface AIEmailGenerateRequest {
+  context: string
+  tone: 'professional' | 'friendly' | 'formal' | 'casual'
+  type: 'new' | 'reply' | 'follow-up'
+  recipientName?: string
+  senderName?: string
+  originalEmail?: {
+    subject: string
+    from: string
+    body: string
+  }
+}
+
+export interface AIEmailGenerateResponse {
+  subject: string
+  body: string
+  suggestions?: string[]
 }
 
 

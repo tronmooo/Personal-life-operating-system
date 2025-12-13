@@ -2,11 +2,30 @@
  * Gmail API Integration for Smart Email Parsing
  * 
  * Fetches and parses emails from Gmail with AI classification
+ * Enhanced with attachment extraction for receipts
  */
 
 import { google } from 'googleapis'
 import { emailClassifier } from '../ai/email-classifier'
-import type { EmailMessage, ClassifiedEmail } from '../types/email-types'
+import type { 
+  EmailMessage, 
+  ClassifiedEmail, 
+  EmailAttachment,
+  ComposeEmailRequest,
+  ComposeEmailResponse
+} from '../types/email-types'
+
+// Receipt-related MIME types we want to extract
+const RECEIPT_MIME_TYPES = [
+  'image/jpeg',
+  'image/jpg', 
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'image/heic',
+  'image/heif'
+]
 
 export class GmailParser {
   private gmail: any
@@ -95,7 +114,7 @@ export class GmailParser {
   }
 
   /**
-   * Get full email details including body
+   * Get full email details including body and attachments
    */
   private async getEmailDetails(messageId: string): Promise<EmailMessage | null> {
     try {
@@ -116,6 +135,9 @@ export class GmailParser {
       const body = this.extractBody(message.payload)
       const snippet = message.snippet || ''
       
+      // Extract attachment metadata (don't download data yet for performance)
+      const attachments = this.extractAttachmentMetadata(message.payload, messageId)
+      
       return {
         id: message.id,
         threadId: message.threadId,
@@ -125,11 +147,109 @@ export class GmailParser {
         date: new Date(dateStr),
         snippet,
         body,
-        labels: message.labelIds || []
+        labels: message.labelIds || [],
+        attachments: attachments.length > 0 ? attachments : undefined
       }
     } catch (error) {
       console.error(`Error fetching email ${messageId}:`, error)
       return null
+    }
+  }
+
+  /**
+   * Extract attachment metadata from email payload (without downloading data)
+   */
+  private extractAttachmentMetadata(payload: any, _messageId: string): EmailAttachment[] {
+    const attachments: EmailAttachment[] = []
+    
+    const processPayload = (part: any) => {
+      if (part.filename && part.body?.attachmentId) {
+        // Check if it's a receipt-related file type
+        const mimeType = part.mimeType?.toLowerCase() || ''
+        const filename = part.filename?.toLowerCase() || ''
+        
+        const isReceiptType = RECEIPT_MIME_TYPES.some(type => mimeType.includes(type.split('/')[1]))
+        const looksLikeReceipt = filename.includes('receipt') || 
+                                 filename.includes('invoice') ||
+                                 filename.includes('order') ||
+                                 filename.includes('confirmation')
+        
+        if (isReceiptType || looksLikeReceipt) {
+          attachments.push({
+            id: part.body.attachmentId,
+            filename: part.filename,
+            mimeType: part.mimeType || 'application/octet-stream',
+            size: part.body.size || 0
+          })
+        }
+      }
+      
+      // Recursively check nested parts
+      if (part.parts) {
+        part.parts.forEach(processPayload)
+      }
+    }
+    
+    processPayload(payload)
+    return attachments
+  }
+
+  /**
+   * Download attachment data by ID
+   */
+  async getAttachmentData(messageId: string, attachmentId: string): Promise<string | null> {
+    if (!this.gmail) return null
+    
+    try {
+      const response = await this.gmail.users.messages.attachments.get({
+        userId: 'me',
+        messageId,
+        id: attachmentId
+      })
+      
+      // Gmail returns base64url encoded data, convert to standard base64
+      const base64Data = response.data.data
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+      
+      return base64Data
+    } catch (error) {
+      console.error(`Error fetching attachment ${attachmentId}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Get all receipt attachments for an email with data
+   */
+  async getReceiptAttachments(messageId: string): Promise<EmailAttachment[]> {
+    if (!this.gmail) return []
+    
+    try {
+      const response = await this.gmail.users.messages.get({
+        userId: 'me',
+        id: messageId,
+        format: 'full'
+      })
+      
+      const attachments = this.extractAttachmentMetadata(response.data.payload, messageId)
+      
+      // Download data for each attachment
+      const attachmentsWithData: EmailAttachment[] = []
+      for (const att of attachments) {
+        const data = await this.getAttachmentData(messageId, att.id)
+        if (data) {
+          attachmentsWithData.push({
+            ...att,
+            data
+          })
+        }
+      }
+      
+      return attachmentsWithData
+    } catch (error) {
+      console.error(`Error getting receipt attachments for ${messageId}:`, error)
+      return []
     }
   }
 
@@ -249,6 +369,163 @@ export class GmailParser {
    */
   isConfigured(): boolean {
     return !!this.gmail
+  }
+
+  /**
+   * Send an email via Gmail API
+   */
+  async sendEmail(request: ComposeEmailRequest): Promise<ComposeEmailResponse> {
+    if (!this.gmail) {
+      return { success: false, error: 'Gmail API not initialized' }
+    }
+
+    try {
+      // Build the email message
+      const to = Array.isArray(request.to) ? request.to.join(', ') : request.to
+      const cc = request.cc ? (Array.isArray(request.cc) ? request.cc.join(', ') : request.cc) : undefined
+      const bcc = request.bcc ? (Array.isArray(request.bcc) ? request.bcc.join(', ') : request.bcc) : undefined
+
+      // Create MIME message
+      const emailLines = [
+        `To: ${to}`,
+        `Subject: ${request.subject}`,
+        'MIME-Version: 1.0'
+      ]
+
+      if (cc) emailLines.push(`Cc: ${cc}`)
+      if (bcc) emailLines.push(`Bcc: ${bcc}`)
+
+      // Handle reply threading
+      if (request.replyToMessageId) {
+        emailLines.push(`In-Reply-To: ${request.replyToMessageId}`)
+        emailLines.push(`References: ${request.replyToMessageId}`)
+      }
+
+      // Check if we have attachments
+      if (request.attachments && request.attachments.length > 0) {
+        const boundary = `boundary_${Date.now()}`
+        emailLines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`)
+        emailLines.push('')
+        emailLines.push(`--${boundary}`)
+        emailLines.push(`Content-Type: ${request.bodyType === 'html' ? 'text/html' : 'text/plain'}; charset=utf-8`)
+        emailLines.push('')
+        emailLines.push(request.body)
+        
+        // Add attachments
+        for (const att of request.attachments) {
+          emailLines.push(`--${boundary}`)
+          emailLines.push(`Content-Type: ${att.mimeType}; name="${att.filename}"`)
+          emailLines.push(`Content-Disposition: attachment; filename="${att.filename}"`)
+          emailLines.push('Content-Transfer-Encoding: base64')
+          emailLines.push('')
+          emailLines.push(att.data)
+        }
+        emailLines.push(`--${boundary}--`)
+      } else {
+        emailLines.push(`Content-Type: ${request.bodyType === 'html' ? 'text/html' : 'text/plain'}; charset=utf-8`)
+        emailLines.push('')
+        emailLines.push(request.body)
+      }
+
+      const rawMessage = emailLines.join('\r\n')
+      
+      // Encode to base64url
+      const encodedMessage = Buffer.from(rawMessage)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
+
+      // Send the email
+      const response = await this.gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedMessage,
+          threadId: request.threadId
+        }
+      })
+
+      console.log('✅ Email sent successfully:', response.data.id)
+      
+      return {
+        success: true,
+        messageId: response.data.id,
+        threadId: response.data.threadId
+      }
+    } catch (error: any) {
+      console.error('❌ Error sending email:', error?.message)
+      return {
+        success: false,
+        error: error?.message || 'Failed to send email'
+      }
+    }
+  }
+
+  /**
+   * Create a draft email (for preview before sending)
+   */
+  async createDraft(request: ComposeEmailRequest): Promise<ComposeEmailResponse> {
+    if (!this.gmail) {
+      return { success: false, error: 'Gmail API not initialized' }
+    }
+
+    try {
+      const to = Array.isArray(request.to) ? request.to.join(', ') : request.to
+      
+      const emailLines = [
+        `To: ${to}`,
+        `Subject: ${request.subject}`,
+        'MIME-Version: 1.0',
+        `Content-Type: ${request.bodyType === 'html' ? 'text/html' : 'text/plain'}; charset=utf-8`,
+        '',
+        request.body
+      ]
+
+      const rawMessage = emailLines.join('\r\n')
+      const encodedMessage = Buffer.from(rawMessage)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
+
+      const response = await this.gmail.users.drafts.create({
+        userId: 'me',
+        requestBody: {
+          message: {
+            raw: encodedMessage,
+            threadId: request.threadId
+          }
+        }
+      })
+
+      console.log('✅ Draft created:', response.data.id)
+      
+      return {
+        success: true,
+        messageId: response.data.id
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating draft:', error?.message)
+      return {
+        success: false,
+        error: error?.message || 'Failed to create draft'
+      }
+    }
+  }
+
+  /**
+   * Get user's email address
+   */
+  async getUserEmail(): Promise<string | null> {
+    if (!this.gmail) return null
+    
+    try {
+      const response = await this.gmail.users.getProfile({ userId: 'me' })
+      return response.data.emailAddress
+    } catch (error) {
+      console.error('Error getting user email:', error)
+      return null
+    }
   }
 }
 

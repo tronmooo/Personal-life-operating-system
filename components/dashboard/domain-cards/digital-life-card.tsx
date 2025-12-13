@@ -13,6 +13,7 @@ import {
 import { formatCurrency } from '@/lib/utils/currency'
 import { getCategoryColor } from '@/lib/utils/subscription-colors'
 import Link from 'next/link'
+import { createSafeBrowserClient } from '@/lib/supabase/safe-client'
 
 interface SubscriptionSummary {
   monthly_total: number
@@ -35,14 +36,86 @@ export function DigitalLifeCard() {
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null)
   const [upcomingRenewals, setUpcomingRenewals] = useState<UpcomingRenewal[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    fetchData()
+    const checkAuthAndFetch = async () => {
+      const supabase = createSafeBrowserClient()
+      if (!supabase) {
+        // #region agent log
+        console.log('💳 [DIGITAL-LIFE-CARD] No Supabase client available')
+        // #endregion
+        setLoading(false)
+        setSummary({
+          monthly_total: 0,
+          yearly_total: 0,
+          active_count: 0,
+          due_this_week: 0,
+        })
+        return
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        // #region agent log
+        console.log('💳 [DIGITAL-LIFE-CARD] Auth check:', { hasSession: !!session, hasUser: !!session?.user })
+        // #endregion
+        
+        if (!session?.user) {
+          setIsAuthenticated(false)
+          setLoading(false)
+          setSummary({
+            monthly_total: 0,
+            yearly_total: 0,
+            active_count: 0,
+            due_this_week: 0,
+          })
+          return
+        }
+
+        setIsAuthenticated(true)
+        await fetchData()
+      } catch (error) {
+        console.error('Error checking auth:', error)
+        setLoading(false)
+      }
+    }
+
+    checkAuthAndFetch()
+
+    // Listen for auth changes
+    const supabase = createSafeBrowserClient()
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        // #region agent log
+        console.log('💳 [DIGITAL-LIFE-CARD] Auth state changed:', event, !!session?.user)
+        // #endregion
+        if (session?.user && !isAuthenticated) {
+          setIsAuthenticated(true)
+          fetchData()
+        }
+      })
+
+      return () => subscription.unsubscribe()
+    }
   }, [])
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/api/subscriptions/analytics')
+      // #region agent log
+      console.log('💳 [DIGITAL-LIFE-CARD] Fetching analytics data...')
+      // #endregion
+      
+      const response = await fetch('/api/subscriptions/analytics', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      // #region agent log
+      console.log('💳 [DIGITAL-LIFE-CARD] Response status:', response.status)
+      // #endregion
       
       // Handle unauthorized - show empty state for guests
       if (response.status === 401) {
@@ -58,6 +131,12 @@ export function DigitalLifeCard() {
       
       if (response.ok) {
         const data = await response.json()
+        // #region agent log
+        console.log('💳 [DIGITAL-LIFE-CARD] Data received:', { 
+          monthlyTotal: data.summary?.monthly_total, 
+          activeCount: data.summary?.active_count 
+        })
+        // #endregion
         setSummary({
           monthly_total: data.summary.monthly_total || 0,
           yearly_total: data.summary.yearly_total || 0,
@@ -214,6 +293,3 @@ export function DigitalLifeCard() {
     </Card>
   )
 }
-
-
-

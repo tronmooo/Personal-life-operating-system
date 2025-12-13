@@ -99,15 +99,22 @@ export function UpcomingBillsCard() {
 
     // 3. Get subscriptions from digital domain
     const digitalEntries = data.digital || []
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upcoming-bills-card.tsx:digitalEntries',message:'Digital entries for bills',data:{count:digitalEntries.length,entries:digitalEntries.slice(0,5).map((e:any)=>({id:e.id,title:e.title,type:e.metadata?.type,renewalDate:e.metadata?.renewalDate,monthlyCost:e.metadata?.monthlyCost,cost:e.metadata?.cost}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
     digitalEntries.forEach((entry: any) => {
       const meta = entry.metadata || {}
       if (meta.type === 'subscription' || meta.itemType === 'subscription') {
         // Calculate next billing date
         const billingDate = meta.nextBilling || meta.renewalDate || meta.billingDate || meta.nextDueDate
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upcoming-bills-card.tsx:subCheck',message:'Checking subscription for bills',data:{title:entry.title,billingDate,hasBillingDate:!!billingDate,meta:{type:meta.type,renewalDate:meta.renewalDate,nextBilling:meta.nextBilling,cost:meta.cost,monthlyCost:meta.monthlyCost,amount:meta.amount}},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
         if (billingDate) {
           billsList.push({
             title: entry.title || meta.name || meta.service || 'Subscription',
-            amount: parseFloat(String(meta.cost || meta.price || meta.amount || meta.monthlyFee || 0)),
+            // 🔧 FIX: Prioritize monthlyCost (used by SubscriptionsTab) first
+            amount: parseFloat(String(meta.monthlyCost || meta.cost || meta.price || meta.amount || meta.monthlyFee || 0)),
             dueDate: billingDate,
             category: 'Subscription',
             isRecurring: true,

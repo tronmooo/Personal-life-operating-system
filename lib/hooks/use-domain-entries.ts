@@ -68,6 +68,9 @@ export async function listDomainEntries(client: SupabaseClient, domain?: Domain,
   const activePersonId = personId || await getActivePersonId()
   
   console.log(`📋 Loading domain entries for person: ${activePersonId}, domain: ${domain || 'all'}`)
+  // #region agent log
+  console.log('🔍 [DEBUG-LISTDOMAINENTRIES] Query params:', { userId: user.id, activePersonId, domain: domain || 'all' })
+  // #endregion
 
   let query = client
     .from('domain_entries')  // Use table directly instead of view to access person_id
@@ -93,6 +96,20 @@ export async function listDomainEntries(client: SupabaseClient, domain?: Domain,
   }
 
   console.log(`✅ Loaded ${data?.length || 0} entries for person ${activePersonId}`)
+  // #region agent log
+  const digitalEntries = data?.filter(e => e.domain === 'digital') || []
+  console.log('🔍 [DEBUG-LISTDOMAINENTRIES] Digital entries in result:', {
+    totalLoaded: data?.length || 0,
+    digitalCount: digitalEntries.length,
+    digitalEntries: digitalEntries.slice(0, 5).map(e => ({
+      id: e.id,
+      title: e.title,
+      domain: e.domain,
+      person_id: e.person_id,
+      type: e.metadata?.type
+    }))
+  })
+  // #endregion
   return (data ?? []).map(normalizeDomainEntry)
 }
 

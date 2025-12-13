@@ -300,7 +300,15 @@ export function useServiceProviders() {
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!user) {
+        toast.error('Please sign in to add service providers', {
+          action: {
+            label: 'Sign In',
+            onClick: () => window.location.href = '/auth/signin'
+          }
+        })
+        throw new Error('Please sign in to add service providers')
+      }
 
       const { data, error } = await supabase
         .from('service_providers')
@@ -395,7 +403,12 @@ export function useServiceProviders() {
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!user) {
+        toast.error('Please sign in to add payments', {
+          action: { label: 'Sign In', onClick: () => window.location.href = '/auth/signin' }
+        })
+        throw new Error('Please sign in to add payments')
+      }
 
       const { error } = await supabase
         .from('service_payments')
@@ -447,7 +460,12 @@ export function useServiceProviders() {
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!user) {
+        toast.error('Please sign in to upload documents', {
+          action: { label: 'Sign In', onClick: () => window.location.href = '/auth/signin' }
+        })
+        throw new Error('Please sign in to upload documents')
+      }
 
       const { error } = await supabase
         .from('service_documents')

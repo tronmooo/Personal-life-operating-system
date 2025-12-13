@@ -279,6 +279,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       const domainEntries = await listDomainEntries(supabase)
+      // #region agent log
+      console.log('🔍 [DEBUG-DATAPROVIDER] Raw domainEntries from listDomainEntries:', {
+        totalCount: domainEntries.length,
+        byDomain: domainEntries.reduce((acc: Record<string, number>, e) => {
+          acc[e.domain] = (acc[e.domain] || 0) + 1
+          return acc
+        }, {}),
+        digitalEntriesRaw: domainEntries.filter(e => e.domain === 'digital').slice(0, 3).map(e => ({
+          id: e.id,
+          title: e.title,
+          domain: e.domain,
+          metadataType: e.metadata?.type,
+          metadataKeys: Object.keys(e.metadata || {})
+        }))
+      })
+      // #endregion
       const domainsObj = domainEntries.reduce<Record<string, DomainData[]>>((acc, entry) => {
         if (!acc[entry.domain]) {
           acc[entry.domain] = []
@@ -291,6 +307,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         domains: Object.keys(domainsObj).length,
         items: domainEntries.length,
       })
+      // #region agent log
+      console.log('🔍 [DEBUG-DATAPROVIDER] Digital domain data:', {
+        digitalCount: domainsObj.digital?.length ?? 0,
+        allDomains: Object.keys(domainsObj),
+        digitalEntries: domainsObj.digital?.slice(0, 5).map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          type: e.metadata?.type,
+          monthlyCost: e.metadata?.monthlyCost
+        }))
+      })
+      // #endregion
 
       setData(domainsObj)
       // Save snapshot to IDB
