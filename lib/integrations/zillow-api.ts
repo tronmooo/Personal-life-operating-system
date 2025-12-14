@@ -15,7 +15,8 @@ export type PropertyValuation = {
 }
 
 const RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY || process.env.RAPIDAPI_KEY
-const ZILLOW_HOST = 'zillow-com1.p.rapidapi.com'
+// NOTE: zillow-com1 was deprecated Dec 9 2025, migrated to us-housing-market-data1
+const ZILLOW_HOST = 'us-housing-market-data1.p.rapidapi.com'
 
 export async function fetchPropertyValue({ address }: FetchPropertyValueParams): Promise<PropertyValuation> {
   if (!address || !address.trim()) {

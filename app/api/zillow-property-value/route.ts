@@ -3,8 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // RapidAPI credentials for Zillow property data
+// NOTE: zillow-com1 was deprecated Dec 9 2025, migrated to us-housing-market-data1
 const RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY || '2657638a72mshdc028c9a0485f14p157dbbjsn28df901ae355'
-const RAPIDAPI_HOST = 'zillow-com1.p.rapidapi.com'
+const RAPIDAPI_HOST = 'us-housing-market-data1.p.rapidapi.com'
 
 export async function POST(request: NextRequest) {
   try {
