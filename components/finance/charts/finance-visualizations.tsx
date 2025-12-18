@@ -529,7 +529,7 @@ export function AssetAllocationTreemap({ data }: AssetAllocationTreemapProps) {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-1 h-32">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 h-32">
       {sorted.slice(0, 8).map((item, i) => {
         const percent = total > 0 ? (item.value / total) * 100 : 0
         const colorClass = TYPE_COLORS[item.type || 'other'] || TYPE_COLORS.other

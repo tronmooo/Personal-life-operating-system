@@ -1548,7 +1548,7 @@ export function VehicleTrackerAutoTrack() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-[#0f1419] rounded-2xl p-6">
                       <div className="text-gray-400 text-sm mb-2">Current Mileage</div>
                       <div className="text-4xl font-bold text-white">
@@ -1573,7 +1573,7 @@ export function VehicleTrackerAutoTrack() {
             </Card>
 
             {/* Action Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {/* Next Oil Change */}
               <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 rounded-3xl shadow-xl">
                 <CardContent className="p-6">
@@ -1683,7 +1683,7 @@ export function VehicleTrackerAutoTrack() {
             </div>
 
             {/* Active Alerts & Recent Maintenance */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Recall Alerts */}
               <Card className="bg-[#1a202c] border-gray-800 rounded-3xl">
                 <CardContent className="p-8">
@@ -1881,7 +1881,7 @@ export function VehicleTrackerAutoTrack() {
             </div>
 
             {/* Cost Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 rounded-3xl shadow-xl">
                 <CardContent className="p-8">
                   <div className="text-sm text-white/90 mb-2">Total Spent (YTD)</div>

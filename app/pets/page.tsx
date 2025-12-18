@@ -133,22 +133,22 @@ export default function PetsPage() {
     <>
       <AddPetDialog open={showAddDialog} onOpenChange={setShowAddDialog} onPetAdded={handlePetAdded} />
       
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
           {/* Header */}
           <button
             onClick={() => router.push('/domains')}
-            className="mb-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="mb-2 sm:mb-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold">My Pets</h1>
-              <p className="text-muted-foreground mt-1">Manage your pet family</p>
+              <h1 className="text-2xl sm:text-4xl font-bold">My Pets</h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your pet family</p>
             </div>
             <Button 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-full sm:w-auto"
               onClick={() => setShowAddDialog(true)}
               size="lg"
             >
@@ -185,7 +185,7 @@ export default function PetsPage() {
             </Card>
           ) : (
             /* Pets Grid */
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pets.map((pet) => (
                 <Card 
                   key={pet.id}

@@ -1582,7 +1582,7 @@ export function ApplianceTrackerAutoTrack() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
                         <div>
                           <div className="text-sm text-gray-400 mb-1">Purchase Date</div>
                           <div className="text-white font-medium">

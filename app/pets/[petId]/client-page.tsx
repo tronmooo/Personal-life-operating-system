@@ -72,28 +72,28 @@ export function PetDetailPageClient({ petId }: { petId: string }) {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => router.push('/pets')}
-              className="rounded-full"
+              className="rounded-full flex-shrink-0"
             >
-              <ArrowLeft className="h-6 w-6" />
+              <ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6" />
             </Button>
-            <div>
-              <h1 className="text-4xl font-bold">{pet.name}</h1>
-              <p className="text-xl text-muted-foreground mt-1">{pet.species} • {pet.breed || 'Mixed'}</p>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-bold truncate">{pet.name}</h1>
+              <p className="text-base sm:text-xl text-muted-foreground mt-1">{pet.species} • {pet.breed || 'Mixed'}</p>
             </div>
           </div>
           <Button 
             variant="destructive"
             onClick={handleDeletePet}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Trash2 className="h-4 w-4" />
             Delete Pet
