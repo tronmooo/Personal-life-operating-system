@@ -18,6 +18,10 @@ function getGoogleApiKey() {
   return process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
 }
 
+function allowMockExternals() {
+  return process.env.ALLOW_MOCK_EXTERNALS === 'true'
+}
+
 export interface Location {
   latitude: number
   longitude: number
@@ -171,9 +175,13 @@ export class BusinessSearchService {
     } catch (error: any) {
       console.error('Business search error:', error)
       
-      // FALLBACK: If Google API fails (e.g. REQUEST_DENIED), use mock data so user can still test calls
-      if (error.message && (error.message.includes('REQUEST_DENIED') || error.message.includes('Billing'))) {
-        console.warn('⚠️ Google Places API failed. Falling back to MOCK data for testing.')
+      // Optional fallback (only if explicitly enabled)
+      if (
+        allowMockExternals() &&
+        error.message &&
+        (error.message.includes('REQUEST_DENIED') || error.message.includes('Billing'))
+      ) {
+        console.warn('⚠️ Google Places API failed. Falling back to MOCK data because ALLOW_MOCK_EXTERNALS=true.')
         return this.getMockBusinesses(query, location)
       }
 
@@ -201,16 +209,19 @@ export class BusinessSearchService {
       if (data.status !== 'OK' || !data.results?.[0]) {
         console.warn(`Geocoding failed for address: ${address}`, data.status)
         
-        // FALLBACK: If Geocoding fails, return a mock location so the flow continues
-        if (data.status === 'REQUEST_DENIED' || data.status === 'OVER_QUERY_LIMIT') {
-             console.warn('⚠️ Geocoding API denied. Using mock location for testing.')
-             // Return a default location (e.g. San Francisco)
-             return {
-                latitude: 37.7749,
-                longitude: -122.4194,
-                city: 'San Francisco',
-                state: 'CA'
-             }
+        // Optional fallback (only if explicitly enabled)
+        if (
+          allowMockExternals() &&
+          (data.status === 'REQUEST_DENIED' || data.status === 'OVER_QUERY_LIMIT')
+        ) {
+          console.warn('⚠️ Geocoding denied. Using mock location because ALLOW_MOCK_EXTERNALS=true.')
+          // Return a default location (e.g. San Francisco)
+          return {
+            latitude: 37.7749,
+            longitude: -122.4194,
+            city: 'San Francisco',
+            state: 'CA'
+          }
         }
         
         return null
@@ -247,43 +258,72 @@ export class BusinessSearchService {
    * Get business details
    */
   async getBusinessDetails(placeId: string): Promise<Business | null> {
-    // Check cache
-    const { data: cached } = await this.supabase
-      .from('businesses')
-      .select('*')
-      .eq('place_id', placeId)
-      .maybeSingle() as { data: any }
+    console.log(`🔍 getBusinessDetails called for placeId: ${placeId}`)
+    
+    // Check cache (but don't fail if table doesn't exist)
+    try {
+      console.log(`🔍 Checking cache...`)
+      const { data: cached, error: cacheError } = await this.supabase
+        .from('businesses')
+        .select('*')
+        .eq('place_id', placeId)
+        .maybeSingle()
 
-    if (cached && this.isCacheFresh(cached.cached_at)) {
-      return this.mapDbToBusiness(cached)
+      console.log(`🔍 Cache result: cached=${!!cached}, phone=${cached?.phone || 'null'}, error=${cacheError?.message || 'none'}`)
+
+      if (cacheError) {
+        console.log(`⚠️ Cache lookup failed (continuing without cache):`, cacheError.message)
+      } else if (cached && this.isCacheFresh(cached.cached_at) && cached.phone) {
+        // Only use cache if it HAS a phone number (otherwise fetch fresh details)
+        console.log(`✅ Found in cache WITH phone: ${cached.name}, phone: ${cached.phone}`)
+        return this.mapDbToBusiness(cached)
+      } else if (cached && !cached.phone) {
+        console.log(`🔍 Cache hit but NO PHONE - fetching fresh details from Google...`)
+      } else {
+        console.log(`🔍 Not in cache or cache expired, fetching from Google...`)
+      }
+    } catch (e: any) {
+      console.log(`⚠️ Cache error (continuing):`, e.message)
     }
 
     // Fetch from Google Places
     const googleApiKey = getGoogleApiKey()
+    console.log(`🔍 API key available: ${!!googleApiKey}`)
     if (!googleApiKey) {
+      console.log(`❌ No Google API key for details lookup`)
       return null
     }
 
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,formatted_address,rating,price_level,opening_hours,website&key=${googleApiKey}`
-      )
-
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,formatted_address,rating,price_level,opening_hours,website&key=${googleApiKey}`
+      console.log(`🌐 Fetching Google Place Details for ${placeId}...`)
+      
+      const response = await fetch(url)
       const data = await response.json()
 
+      console.log(`📊 Place Details response status: ${data.status}`)
+
       if (data.status !== 'OK' || !data.result) {
+        console.log(`❌ Place Details failed:`, data.status, data.error_message)
         return null
       }
 
+      console.log(`✅ Place Details success: ${data.result.name}, phone: ${data.result.formatted_phone_number || 'N/A'}`)
+
       const business = this.mapGooglePlaceToBusiness(data.result)
+      console.log(`📞 Mapped business phone: ${business.phone || 'null'}`)
       
-      // Cache it
-      await this.cacheBusinessInfo(business)
+      // Cache it (don't fail if cache fails)
+      try {
+        await this.cacheBusinessInfo(business)
+      } catch (e) {
+        console.log(`⚠️ Failed to cache business (continuing)`)
+      }
 
       return business
 
-    } catch (error) {
-      console.error('Failed to get business details:', error)
+    } catch (error: any) {
+      console.error('❌ Failed to get business details:', error.message)
       return null
     }
   }
@@ -455,7 +495,7 @@ export class BusinessSearchService {
     location: Location,
     radius: number
   ): Promise<Business[]> {
-    // Calculate bounding box for location
+    // Calculate bounding box for location-based filtering
     const latDelta = radius / 69 // Rough miles to degrees
     const lonDelta = radius / (69 * Math.cos(location.latitude * Math.PI / 180))
 
@@ -464,19 +504,47 @@ export class BusinessSearchService {
       .select('*')
       .ilike('name', `%${query}%`)
       .gte('cached_at', this.getCacheExpiry())
-      .limit(20)
+      .limit(50) // Fetch more to allow for distance filtering
 
     if (!data || data.length === 0) {
       return []
     }
 
-    // Filter by distance (rough approximation)
-    return data
-      .map(this.mapDbToBusiness)
+    // Map to businesses and calculate distances
+    const businesses = data.map(record => this.mapDbToBusiness(record))
+    
+    // Calculate distance for each business from user's current location
+    const businessesWithDistance = businesses.map(b => {
+      if (b.coordinates && location) {
+        const dist = this.calculateDistance(
+          location.latitude,
+          location.longitude,
+          b.coordinates.latitude,
+          b.coordinates.longitude
+        )
+        return { ...b, distance: dist }
+      }
+      return b
+    })
+
+    // Filter by radius and sort by distance
+    return businessesWithDistance
       .filter(b => {
-        // Parse address for rough location match
-        // In production, store lat/lon in DB
+        // If we have distance, filter by radius
+        if (b.distance !== undefined) {
+          return b.distance <= radius
+        }
+        // Include businesses without coordinates but prioritize those with
         return true
+      })
+      .sort((a, b) => {
+        // Sort by distance (closest first)
+        if (a.distance !== undefined && b.distance !== undefined) {
+          return a.distance - b.distance
+        }
+        if (a.distance !== undefined) return -1
+        if (b.distance !== undefined) return 1
+        return 0
       })
   }
 
@@ -507,7 +575,10 @@ export class BusinessSearchService {
         website: business.website,
         pricing_data: business.cachedPricing as any,
         last_called_at: business.lastCalled?.toISOString(),
-        cached_at: new Date().toISOString()
+        cached_at: new Date().toISOString(),
+        // Store coordinates for distance calculations
+        latitude: business.coordinates?.latitude,
+        longitude: business.coordinates?.longitude
       } as any, {
         onConflict: 'place_id'
       })
@@ -531,7 +602,12 @@ export class BusinessSearchService {
       website: record.website,
       cachedPricing: record.pricing_data,
       lastCalled: record.last_called_at ? new Date(record.last_called_at) : undefined,
-      hasOnlinePricing: !!record.pricing_data
+      hasOnlinePricing: !!record.pricing_data,
+      // Restore coordinates from cache for distance calculations
+      coordinates: record.latitude && record.longitude ? {
+        latitude: Number(record.latitude),
+        longitude: Number(record.longitude)
+      } : undefined
     }
   }
 

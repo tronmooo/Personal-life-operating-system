@@ -36,8 +36,8 @@ export function DocumentExpirationCard() {
           const expirationDate = new Date(expDate)
           const daysUntil = differenceInDays(expirationDate, now)
           
-          // Only show items expiring in next 90 days or already expired
-          if (daysUntil <= 90) {
+          // Only show items expiring in next 30 days or already expired
+          if (daysUntil <= 30) {
             let status: 'expired' | 'urgent' | 'warning' | 'ok' = 'ok'
             if (daysUntil < 0) status = 'expired'
             else if (daysUntil <= 14) status = 'urgent'
@@ -62,7 +62,7 @@ export function DocumentExpirationCard() {
         const expirationDate = new Date(expDate)
         const daysUntil = differenceInDays(expirationDate, now)
         
-        if (daysUntil <= 90) {
+        if (daysUntil <= 30) {
           let status: 'expired' | 'urgent' | 'warning' | 'ok' = 'ok'
           if (daysUntil < 0) status = 'expired'
           else if (daysUntil <= 14) status = 'urgent'
@@ -142,7 +142,7 @@ export function DocumentExpirationCard() {
           <div className="text-center py-8">
             <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-2" />
             <p className="text-sm text-gray-500">All documents up to date! 🎉</p>
-            <p className="text-xs text-gray-400 mt-1">Nothing expiring in next 90 days</p>
+            <p className="text-xs text-gray-400 mt-1">Nothing expiring in next 30 days</p>
           </div>
         ) : (
           <div className="space-y-2">

@@ -7,6 +7,7 @@
 
 import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { debugIngest } from '@/lib/utils/debug-ingest'
 
 let _browserClient: SupabaseClient | null = null
 let _initializationAttempted = false
@@ -53,9 +54,13 @@ export function createClientComponentClient(): SupabaseClient {
   }
 
   _browserClient = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'browser-client.ts:createClient',message:'Supabase browser client created',data:{url:supabaseUrl?.substring(0,30),hasKey:!!supabaseAnonKey},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-  // #endregion
+  debugIngest({
+    location: 'browser-client.ts:createClient',
+    message: 'Supabase browser client created',
+    data: { url: supabaseUrl?.substring(0, 30), hasKey: !!supabaseAnonKey },
+    sessionId: 'debug-session',
+    hypothesisId: 'H3',
+  })
 
   return _browserClient
 }
@@ -70,6 +75,20 @@ function createDummyClient() {
         if (prop === 'auth') {
           return new Proxy({}, {
             get(_t, authProp) {
+              // onAuthStateChange returns synchronously, not a Promise
+              if (authProp === 'onAuthStateChange') {
+                return () => {
+                  console.warn('⚠️ Supabase auth.onAuthStateChange called but client not configured')
+                  return { 
+                    data: { 
+                      subscription: { 
+                        unsubscribe: () => {} 
+                      } 
+                    } 
+                  }
+                }
+              }
+              // Other auth methods return Promises
               return () => {
                 console.warn(`⚠️ Supabase auth.${String(authProp)} called but client not configured`)
                 return Promise.resolve({ data: { session: null, user: null }, error: null })
@@ -77,6 +96,60 @@ function createDummyClient() {
             }
           })
         }
+        // #region agent log
+        // Special handling for channel() - must return a chainable object for realtime subscriptions
+        if (prop === 'channel') {
+          return (channelName: string) => {
+            console.warn(`⚠️ Supabase channel('${channelName}') called but client not configured`)
+            debugIngest({
+              location: 'browser-client.ts:channel',
+              message: 'Dummy channel created',
+              data: { channelName },
+              sessionId: 'debug-session',
+              hypothesisId: 'A',
+            })
+            // Return a chainable mock that mimics Supabase RealtimeChannel
+            const chainable: Record<string, unknown> = {
+              on: (..._args: unknown[]) => {
+                debugIngest({
+                  location: 'browser-client.ts:channel.on',
+                  message: 'Dummy channel.on() called',
+                  data: {},
+                  sessionId: 'debug-session',
+                  hypothesisId: 'A',
+                })
+                return chainable
+              },
+              subscribe: (_callback?: (status: string) => void) => {
+                debugIngest({
+                  location: 'browser-client.ts:channel.subscribe',
+                  message: 'Dummy channel.subscribe() called',
+                  data: {},
+                  sessionId: 'debug-session',
+                  hypothesisId: 'A',
+                })
+                return chainable
+              },
+              unsubscribe: () => Promise.resolve('ok'),
+            }
+            return chainable
+          }
+        }
+        // Special handling for removeChannel() - must accept channel and return Promise
+        if (prop === 'removeChannel') {
+          return (_channel: unknown) => {
+            console.warn('⚠️ Supabase removeChannel called but client not configured')
+            debugIngest({
+              location: 'browser-client.ts:removeChannel',
+              message: 'Dummy removeChannel called',
+              data: {},
+              sessionId: 'debug-session',
+              hypothesisId: 'A',
+            })
+            return Promise.resolve('ok')
+          }
+        }
+        // #endregion
         // Return a dummy function for other methods
         return () => {
           console.warn(`⚠️ Supabase ${prop} called but client not configured`)

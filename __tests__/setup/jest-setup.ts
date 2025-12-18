@@ -25,6 +25,7 @@ jest.mock('@supabase/auth-helpers-nextjs', () => {
       delete: jest.fn().mockReturnThis(),
       upsert: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
       neq: jest.fn().mockReturnThis(),
       gt: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
@@ -46,14 +47,6 @@ jest.mock('@supabase/auth-helpers-nextjs', () => {
     createServerComponentClient: jest.fn(() => createMockClient()),
   }
 })
-
-// Mock IndexedDB operations
-jest.mock('@/lib/utils/idb-cache', () => ({
-  idbSet: jest.fn().mockResolvedValue(undefined),
-  idbGet: jest.fn().mockResolvedValue(null),
-  idbDel: jest.fn().mockResolvedValue(undefined),
-  idbClear: jest.fn().mockResolvedValue(undefined),
-}))
 
 // Suppress console errors in tests
 global.console = {

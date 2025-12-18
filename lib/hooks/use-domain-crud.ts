@@ -159,7 +159,7 @@ export function useDomainCRUD(domain: Domain) {
       toast.error('Failed to delete', errorMessage)
       throw err
     }
-  }, [deleteEntry, requireAuth])
+  }, [deleteEntry, requireAuth, domain, entries.length])
 
   /**
    * Refresh domain entries from Supabase

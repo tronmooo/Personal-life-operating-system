@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, useContext } from 'react'
+import { useCallback, useEffect, useMemo, useState, useContext, useRef } from 'react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { Domain, DomainData } from '@/types/domains'
 import { getUserSettings } from '@/lib/supabase/user-settings'
+import { idbGet, idbSet } from '@/lib/utils/idb-cache'
+
+// Cache key helper for domain entries
+function getCacheKey(domain?: Domain, personId?: string): string {
+  return `domain-entries:${domain || 'all'}:${personId || 'me'}`
+}
 
 interface BaseDomainEntryPayload {
   title?: string
@@ -72,22 +78,29 @@ export async function listDomainEntries(client: SupabaseClient, domain?: Domain,
   console.log('🔍 [DEBUG-LISTDOMAINENTRIES] Query params:', { userId: user.id, activePersonId, domain: domain || 'all' })
   // #endregion
 
+  // 🔧 FIX: Build query with proper person_id filtering
+  // The .or() method should work correctly, but let's add explicit logging
   let query = client
     .from('domain_entries')  // Use table directly instead of view to access person_id
     .select('id, domain, title, description, metadata, created_at, updated_at, person_id')
     .eq('user_id', user.id) // 🔧 FIX: Filter by current user!
     .order('created_at', { ascending: true })
   
-  // Filter by person_id, including NULL values for the 'me' person (backward compatibility)
-  if (activePersonId === 'me') {
-    query = query.or(`person_id.eq.${activePersonId},person_id.is.null`)
-  } else {
-    query = query.eq('person_id', activePersonId)
-  }
-  
+  // Filter by domain FIRST if specified (this is more selective)
   if (domain) {
     query = query.eq('domain', domain)
   }
+  
+  // Filter by person_id, including NULL values for the 'me' person (backward compatibility)
+  // 🔧 FIX: Use explicit filter with quoted string value
+  if (activePersonId === 'me') {
+    // person_id can be 'me' OR NULL for backward compatibility
+    query = query.or('person_id.eq.me,person_id.is.null')
+  } else {
+    query = query.eq('person_id', activePersonId)
+  }
+
+  console.log('🔍 [listDomainEntries] Final query for:', { domain: domain || 'all', activePersonId, userId: user.id })
 
   const { data, error } = await query
 
@@ -229,32 +242,82 @@ export async function deleteDomainEntry(client: SupabaseClient, id: string): Pro
 export function useDomainEntries(domain?: Domain) {
   const supabase = useMemo(() => createClientComponentClient(), [])
   const [entries, setEntries] = useState<DomainData[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true) // Start as true - we're always loading initially
   const [error, setError] = useState<string | null>(null)
   const [currentPersonId, setCurrentPersonId] = useState<string>('me')
+  const initialLoadDone = useRef(false)
+  const cacheHydrated = useRef(false)
+
+  // 🚀 INSTANT HYDRATION: Load from IDB cache immediately on mount
+  useEffect(() => {
+    if (cacheHydrated.current) return
+    cacheHydrated.current = true
+    
+    const hydrateFromCache = async () => {
+      try {
+        const personId = await getActivePersonId()
+        const cacheKey = getCacheKey(domain, personId)
+        const cached = await idbGet<DomainData[]>(cacheKey)
+        
+        if (cached && cached.length > 0 && !initialLoadDone.current) {
+          console.log(`⚡ [useDomainEntries] Instant hydration from cache: ${cached.length} entries for ${domain || 'all'}`)
+          setEntries(cached)
+          setCurrentPersonId(personId)
+          // 🔑 KEY: Stop showing loading state when we have cached data
+          setIsLoading(false)
+        }
+      } catch (err) {
+        console.warn('⚠️ [useDomainEntries] Cache hydration failed:', err)
+      }
+    }
+    
+    hydrateFromCache()
+  }, [domain])
 
   const fetchEntries = useCallback(async () => {
-    setIsLoading(true)
+    // Don't set loading if we already have cached data (background refresh)
+    if (entries.length === 0) {
+      setIsLoading(true)
+    }
     setError(null)
+    console.log(`🔄 [useDomainEntries] Fetching entries for domain: ${domain || 'all'}`)
     try {
       // Get current active person ID
       const personId = await getActivePersonId()
       setCurrentPersonId(personId)
+      console.log(`🔄 [useDomainEntries] Using personId: ${personId}`)
       
       const data = await listDomainEntries(supabase, domain, personId)
+      console.log(`✅ [useDomainEntries] Loaded ${data.length} entries for domain: ${domain || 'all'}`)
+      
+      // 🔧 DEBUG: Log each entry when loading home domain
+      if (domain === 'home' && data.length > 0) {
+        data.forEach((entry, i) => {
+          console.log(`✅ [useDomainEntries] Home entry ${i}:`, entry.title, entry.metadata?.itemType)
+        })
+      }
+      
       setEntries(data)
+      initialLoadDone.current = true
+      
+      // 💾 Save to IDB cache for instant hydration on next load
+      const cacheKey = getCacheKey(domain, personId)
+      await idbSet(cacheKey, data)
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err))
-      console.error('Failed to load domain entries:', {
+      console.error('❌ [useDomainEntries] Failed to load domain entries:', {
         domain,
         error: error.message,
         stack: error.stack
       })
-      setEntries([])
+      // Only clear entries if we don't have cached data
+      if (!cacheHydrated.current || entries.length === 0) {
+        setEntries([])
+      }
       setError(error.message)
     }
     setIsLoading(false)
-  }, [domain, supabase])
+  }, [domain, supabase, entries.length])
 
   // Initial fetch
   useEffect(() => {
@@ -304,11 +367,31 @@ export function useDomainEntries(domain?: Domain) {
     }
   }, [domain, supabase, fetchEntries, currentPersonId])
 
+  // Helper to emit events for faster dashboard updates
+  const emitDomainEvent = useCallback((entryDomain: Domain, action: 'add' | 'update' | 'delete', data: DomainData[]) => {
+    if (typeof window === 'undefined') return
+    console.log(`🔔 [useDomainEntries] Emitting event for ${entryDomain}:`, action)
+    window.dispatchEvent(new CustomEvent('data-updated', {
+      detail: { domain: entryDomain, data, action, timestamp: Date.now() }
+    }))
+    window.dispatchEvent(new CustomEvent(`${entryDomain}-data-updated`, {
+      detail: { data, action, timestamp: Date.now() }
+    }))
+  }, [])
+
   const createEntry = useCallback(
     async (payload: CreateDomainEntryPayload) => {
       try {
         const created = await createDomainEntry(supabase, payload)
-        setEntries(prev => [...prev, created])
+        setEntries(prev => {
+          const updated = [...prev, created]
+          // 🔥 Emit event immediately for faster dashboard updates
+          emitDomainEvent(payload.domain, 'add', updated)
+          // 💾 Update IDB cache
+          const cacheKey = getCacheKey(domain, currentPersonId)
+          idbSet(cacheKey, updated).catch(() => {})
+          return updated
+        })
         return created
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err))
@@ -316,14 +399,22 @@ export function useDomainEntries(domain?: Domain) {
         throw error
       }
     },
-    [supabase]
+    [supabase, emitDomainEvent, domain, currentPersonId]
   )
 
   const updateEntry = useCallback(
     async (payload: UpdateDomainEntryPayload) => {
       try {
         const updated = await updateDomainEntry(supabase, payload)
-        setEntries(prev => prev.map(entry => (entry.id === updated.id ? updated : entry)))
+        setEntries(prev => {
+          const newEntries = prev.map(entry => (entry.id === updated.id ? updated : entry))
+          // 🔥 Emit event immediately for faster dashboard updates
+          if (domain) emitDomainEvent(domain, 'update', newEntries)
+          // 💾 Update IDB cache
+          const cacheKey = getCacheKey(domain, currentPersonId)
+          idbSet(cacheKey, newEntries).catch(() => {})
+          return newEntries
+        })
         return updated
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err))
@@ -331,21 +422,29 @@ export function useDomainEntries(domain?: Domain) {
         throw error
       }
     },
-    [supabase]
+    [supabase, domain, emitDomainEvent, currentPersonId]
   )
 
   const removeEntry = useCallback(
     async (id: string) => {
       try {
         await deleteDomainEntry(supabase, id)
-        setEntries(prev => prev.filter(entry => entry.id !== id))
+        setEntries(prev => {
+          const newEntries = prev.filter(entry => entry.id !== id)
+          // 🔥 Emit event immediately for faster dashboard updates
+          if (domain) emitDomainEvent(domain, 'delete', newEntries)
+          // 💾 Update IDB cache
+          const cacheKey = getCacheKey(domain, currentPersonId)
+          idbSet(cacheKey, newEntries).catch(() => {})
+          return newEntries
+        })
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err))
         setError(error.message)
         throw error
       }
     },
-    [supabase]
+    [supabase, domain, emitDomainEvent, currentPersonId]
   )
 
   return {

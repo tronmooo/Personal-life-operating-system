@@ -730,20 +730,54 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
         }
         return Boolean(meta.make || meta.model || meta.vehicleName || meta.licensePlate)
       })
+      
+      // Also find maintenance entries to check for upcoming services
+      const maintenanceEntries = domainData.filter((item) => {
+        const meta = extractMetadata(item)
+        const itemType = String(meta.itemType || meta.type || '').toLowerCase()
+        return itemType.includes('maintenance')
+      })
+      
       const totalMileage = vehicles.reduce((sum: number, item) => {
         const meta = extractMetadata(item)
         return sum + parseNumeric(meta.mileage ?? meta.currentMileage ?? meta.odometer ?? meta.totalMileage)
       }, 0)
-      const serviceDue = vehicles.filter((item) => {
+      
+      const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      
+      // Count service due from both vehicles AND maintenance entries
+      let serviceDue = 0
+      
+      // Check vehicles for service dates
+      vehicles.forEach((item) => {
         const meta = extractMetadata(item)
         const nextService = meta.nextServiceDate || meta.serviceDue || meta.nextMaintenance || meta.inspectionDue
         const serviceDate = toSafeDate(nextService)
-        if (!serviceDate) return false
-        const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        if (serviceDate <= thirtyDays) return true
+        if (serviceDate && serviceDate <= thirtyDays) {
+          serviceDue++
+          return
+        }
+        // Also check needsService flag
+        if (meta.needsService === true) {
+          serviceDue++
+          return
+        }
         const status = String(meta.status || meta.serviceStatus || '').toLowerCase()
-        return ['due', 'overdue', 'needs service', 'attention'].some(flag => status.includes(flag))
-      }).length
+        if (['due', 'overdue', 'needs service', 'attention'].some(flag => status.includes(flag))) {
+          serviceDue++
+        }
+      })
+      
+      // Check maintenance entries for upcoming service dates
+      maintenanceEntries.forEach((item) => {
+        const meta = extractMetadata(item)
+        const nextService = meta.nextServiceDate || meta.serviceDue || meta.dueDate
+        const serviceDate = toSafeDate(nextService)
+        if (serviceDate && serviceDate <= thirtyDays) {
+          serviceDue++
+        }
+      })
+      
       const mpgValues = vehicles.map((item) => {
         const meta = extractMetadata(item)
         return parseNumeric(meta.mpg ?? meta.milesPerGallon ?? meta.fuelEfficiency)
@@ -817,6 +851,19 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
         kpi4: { label: 'Calories Today', value: totalCalories > 0 ? totalCalories.toFixed(0) : '0', icon: Flame }
       }
     }
+    case 'services': {
+      // Service providers use special data structure from service_providers table
+      // Check for _serviceProvidersAnalytics which is injected separately
+      const analytics = (data as any)._serviceProvidersAnalytics || { active: 0, pending: 0, monthlyTotal: 0 }
+      const providersCount = (data as any)._serviceProvidersCount || itemCount
+      
+      return {
+        kpi1: { label: 'Items', value: providersCount.toString(), icon: FileText },
+        kpi2: { label: 'Active', value: analytics.active.toString(), icon: Activity },
+        kpi3: { label: 'Pending', value: analytics.pending.toString(), icon: AlertCircle },
+        kpi4: { label: 'Monthly', value: `$${analytics.monthlyTotal.toFixed(0)}`, icon: DollarSign }
+      }
+    }
     default:
       return {
         kpi1: { label: 'Items', value: itemCount.toString(), icon: FileText },
@@ -830,8 +877,14 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
 export default function DomainsPage() {
   const { data, getData } = useData()
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table')
+  // Default to mobile-friendly cards; users can switch to table on larger screens.
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('grid')
   const [appliancesFromTable, setAppliancesFromTable] = useState<DomainData[]>([])
+  const [serviceProvidersFromTable, setServiceProvidersFromTable] = useState<{
+    providers: any[]
+    payments: any[]
+    analytics: { active: number; pending: number; monthlyTotal: number }
+  }>({ providers: [], payments: [], analytics: { active: 0, pending: 0, monthlyTotal: 0 } })
   const supabase = createClientComponentClient()
 
   // Load appliances from appliances table (separate from domain_entries)
@@ -937,7 +990,60 @@ export default function DomainsPage() {
     loadAppliances()
   }, [supabase])
 
-  // Enhanced getData that includes appliances from separate table
+  // Load service providers from dedicated service_providers table
+  useEffect(() => {
+    const loadServiceProviders = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        // Get providers
+        const { data: providers, error: provError } = await supabase
+          .from('service_providers')
+          .select('*')
+          .eq('user_id', user.id)
+        
+        if (provError) {
+          console.error('Error loading service providers:', provError)
+          return
+        }
+        
+        // Get pending payments
+        const { data: payments, error: payError } = await supabase
+          .from('service_payments')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+        
+        if (payError) {
+          console.error('Error loading service payments:', payError)
+        }
+        
+        // Calculate analytics
+        const activeProviders = (providers || []).filter((p: any) => p.status === 'active')
+        const monthlyTotal = activeProviders.reduce((sum: number, p: any) => sum + (p.monthly_amount || 0), 0)
+        const pendingPayments = (payments || []).length
+        
+        setServiceProvidersFromTable({
+          providers: providers || [],
+          payments: payments || [],
+          analytics: {
+            active: activeProviders.length,
+            pending: pendingPayments,
+            monthlyTotal
+          }
+        })
+        
+        console.log(`✅ Loaded ${(providers || []).length} service providers from service_providers table`)
+      } catch (error) {
+        console.error('Failed to load service providers:', error)
+      }
+    }
+    
+    loadServiceProviders()
+  }, [supabase])
+
+  // Enhanced getData that includes appliances and service providers from separate tables
   const getDataWithAppliances = (domainKey: Domain): DomainData[] => {
     if (domainKey === 'appliances') {
       // For appliances, combine data from domain_entries and appliances table
@@ -946,6 +1052,31 @@ export default function DomainsPage() {
       const applianceIds = new Set(appliancesFromTable.map(a => a.id))
       const uniqueFromDomainEntries = fromDomainEntries.filter(item => !applianceIds.has(item.id))
       return [...appliancesFromTable, ...uniqueFromDomainEntries]
+    }
+    if (domainKey === 'services') {
+      // For services, use the service_providers table data
+      // Convert service providers to DomainData format for item count
+      const fromTable = serviceProvidersFromTable.providers.map((p: any) => ({
+        id: p.id,
+        domain: 'services' as Domain,
+        title: p.provider_name,
+        description: p.subcategory || p.category,
+        metadata: {
+          category: p.category,
+          monthly_amount: p.monthly_amount,
+          billing_day: p.billing_day,
+          auto_pay: p.auto_pay_enabled,
+          status: p.status
+        },
+        createdAt: p.created_at,
+        updatedAt: p.updated_at
+      })) as DomainData[]
+      
+      // Also include any entries from domain_entries
+      const fromDomainEntries = getData(domainKey)
+      const providerIds = new Set(fromTable.map(p => p.id))
+      const uniqueFromDomainEntries = fromDomainEntries.filter(item => !providerIds.has(item.id))
+      return [...fromTable, ...uniqueFromDomainEntries]
     }
     return getData(domainKey)
   }
@@ -957,9 +1088,14 @@ export default function DomainsPage() {
     const itemCount = domainData.length
     
     // Build data object for getDomainKPIs
-    const dataForKPIs = { ...data }
+    const dataForKPIs: any = { ...data }
     if (domainKey === 'appliances') {
       dataForKPIs.appliances = domainData
+    }
+    // Inject service providers analytics for the services domain
+    if (domainKey === 'services') {
+      dataForKPIs._serviceProvidersAnalytics = serviceProvidersFromTable.analytics
+      dataForKPIs._serviceProvidersCount = serviceProvidersFromTable.providers.length
     }
     const kpis = getDomainKPIs(domainKey, dataForKPIs)
     

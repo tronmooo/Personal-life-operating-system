@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { randomUUID } from 'crypto'
+import { COMMAND_CATALOG_PROMPT, AI_ASSISTANT_ACTIONS } from '@/lib/ai/command-catalog'
 
 // ============================================
 // AI SETTINGS INTERFACE AND HELPER
@@ -99,6 +100,41 @@ function getOpenAIModel(modelVersion: string): string {
     default:
       return 'gpt-4o-mini'
   }
+}
+
+function isCommandCatalogRequest(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes('list all commands') ||
+    m.includes('list commands') ||
+    m.includes('all commands') ||
+    m.includes('what can you do') ||
+    m.includes('what are your capabilities') ||
+    m.includes('capabilities') ||
+    m.includes('supported commands')
+  )
+}
+
+function formatCommandCatalogForUser(): string {
+  const aiActions = AI_ASSISTANT_ACTIONS.join(', ')
+  return [
+    `Here’s everything I can do in LifeHub via the AI assistant (authoritative):`,
+    ``,
+    `**AI actions (I can execute these):**`,
+    aiActions,
+    ``,
+    `**Voice commands:** log, add, update, query, schedule, navigate`,
+    ``,
+    `**Examples you can say/type:**`,
+    `- "Add task call dentist"`,
+    `- "Create a habit: drink water daily"`,
+    `- "Create bill: Internet $80 due 2025-01-05 recurring monthly"`,
+    `- "Delete my last 3 grocery expenses" (I will ask for confirmation)`,
+    `- "Export my health data as CSV"`,
+    `- "Add 'Dentist appointment' to Google Calendar tomorrow at 2pm"`,
+    ``,
+    `If you tell me what you want done (and any missing details like dates/amounts), I can execute it.`,
+  ].join('\n')
 }
 
 // ============================================
@@ -246,7 +282,68 @@ async function createGoogleCalendarEvent(
 }
 
 // ============================================
-// MACRO ESTIMATION HELPER
+// FULL NUTRITION ESTIMATION HELPER (calories + macros)
+// ============================================
+async function estimateFullNutrition(mealName: string): Promise<{
+  calories: number
+  protein: number
+  carbs: number
+  fats: number
+  fiber: number
+}> {
+  const openAIKey = process.env.OPENAI_API_KEY
+  
+  if (!openAIKey) {
+    // Fallback: estimate 400 cal for an average meal
+    return { calories: 400, protein: 25, carbs: 40, fats: 15, fiber: 5 }
+  }
+
+  try {
+    console.log(`🥗 [NUTRITION-AI] Estimating full nutrition for: ${mealName}`)
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a nutrition expert. Estimate calories and macronutrients for meals.
+Return ONLY a JSON object: {"calories": <number>, "protein": <g>, "carbs": <g>, "fats": <g>, "fiber": <g>}
+Use typical restaurant portion sizes. Be accurate based on the food description.
+Return ONLY valid JSON, no explanations.`
+          },
+          { role: 'user', content: `Estimate nutrition for: ${mealName}` }
+        ],
+        temperature: 0.3,
+        max_tokens: 150,
+      }),
+    })
+
+    if (!response.ok) throw new Error('API failed')
+
+    const data = await response.json()
+    const nutrition = JSON.parse(data.choices[0]?.message?.content?.trim() || '{}')
+    console.log(`✅ [NUTRITION-AI] Estimated:`, nutrition)
+    
+    return {
+      calories: Math.round(Number(nutrition.calories) || 400),
+      protein: Math.round(Number(nutrition.protein) || 25),
+      carbs: Math.round(Number(nutrition.carbs) || 40),
+      fats: Math.round(Number(nutrition.fats) || 15),
+      fiber: Math.round(Number(nutrition.fiber) || 5)
+    }
+  } catch (error) {
+    console.error('❌ [NUTRITION-AI] Failed:', error)
+    return { calories: 400, protein: 25, carbs: 40, fats: 15, fiber: 5 }
+  }
+}
+
+// MACRO ESTIMATION HELPER (when calories are known)
 // ============================================
 async function estimateMealMacros(mealName: string, calories: number): Promise<{
   protein: number
@@ -756,6 +853,36 @@ YOUR PRIMARY JOB: DETECT and EXECUTE data-logging commands. Be smart about detec
 - "remember that [content]" → MINDFULNESS domain (type: note)
 - Extract: title (first sentence or summary), content (full text)
 
+📔 JOURNAL ENTRY RULES (action: "create_journal"):
+- "journal: [content]" → create_journal
+- "write in my journal [content]" → create_journal
+- "journal entry [content]" → create_journal  
+- "add journal entry [content]" → create_journal
+- "create journal entry [content]" → create_journal
+- "dear diary [content]" → create_journal
+- "today I [content] (long personal reflection)" → create_journal
+- Extract: title (optional, first sentence or date), content (full journal text), mood (if mentioned)
+- Journal entries are longer personal reflections, notes are quick thoughts
+
+✅ TASK COMPLETION RULES (action: "complete_task"):
+- "mark [task name] as done" → complete_task
+- "complete task [task name]" → complete_task
+- "finished [task name]" → complete_task
+- "done with [task name]" → complete_task
+- "[task name] is complete" → complete_task
+- "check off [task name]" → complete_task
+- "completed [task name]" → complete_task
+- Extract: taskName (the task to complete - can be partial match)
+
+✅ HABIT COMPLETION RULES (action: "complete_habit"):
+- "mark [habit name] as done" → complete_habit (if it's a habit)
+- "did my [habit name] habit" → complete_habit
+- "completed [habit name] habit" → complete_habit
+- "logged [habit name]" → complete_habit
+- "checked off [habit name] habit" → complete_habit
+- "did [habit name] today" → complete_habit
+- Extract: habitName (the habit to mark complete)
+
 If it's a COMMAND (default to YES if unsure), respond with JSON:
 {
   "isCommand": true,
@@ -764,7 +891,7 @@ If it's a COMMAND (default to YES if unsure), respond with JSON:
   "confirmationMessage": "✅ Logged [what] to [domain]"
 }
 
-For ACTION commands (create_habit, create_bill, create_event, add_to_google_calendar, navigate, open_tool, custom_chart):
+For ACTION commands (create_habit, create_bill, create_event, add_to_google_calendar, navigate, open_tool, custom_chart, create_journal, complete_task, complete_habit):
 {
   "isCommand": true,
   "action": "action_type",
@@ -784,6 +911,12 @@ Examples of ACTION commands:
 - "put dentist appointment Dec 20 at 10am on my calendar" → { "isCommand": true, "action": "add_to_google_calendar", "data": { "title": "Dentist appointment", "date": "2024-12-20", "time": "10:00", "duration": 60 }, "confirmationMessage": "📅 Adding to Google Calendar: Dentist appointment" }
 - "gcal: team standup Monday at 9:30am for 30 minutes" → { "isCommand": true, "action": "add_to_google_calendar", "data": { "title": "Team standup", "date": "Monday", "time": "09:30", "duration": 30 }, "confirmationMessage": "📅 Adding to Google Calendar: Team standup" }
 - "add birthday party to calendar on Saturday all day" → { "isCommand": true, "action": "add_to_google_calendar", "data": { "title": "Birthday party", "date": "Saturday", "allDay": true }, "confirmationMessage": "📅 Adding to Google Calendar: Birthday party (all day)" }
+- "journal: Today was a great day. I finished my project and felt really accomplished." → { "isCommand": true, "action": "create_journal", "data": { "title": "Great day", "content": "Today was a great day. I finished my project and felt really accomplished.", "mood": "happy" }, "confirmationMessage": "📔 Journal entry saved" }
+- "write in my journal about the meeting" → { "isCommand": true, "action": "create_journal", "data": { "title": "Meeting reflection", "content": "about the meeting" }, "confirmationMessage": "📔 Journal entry saved" }
+- "mark buy groceries as done" → { "isCommand": true, "action": "complete_task", "data": { "taskName": "buy groceries" }, "confirmationMessage": "✅ Task completed: buy groceries" }
+- "finished the project report" → { "isCommand": true, "action": "complete_task", "data": { "taskName": "project report" }, "confirmationMessage": "✅ Task completed: project report" }
+- "did my exercise habit" → { "isCommand": true, "action": "complete_habit", "data": { "habitName": "exercise" }, "confirmationMessage": "✅ Habit logged: exercise" }
+- "completed meditation today" → { "isCommand": true, "action": "complete_habit", "data": { "habitName": "meditation" }, "confirmationMessage": "✅ Habit logged: meditation" }
 
 If it's clearly NOT a command (rare), respond with:
 {
@@ -943,9 +1076,9 @@ ONLY respond with valid JSON, nothing else.`
       return { isCommand: false }
     }
 
-    // Check if this is a SPECIAL ACTION (habit, bill, event, google calendar, navigate, tool, chart)
+    // Check if this is a SPECIAL ACTION (habit, bill, event, google calendar, navigate, tool, chart, journal, task/habit completion)
     const actionType = parsed.action
-    if (actionType && ['create_habit', 'create_bill', 'create_event', 'add_to_google_calendar', 'navigate', 'open_tool', 'custom_chart'].includes(actionType)) {
+    if (actionType && ['create_habit', 'create_bill', 'create_event', 'add_to_google_calendar', 'navigate', 'open_tool', 'custom_chart', 'create_journal', 'complete_task', 'complete_habit'].includes(actionType)) {
       console.log(`🚀 Special ACTION detected: ${actionType}`)
       
       // Route to actions API
@@ -1220,6 +1353,247 @@ ONLY respond with valid JSON, nothing else.`
           }
         }
       }
+
+      // Handle create_journal - save journal entry to mindfulness domain
+      if (actionType === 'create_journal') {
+        const { title, content, mood } = actionParams
+        if (!content) return { isCommand: false }
+        
+        const journalId = randomUUID()
+        const journalTitle = title || `Journal Entry - ${new Date().toLocaleDateString()}`
+        
+        const { error } = await supabase.from('domain_entries').insert({
+          id: journalId,
+          user_id: userId,
+          domain: 'mindfulness',
+          title: journalTitle,
+          description: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+          metadata: {
+            type: 'journal',
+            logType: 'journal-entry',
+            content: content,
+            mood: mood || null,
+            wordCount: content.split(/\s+/).length,
+            source: 'ai_assistant'
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        
+        if (error) {
+          console.error('❌ Journal creation error:', error)
+          return { isCommand: false }
+        }
+        
+        return {
+          isCommand: true,
+          action: 'create_journal',
+          message: parsed.confirmationMessage || `📔 Journal entry saved: "${journalTitle}"`,
+          triggerReload: true
+        }
+      }
+
+      // Handle complete_task - mark a task as complete
+      if (actionType === 'complete_task') {
+        const { taskName } = actionParams
+        if (!taskName) return { isCommand: false }
+        
+        console.log(`✅ Attempting to complete task: "${taskName}"`)
+        
+        // Find the task by name (fuzzy match)
+        const { data: tasks, error: findError } = await supabase
+          .from('tasks')
+          .select('id, title, completed')
+          .eq('user_id', userId)
+          .eq('completed', false)
+          .ilike('title', `%${taskName}%`)
+          .limit(1)
+        
+        if (findError || !tasks || tasks.length === 0) {
+          // Try a broader search
+          const { data: allTasks } = await supabase
+            .from('tasks')
+            .select('id, title, completed')
+            .eq('user_id', userId)
+            .eq('completed', false)
+          
+          // Find best match
+          const taskLower = taskName.toLowerCase()
+          const match = allTasks?.find((t: any) => 
+            t.title.toLowerCase().includes(taskLower) ||
+            taskLower.includes(t.title.toLowerCase())
+          )
+          
+          if (!match) {
+            return {
+              isCommand: true,
+              action: 'complete_task',
+              message: `❌ Couldn't find an open task matching "${taskName}". Try being more specific or check your task list.`
+            }
+          }
+          
+          // Complete the matched task
+          const { error: updateError } = await supabase
+            .from('tasks')
+            .update({ 
+              completed: true, 
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', match.id)
+          
+          if (updateError) {
+            console.error('❌ Task completion error:', updateError)
+            return { isCommand: false }
+          }
+          
+          return {
+            isCommand: true,
+            action: 'complete_task',
+            message: parsed.confirmationMessage || `✅ Task completed: "${match.title}"`,
+            triggerReload: true
+          }
+        }
+        
+        // Complete the found task
+        const task = tasks[0]
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update({ 
+            completed: true, 
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', task.id)
+        
+        if (updateError) {
+          console.error('❌ Task completion error:', updateError)
+          return { isCommand: false }
+        }
+        
+        return {
+          isCommand: true,
+          action: 'complete_task',
+          message: parsed.confirmationMessage || `✅ Task completed: "${task.title}"`,
+          triggerReload: true
+        }
+      }
+
+      // Handle complete_habit - mark a habit as complete for today
+      if (actionType === 'complete_habit') {
+        const { habitName } = actionParams
+        if (!habitName) return { isCommand: false }
+        
+        console.log(`✅ Attempting to complete habit: "${habitName}"`)
+        
+        // Find the habit by name (fuzzy match)
+        const { data: habits, error: findError } = await supabase
+          .from('habits')
+          .select('id, name, streak, completion_history')
+          .eq('user_id', userId)
+          .ilike('name', `%${habitName}%`)
+          .limit(1)
+        
+        if (findError || !habits || habits.length === 0) {
+          // Try a broader search
+          const { data: allHabits } = await supabase
+            .from('habits')
+            .select('id, name, streak, completion_history')
+            .eq('user_id', userId)
+          
+          // Find best match
+          const habitLower = habitName.toLowerCase()
+          const match = allHabits?.find((h: any) => 
+            h.name.toLowerCase().includes(habitLower) ||
+            habitLower.includes(h.name.toLowerCase())
+          )
+          
+          if (!match) {
+            return {
+              isCommand: true,
+              action: 'complete_habit',
+              message: `❌ Couldn't find a habit matching "${habitName}". Try being more specific or check your habits list.`
+            }
+          }
+          
+          // Complete the matched habit
+          const today = new Date().toISOString().split('T')[0]
+          const history = Array.isArray(match.completion_history) ? match.completion_history : []
+          
+          // Check if already completed today
+          if (history.includes(today)) {
+            return {
+              isCommand: true,
+              action: 'complete_habit',
+              message: `ℹ️ You've already logged "${match.name}" for today!`
+            }
+          }
+          
+          const newHistory = [...history, today]
+          const newStreak = (match.streak || 0) + 1
+          
+          const { error: updateError } = await supabase
+            .from('habits')
+            .update({ 
+              streak: newStreak,
+              completion_history: newHistory,
+              last_completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', match.id)
+          
+          if (updateError) {
+            console.error('❌ Habit completion error:', updateError)
+            return { isCommand: false }
+          }
+          
+          return {
+            isCommand: true,
+            action: 'complete_habit',
+            message: parsed.confirmationMessage || `✅ Habit logged: "${match.name}" 🔥 ${newStreak} day streak!`,
+            triggerReload: true
+          }
+        }
+        
+        // Complete the found habit
+        const habit = habits[0]
+        const today = new Date().toISOString().split('T')[0]
+        const history = Array.isArray(habit.completion_history) ? habit.completion_history : []
+        
+        // Check if already completed today
+        if (history.includes(today)) {
+          return {
+            isCommand: true,
+            action: 'complete_habit',
+            message: `ℹ️ You've already logged "${habit.name}" for today!`
+          }
+        }
+        
+        const newHistory = [...history, today]
+        const newStreak = (habit.streak || 0) + 1
+        
+        const { error: updateError } = await supabase
+          .from('habits')
+          .update({ 
+            streak: newStreak,
+            completion_history: newHistory,
+            last_completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', habit.id)
+        
+        if (updateError) {
+          console.error('❌ Habit completion error:', updateError)
+          return { isCommand: false }
+        }
+        
+        return {
+          isCommand: true,
+          action: 'complete_habit',
+          message: parsed.confirmationMessage || `✅ Habit logged: "${habit.name}" 🔥 ${newStreak} day streak!`,
+          triggerReload: true
+        }
+      }
     }
 
     // AI detected a command! Now save it to the appropriate domain
@@ -1401,8 +1775,25 @@ ONLY respond with valid JSON, nothing else.`
       }
     }
 
+    // 🔧 FIX: Check for WATER FIRST before meals to prevent water from being misclassified
+    const isWaterCommand = domain === 'nutrition' && (
+      commandData.type === 'water' ||
+      commandData.logType === 'water' ||
+      commandData.itemType === 'water'
+    )
+    
+    // Skip meal handling if this is a water entry - let it fall through to generic save
     // Special handling for NUTRITION MEALS - ensure proper structure for UI
-    if (domain === 'nutrition' && (commandData.type === 'meal' || commandData.mealName || commandData.calories)) {
+    // Also trigger for meal descriptions without explicit calories
+    const isMealEntry = !isWaterCommand && domain === 'nutrition' && (
+      commandData.type === 'meal' || 
+      commandData.mealName || 
+      commandData.calories ||
+      commandData.food ||
+      (commandData.description && !commandData.itemType) // Meal with description only
+    )
+    
+    if (isMealEntry) {
       // Determine meal type based on time of day if not provided
       const hour = new Date().getHours()
       let mealType = commandData.mealType || 'Other'
@@ -1414,9 +1805,9 @@ ONLY respond with valid JSON, nothing else.`
       }
       
       const mealName = commandData.name || commandData.mealName || commandData.description || commandData.food || 'Meal'
-      const calories = Number(commandData.calories) || 0
+      let calories = Number(commandData.calories) || 0
       
-      // Check if macros were provided, if not estimate them
+      // Check if macros were provided
       const hasMacros = (Number(commandData.protein) > 0 || 
                         Number(commandData.carbs) > 0 || 
                         Number(commandData.fats) > 0)
@@ -1426,7 +1817,19 @@ ONLY respond with valid JSON, nothing else.`
       let fats = Number(commandData.fats) || 0
       let fiber = Number(commandData.fiber) || 0
       
-      if (!hasMacros && calories > 0) {
+      // 🔧 FIX: If no calories AND no macros provided, estimate FULL nutrition from description
+      if (calories === 0 && !hasMacros && mealName !== 'Meal') {
+        console.log(`🧠 [CHAT] No nutrition provided, estimating full nutrition for "${mealName}"...`)
+        const estimated = await estimateFullNutrition(mealName)
+        calories = estimated.calories
+        protein = estimated.protein
+        carbs = estimated.carbs
+        fats = estimated.fats
+        fiber = estimated.fiber
+        console.log(`✅ [CHAT] Estimated: ${calories} cal, ${protein}g P, ${carbs}g C, ${fats}g F`)
+      } 
+      // If calories provided but no macros, estimate macros
+      else if (!hasMacros && calories > 0) {
         console.log(`🧠 [CHAT] Estimating macros for ${mealName}...`)
         const estimated = await estimateMealMacros(mealName, calories)
         protein = estimated.protein
@@ -2271,6 +2674,16 @@ export async function POST(request: NextRequest) {
     const baseUrl = request.nextUrl.origin
     const cookieHeader = request.headers.get('cookie') || ''
 
+    // Fast-path: "what can you do / list commands"
+    if (typeof message === 'string' && isCommandCatalogRequest(message)) {
+      return NextResponse.json({
+        response: formatCommandCatalogForUser(),
+        action: 'capabilities',
+        saved: false,
+        triggerReload: false
+      })
+    }
+
     // STEP 1: Check if it's a QUERY (read operation)
     console.log('🧠 Step 1: Checking if message is a QUERY...')
     console.log('👤 User ID:', user.id)
@@ -2455,7 +2868,7 @@ export async function POST(request: NextRequest) {
     console.log(`✅ Found ${mindfulnessContext.journalCount} journal entries`)
 
     // Build base system prompt
-    let basePrompt = `You are a helpful, empathetic AI assistant for a life management app called LifeHub. You have access to the user's data across 21 life domains including health, fitness, financial, tasks, mindfulness, and more. 
+    const basePrompt = `You are a helpful, empathetic AI assistant for a life management app called LifeHub. You have access to the user's data across 21 life domains including health, fitness, financial, tasks, mindfulness, and more. 
             
 You can reference the user's data to give personalized insights.`
 
@@ -2491,7 +2904,10 @@ Don't force mindfulness references, but use this context when it adds value.`
         messages: [
           {
             role: 'system',
-            content: systemPrompt + `\n\nDOCUMENT RETRIEVAL:\nYou can search user's documents. When asked about documents (e.g., "show my insurance", "find my license", "pull up my auto insurance"), use the search_documents function.`
+            content:
+              systemPrompt +
+              COMMAND_CATALOG_PROMPT +
+              `\n\nDOCUMENT RETRIEVAL:\nYou can search user's documents. When asked about documents (e.g., "show my insurance", "find my license", "pull up my auto insurance"), use the search_documents function.\n\nACTION EXECUTION:\nWhen the user asks you to DO something (create/update/delete/export/analyze/etc.), call execute_ai_action with an allowed action and parameters. For destructive actions (delete/bulk_delete/archive/bulk_update), the API may return requiresConfirmation + confirmationId; present that to the user and wait for confirmation.`
           },
           ...conversationHistory.slice(-10).map((msg: any) => ({
             role: msg.type === 'user' ? 'user' : 'assistant',
@@ -2522,6 +2938,39 @@ Don't force mindfulness references, but use this context when it adds value.`
                 }
               },
               required: []
+            }
+          },
+          {
+            name: 'execute_ai_action',
+            description:
+              'Execute an allowed LifeHub action (create tasks/habits/bills/events, create/update/delete entries, export/analyze/predict/correlate/generate_report, open tools, navigate, add to Google Calendar). Use this when the user asks you to perform an action. The API may require confirmation for destructive actions.',
+            parameters: {
+              type: 'object',
+              properties: {
+                action: {
+                  type: 'string',
+                  enum: AI_ASSISTANT_ACTIONS as unknown as string[],
+                  description: 'The action to execute'
+                },
+                domain: {
+                  type: 'string',
+                  description:
+                    "Target domain (e.g., 'financial', 'health', 'vehicles') or 'all' for cross-domain actions when supported"
+                },
+                parameters: {
+                  type: 'object',
+                  description: 'Action-specific parameters'
+                },
+                confirmation: {
+                  type: 'boolean',
+                  description: 'Set true to confirm a previously previewed destructive action'
+                },
+                confirmationId: {
+                  type: 'string',
+                  description: 'Confirmation id returned by a previous requiresConfirmation response'
+                }
+              },
+              required: ['action', 'parameters']
             }
           },
           {
@@ -2560,6 +3009,54 @@ Don't force mindfulness references, but use this context when it adds value.`
       const functionArgs = JSON.parse(aiMessage.function_call.arguments || '{}')
       
       console.log('🔧 AI calling function:', functionName, functionArgs)
+
+      if (functionName === 'execute_ai_action') {
+        try {
+          const actionPayload = {
+            action: functionArgs.action,
+            domain: functionArgs.domain || '',
+            parameters: functionArgs.parameters || {},
+            confirmation: !!functionArgs.confirmation,
+            confirmationId: functionArgs.confirmationId
+          }
+
+          const actionRes = await fetch(new URL('/api/ai-assistant/actions', baseUrl), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(cookieHeader ? { Cookie: cookieHeader } : {})
+            },
+            body: JSON.stringify(actionPayload)
+          })
+
+          const actionJson = await actionRes.json()
+
+          // Pass through confirmation requests so the frontend can render them
+          if (actionJson?.requiresConfirmation) {
+            return NextResponse.json({
+              response: actionJson.message || 'This action requires confirmation.',
+              requiresConfirmation: true,
+              confirmationId: actionJson.confirmationId,
+              action: actionJson.action || functionArgs.action,
+              preview: actionJson.preview,
+              totalCount: actionJson.totalCount,
+              params: functionArgs.parameters
+            })
+          }
+
+          return NextResponse.json({
+            response: actionJson.message || '✅ Action executed.',
+            action: functionArgs.action,
+            ...actionJson
+          })
+        } catch (e: any) {
+          console.error('❌ execute_ai_action failed:', e)
+          return NextResponse.json(
+            { response: '❌ Failed to execute action. Please try again.' },
+            { status: 500 }
+          )
+        }
+      }
       
       if (functionName === 'use_concierge') {
         return NextResponse.json({

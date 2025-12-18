@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, Laptop, Eye, EyeOff, Copy, Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Trash2, Laptop, Eye, EyeOff, Copy, Loader2, Edit } from 'lucide-react'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
 import { toast } from 'sonner'
 
@@ -24,12 +27,14 @@ interface Account {
 
 export function AccountsTab() {
   // ✅ Use modern hook for real-time updates
-  const { entries, isLoading, createEntry, deleteEntry } = useDomainEntries('digital')
+  const { entries, isLoading, createEntry, updateEntry, deleteEntry } = useDomainEntries('digital')
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState<Partial<Account>>({
     twoFactor: false
   })
   const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({})
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState<Partial<Account>>({})
 
   // ✅ Filter accounts in real-time from entries
   const accounts = entries
@@ -95,6 +100,48 @@ export function AccountsTab() {
     } catch (error) {
       console.error('Failed to delete account:', error)
       toast.error('Failed to delete account. Please try again.')
+    }
+  }
+
+  const handleEdit = (account: typeof accounts[0]) => {
+    setEditingId(account.id)
+    setEditFormData({
+      serviceName: account.serviceName,
+      username: account.username,
+      email: account.email,
+      password: account.password,
+      website: account.website,
+      category: account.category,
+      twoFactor: account.twoFactor,
+      notes: account.notes
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return
+    
+    try {
+      await updateEntry({
+        id: editingId,
+        title: editFormData.serviceName,
+        metadata: {
+          itemType: 'account',
+          serviceName: editFormData.serviceName,
+          username: editFormData.username,
+          email: editFormData.email,
+          password: editFormData.password,
+          website: editFormData.website,
+          category: editFormData.category,
+          twoFactor: editFormData.twoFactor,
+          notes: editFormData.notes
+        }
+      })
+      setEditingId(null)
+      setEditFormData({})
+      toast.success('Account updated successfully!')
+    } catch (error) {
+      console.error('Failed to update account:', error)
+      toast.error('Failed to update account. Please try again.')
     }
   }
 
@@ -306,20 +353,122 @@ export function AccountsTab() {
                     )}
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(account.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(account)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(account.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Service Name</Label>
+              <Input
+                value={editFormData.serviceName || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, serviceName: e.target.value })}
+                placeholder="Google, Facebook, etc."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Username</Label>
+                <Input
+                  value={editFormData.username || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Password</Label>
+              <Input
+                type="password"
+                value={editFormData.password || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Website</Label>
+              <Input
+                value={editFormData.website || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, website: e.target.value })}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select
+                value={editFormData.category || ''}
+                onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Social">Social</SelectItem>
+                  <SelectItem value="Work">Work</SelectItem>
+                  <SelectItem value="Finance">Finance</SelectItem>
+                  <SelectItem value="Shopping">Shopping</SelectItem>
+                  <SelectItem value="Entertainment">Entertainment</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-two-factor"
+                checked={editFormData.twoFactor || false}
+                onCheckedChange={(checked) => setEditFormData({ ...editFormData, twoFactor: checked as boolean })}
+              />
+              <Label htmlFor="edit-two-factor" className="cursor-pointer">Two-Factor Authentication</Label>
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={editFormData.notes || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

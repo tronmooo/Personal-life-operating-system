@@ -320,12 +320,12 @@ export class TwilioVoiceService {
 /**
  * Factory function to create Twilio service
  */
-export function createTwilioService(): TwilioVoiceService {
+export function createTwilioService(webhookUrlOverride?: string): TwilioVoiceService {
   const config: TwilioConfig = {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
     phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
-    webhookUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    webhookUrl: (webhookUrlOverride || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
   }
 
   if (!config.accountSid || !config.authToken || !config.phoneNumber) {

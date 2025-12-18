@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, HardDrive, Cloud, Database, Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Plus, Trash2, HardDrive, Cloud, Database, Loader2, Edit } from 'lucide-react'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
 import { toast } from 'sonner'
 
@@ -24,11 +26,13 @@ interface DigitalAsset {
 
 export function AssetsTab() {
   // ✅ Use modern hook for real-time updates
-  const { entries, isLoading, createEntry, deleteEntry } = useDomainEntries('digital')
+  const { entries, isLoading, createEntry, updateEntry, deleteEntry } = useDomainEntries('digital')
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState<Partial<DigitalAsset>>({
     type: 'Cloud Storage'
   })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState<Partial<DigitalAsset>>({})
 
   // ✅ Filter assets in real-time from entries
   const assets = entries
@@ -94,6 +98,48 @@ export function AssetsTab() {
     } catch (error) {
       console.error('Failed to delete asset:', error)
       toast.error('Failed to delete asset. Please try again.')
+    }
+  }
+
+  const handleEdit = (asset: typeof assets[0]) => {
+    setEditingId(asset.id)
+    setEditFormData({
+      assetName: asset.assetName,
+      type: asset.type,
+      provider: asset.provider,
+      storageSize: asset.storageSize,
+      location: asset.location,
+      lastBackup: asset.lastBackup,
+      cost: asset.cost,
+      notes: asset.notes
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return
+    
+    try {
+      await updateEntry({
+        id: editingId,
+        title: editFormData.assetName,
+        metadata: {
+          itemType: 'asset',
+          assetName: editFormData.assetName,
+          type: editFormData.type,
+          provider: editFormData.provider,
+          storageSize: editFormData.storageSize,
+          location: editFormData.location,
+          lastBackup: editFormData.lastBackup,
+          cost: editFormData.cost,
+          notes: editFormData.notes
+        }
+      })
+      setEditingId(null)
+      setEditFormData({})
+      toast.success('Asset updated successfully!')
+    } catch (error) {
+      console.error('Failed to update asset:', error)
+      toast.error('Failed to update asset. Please try again.')
     }
   }
 
@@ -275,20 +321,127 @@ export function AssetsTab() {
                     )}
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(asset.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(asset)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(asset.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Digital Asset</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Asset Name</Label>
+              <Input
+                value={editFormData.assetName || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, assetName: e.target.value })}
+                placeholder="My Cloud Storage"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Type</Label>
+                <Select
+                  value={editFormData.type || 'Cloud Storage'}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, type: value as DigitalAsset['type'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cloud Storage">Cloud Storage</SelectItem>
+                    <SelectItem value="Backup">Backup</SelectItem>
+                    <SelectItem value="Media Library">Media Library</SelectItem>
+                    <SelectItem value="Database">Database</SelectItem>
+                    <SelectItem value="Repository">Repository</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Provider</Label>
+                <Input
+                  value={editFormData.provider || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, provider: e.target.value })}
+                  placeholder="Google, AWS, etc."
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Storage Size</Label>
+                <Input
+                  value={editFormData.storageSize || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, storageSize: e.target.value })}
+                  placeholder="100 GB"
+                />
+              </div>
+              <div>
+                <Label>Monthly Cost</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.cost || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, cost: e.target.value })}
+                  placeholder="9.99"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Location</Label>
+              <Input
+                value={editFormData.location || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                placeholder="URL or path"
+              />
+            </div>
+            <div>
+              <Label>Last Backup</Label>
+              <Input
+                type="date"
+                value={editFormData.lastBackup || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, lastBackup: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={editFormData.notes || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

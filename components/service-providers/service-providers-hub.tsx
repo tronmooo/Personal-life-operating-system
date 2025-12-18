@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 import {
   LayoutGrid,
   DollarSign,
@@ -30,8 +31,12 @@ import {
   PlusCircle,
   Eye,
   Download,
+  Edit,
+  Trash2,
+  Loader2,
 } from 'lucide-react'
 import { AddProviderDialog } from './add-provider-dialog'
+import { EditProviderDialog } from './edit-provider-dialog'
 import { UploadDocumentDialog } from './upload-document-dialog'
 
 const CATEGORY_CONFIG: Record<
@@ -78,6 +83,8 @@ export function ServiceProvidersHub() {
     loading,
     analyticsLoading,
     createProvider,
+    updateProvider,
+    deleteProvider,
     markPaymentPaid,
     createDocument,
     deleteDocument,
@@ -102,28 +109,31 @@ export function ServiceProvidersHub() {
   )
 
   return (
-    <div className="space-y-6 text-white">
-      <header className="bg-[#0f172a] border border-slate-800/70 rounded-3xl p-6 shadow-xl shadow-black/40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-[0_15px_40px_rgba(59,130,246,0.35)]">
-              <LayoutGrid className="w-7 h-7 text-white" />
+    <div className="space-y-4 md:space-y-6 text-white p-4 md:p-6">
+      {/* Back Button */}
+      <DomainBackButton variant="dark" />
+
+      <header className="bg-[#0f172a] border border-slate-800/70 rounded-3xl p-4 md:p-6 shadow-xl shadow-black/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-[0_15px_40px_rgba(59,130,246,0.35)]">
+              <LayoutGrid className="w-6 h-6 md:w-7 md:h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Service Providers</h1>
-              <p className="text-slate-400 text-sm">Track all your services in one place</p>
+              <h1 className="text-xl md:text-2xl font-bold">Service Providers</h1>
+              <p className="text-slate-400 text-xs md:text-sm">Track all your services in one place</p>
             </div>
           </div>
           <Button
             onClick={() => setAddProviderOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-xl shadow-[0_12px_32px_rgba(59,130,246,0.35)] gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 md:px-5 py-2 rounded-xl shadow-[0_12px_32px_rgba(59,130,246,0.35)] gap-2 w-full sm:w-auto"
           >
             <PlusCircle className="w-5 h-5" />
             Add Provider
           </Button>
         </div>
 
-        <div className="flex gap-2 mt-5">
+        <div className="flex gap-2 mt-4 md:mt-5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0">
           {tabButton('dashboard', 'Dashboard')}
           {tabButton('providers', 'Providers')}
           {tabButton('payments', 'Payments')}
@@ -134,7 +144,13 @@ export function ServiceProvidersHub() {
       {activeTab === 'dashboard' && (
         <DashboardSection analytics={analytics} analyticsLoading={analyticsLoading} />
       )}
-      {activeTab === 'providers' && <ProvidersSection providers={providers} />}
+      {activeTab === 'providers' && (
+        <ProvidersSection
+          providers={providers}
+          onUpdate={updateProvider}
+          onDelete={deleteProvider}
+        />
+      )}
       {activeTab === 'payments' && (
         <PaymentsSection payments={payments} onMarkPaid={markPaymentPaid} providers={providers} />
       )}
@@ -295,9 +311,19 @@ function DashboardSection({
 }
 
 // PROVIDERS
-function ProvidersSection({ providers }: { providers: ServiceProvider[] }) {
+function ProvidersSection({
+  providers,
+  onUpdate,
+  onDelete,
+}: {
+  providers: ServiceProvider[]
+  onUpdate: (id: string, updates: Partial<ServiceProvider>) => Promise<void>
+  onDelete: (id: string) => Promise<void>
+}) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<ProviderCategory | 'all'>('all')
+  const [editingProvider, setEditingProvider] = useState<ServiceProvider | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const filtered = providers.filter((p) => {
     const matchesSearch =
@@ -323,6 +349,16 @@ function ProvidersSection({ providers }: { providers: ServiceProvider[] }) {
     const next = new Date(today.getFullYear(), today.getMonth(), billingDay)
     if (next < today) next.setMonth(next.getMonth() + 1)
     return next.toISOString().split('T')[0]
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this provider?')) return
+    setDeletingId(id)
+    try {
+      await onDelete(id)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -371,9 +407,32 @@ function ProvidersSection({ providers }: { providers: ServiceProvider[] }) {
                     <p className="text-slate-400 text-sm">{p.subcategory || cfg.label}</p>
                   </div>
                 </div>
-                {p.auto_pay_enabled && (
-                  <Badge className="bg-green-500/20 text-green-300 border-green-500/30 px-3 py-1">Auto-pay</Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {p.auto_pay_enabled && (
+                    <Badge className="bg-green-500/20 text-green-300 border-green-500/30 px-3 py-1">Auto-pay</Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
+                    onClick={() => setEditingProvider(p)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                    onClick={() => handleDelete(p.id)}
+                    disabled={deletingId === p.id}
+                  >
+                    {deletingId === p.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-4 text-sm text-slate-300">
@@ -409,6 +468,14 @@ function ProvidersSection({ providers }: { providers: ServiceProvider[] }) {
           </Card>
         )}
       </div>
+
+      {/* Edit Provider Dialog */}
+      <EditProviderDialog
+        open={!!editingProvider}
+        onOpenChange={(open) => !open && setEditingProvider(null)}
+        provider={editingProvider}
+        onSubmit={onUpdate}
+      />
     </div>
   )
 }

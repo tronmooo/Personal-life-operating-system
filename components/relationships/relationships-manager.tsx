@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,9 +45,9 @@ import {
   Edit,
   Trash2,
   Phone,
-  Mail,
-  ChevronLeft
+  Mail
 } from 'lucide-react'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 
 interface Person {
   id: string
@@ -85,7 +84,6 @@ interface Reminder {
 type Tab = 'dashboard' | 'calendar' | 'reminders'
 
 export function RelationshipsManager() {
-  const router = useRouter()
   const { getData, addData, updateData, deleteData, isLoaded } = useData()
   const supabase = createClientComponentClient()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
@@ -629,36 +627,26 @@ export function RelationshipsManager() {
   }
 
   return (
-    <div className="space-y-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 p-4 md:p-8 rounded-lg min-h-screen">
+    <div className="space-y-4 md:space-y-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-950 p-4 md:p-8 rounded-lg min-h-screen">
       {/* Back Button */}
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => router.push('/domains')}
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"
-        >
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Back to Domains
-        </Button>
-      </div>
+      <DomainBackButton />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-            <Heart className="w-8 h-8 md:w-10 md:h-10 text-white fill-white" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-2xl md:rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+            <Heart className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-white fill-white" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Relationships</h1>
-            <p className="text-sm md:text-base text-muted-foreground">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Relationships</h1>
+            <p className="text-xs md:text-sm lg:text-base text-muted-foreground">
               Stay connected with the people who matter
             </p>
           </div>
         </div>
         <Button
           onClick={() => setIsAddDialogOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl px-6 py-6 shadow-lg"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-6 shadow-lg w-full sm:w-auto"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Person

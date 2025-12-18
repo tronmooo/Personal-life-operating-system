@@ -136,8 +136,7 @@ export class TransactionCategorizationService {
       if (res.ok && Array.isArray(data.results)) {
         data.results.forEach((r: CategorizationResult & { id: string }) => {
           // server returns mapped result with id
-          // @ts-ignore - tolerate id on result for mapping back
-          results.set((r as any).id, r)
+          results.set(r.id, r)
         })
         return results
       }

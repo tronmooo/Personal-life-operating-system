@@ -189,7 +189,7 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
     {
       id: '1',
       type: 'ai',
-      content: "Hello! I'm your AI Assistant with **MULTI-ENTITY EXTRACTION**! I can now log **MULTIPLE things at once** from a single message:\n\n✨ **Try me with multiple items:**\n• \"my dog weighs 175 pounds and i drank 20 oz water\"\n• \"spent $45 on groceries, walked 30 minutes, car needs oil change\"\n• \"ran 5 miles, blood pressure 120/80, ate 450 calories\"\n• \"Max had vet appointment $150, need new dog food\"\n\n**I'll automatically:**\n✅ Extract EVERY data point\n✅ Route to correct domains (pets, nutrition, financial, fitness, etc.)\n✅ Save multiple entries at once\n\n**Also works for single items:**\n• \"interview at Amazon tomorrow\"\n• \"spent $50 on groceries\"\n• \"walked 30 minutes\"\n\n📄 **Document retrieval:**\n• \"pull up my insurance ID and registration\"\n• \"show me my health records\"\n\nWhat would you like to track?",
+      content: "Hello! I'm your AI Assistant - I can do **EVERYTHING** in your app! 🚀\n\n✨ **Log multiple things at once:**\n• \"spent $45 on groceries, walked 30 minutes, drank 20 oz water\"\n• \"ran 5 miles, blood pressure 120/80, ate 450 calories\"\n\n✅ **Manage Tasks:**\n• \"add task buy groceries\"\n• \"mark buy milk as done\"\n• \"finished the project report\"\n\n🏃 **Track Habits:**\n• \"add habit exercise daily\"\n• \"did my meditation habit\"\n• \"completed workout today\"\n\n📔 **Write Journal Entries:**\n• \"journal: Today was amazing. I finally...\"\n• \"write in my journal about my progress\"\n\n💰 **Bills & Finance:**\n• \"add bill Netflix $15.99 monthly\"\n• \"spent $50 on dinner\"\n\n📅 **Calendar Events:**\n• \"add to google calendar meeting tomorrow at 3pm\"\n\n📊 **Visualizations:**\n• \"show me a chart of my expenses\"\n\n🧭 **Navigation:**\n• \"go to health page\"\n• \"open BMI calculator\"\n\nWhat can I help you with?",
       timestamp: new Date()
     }
   ])
@@ -609,7 +609,7 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] p-0 bg-black text-white border-cyan-500/30 flex flex-col" aria-describedby="ai-assistant-description">
+      <DialogContent className="max-w-4xl w-[95vw] h-[90vh] sm:h-[85vh] p-0 bg-black text-white border-cyan-500/30 flex flex-col" aria-describedby="ai-assistant-description">
         <DialogHeader className="sr-only">
           <DialogTitle>AI Assistant</DialogTitle>
           <DialogDescription id="ai-assistant-description">
@@ -617,17 +617,17 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
           </DialogDescription>
         </DialogHeader>
         {/* Header */}
-        <div className="flex-shrink-0 p-6 border-b border-gray-800">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                <MessageSquare className="h-7 w-7 text-cyan-400" />
+        <div className="flex-shrink-0 p-3 sm:p-6 border-b border-gray-800">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 sm:h-7 sm:w-7 text-cyan-400" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">AI Assistant</h2>
+                <h2 className="text-lg sm:text-2xl font-bold">AI Assistant</h2>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -635,51 +635,51 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
                   setMessages([{
                     id: '1',
                     type: 'ai',
-                    content: "Hello! I'm your AI Assistant with **MULTI-ENTITY EXTRACTION**! I can now log **MULTIPLE things at once** from a single message:\n\n✨ **Try me with multiple items:**\n• \"my dog weighs 175 pounds and i drank 20 oz water\"\n• \"spent $45 on groceries, walked 30 minutes, car needs oil change\"\n• \"ran 5 miles, blood pressure 120/80, ate 450 calories\"\n• \"Max had vet appointment $150, need new dog food\"\n\n**I'll automatically:**\n✅ Extract EVERY data point\n✅ Route to correct domains (pets, nutrition, financial, fitness, etc.)\n✅ Save multiple entries at once\n\n**Also works for single items:**\n• \"interview at Amazon tomorrow\"\n• \"spent $50 on groceries\"\n• \"walked 30 minutes\"\n\n📄 **Document retrieval:**\n• \"pull up my insurance ID and registration\"\n• \"show me my health records\"\n\nWhat would you like to track?",
+                    content: "Hello! I'm your AI Assistant - I can do **EVERYTHING** in your app! 🚀\n\n✨ **Log multiple things at once:**\n• \"spent $45 on groceries, walked 30 minutes, drank 20 oz water\"\n• \"ran 5 miles, blood pressure 120/80, ate 450 calories\"\n\n✅ **Manage Tasks:**\n• \"add task buy groceries\"\n• \"mark buy milk as done\"\n• \"finished the project report\"\n\n🏃 **Track Habits:**\n• \"add habit exercise daily\"\n• \"did my meditation habit\"\n• \"completed workout today\"\n\n📔 **Write Journal Entries:**\n• \"journal: Today was amazing. I finally...\"\n• \"write in my journal about my progress\"\n\n💰 **Bills & Finance:**\n• \"add bill Netflix $15.99 monthly\"\n• \"spent $50 on dinner\"\n\n📅 **Calendar Events:**\n• \"add to google calendar meeting tomorrow at 3pm\"\n\n📊 **Visualizations:**\n• \"show me a chart of my expenses\"\n\n🧭 **Navigation:**\n• \"go to health page\"\n• \"open BMI calculator\"\n\nWhat can I help you with?",
                     timestamp: new Date()
                   }])
                   setInput('')
                 }}
-                className="text-xs hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 transition-all"
+                className="text-xs hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 transition-all hidden sm:flex"
               >
                 🗑️ Clear Chat
               </Button>
-              <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/50 px-3 py-1">
-                <div className="h-2 w-2 bg-green-400 rounded-full mr-2" />
-                Online
+              <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/50 px-2 sm:px-3 py-1">
+                <div className="h-2 w-2 bg-green-400 rounded-full mr-1 sm:mr-2" />
+                <span className="text-xs">Online</span>
               </Badge>
             </div>
           </div>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">
             Get intelligent insights and assistance for your life management journey
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex-shrink-0 grid grid-cols-3 gap-4 px-6 py-4 border-b border-gray-800">
+        <div className="flex-shrink-0 grid grid-cols-3 gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-4 border-b border-gray-800">
           <Button
             variant={activeTab === 'chat' ? 'default' : 'ghost'}
-            className={`justify-center ${activeTab === 'chat' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
+            className={`justify-center text-xs sm:text-sm ${activeTab === 'chat' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
             onClick={() => setActiveTab('chat')}
           >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Chat
+            <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Chat</span>
           </Button>
           <Button
             variant={activeTab === 'insights' ? 'default' : 'ghost'}
-            className={`justify-center ${activeTab === 'insights' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
+            className={`justify-center text-xs sm:text-sm ${activeTab === 'insights' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
             onClick={() => setActiveTab('insights')}
           >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Insights
+            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Insights</span>
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'default' : 'ghost'}
-            className={`justify-center ${activeTab === 'settings' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
+            className={`justify-center text-xs sm:text-sm ${activeTab === 'settings' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
             onClick={() => setActiveTab('settings')}
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Settings</span>
           </Button>
         </div>
 
@@ -689,14 +689,14 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
           {activeTab === 'chat' && (
             <>
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`p-4 rounded-lg ${
+                      className={`p-3 sm:p-4 rounded-lg ${
                         message.type === 'user'
-                          ? 'bg-cyan-500/10 border border-cyan-500/30 ml-12'
-                          : 'bg-gray-900 border border-gray-800 mr-12'
+                          ? 'bg-cyan-500/10 border border-cyan-500/30 ml-4 sm:ml-12'
+                          : 'bg-gray-900 border border-gray-800 mr-4 sm:mr-12'
                       }`}
                     >
                       <p className="text-sm text-gray-100 whitespace-pre-wrap">{message.content}</p>
@@ -788,10 +788,10 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
                 </div>
 
               {/* Input Area - Fixed at Bottom */}
-              <div className="flex-shrink-0 p-6 border-t border-gray-800 bg-black">
+              <div className="flex-shrink-0 p-3 sm:p-6 border-t border-gray-800 bg-black">
                 {/* Voice Transcript Display */}
                 {(isListening || interimTranscript) && (
-                  <div className="mb-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <div className="mb-2 sm:mb-3 p-2 sm:p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                     <div className="text-xs text-blue-400 mb-1 flex items-center gap-2">
                       <div className="h-2 w-2 bg-blue-400 rounded-full animate-pulse" />
                       <span>Listening - Speak now...</span>
@@ -806,28 +806,28 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
 
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder="Ask me anything, speak, or upload a photo..."
+                    placeholder="Ask me anything..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    className="flex-1 min-h-[80px] max-h-[120px] bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 resize-none"
+                    className="flex-1 min-h-[60px] sm:min-h-[80px] max-h-[100px] sm:max-h-[120px] bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 resize-none text-sm"
                   />
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5 sm:gap-2">
                     <Button
                       onClick={triggerImageUpload}
                       disabled={isAnalyzingImage}
-                      className={`h-10 w-10 rounded-lg ${
+                      className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg ${
                         isAnalyzingImage 
                           ? 'bg-purple-500 hover:bg-purple-600 animate-pulse text-white' 
                           : 'bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-300'
                       }`}
                       title="Upload photo to scan"
                     >
-                      <Camera className="h-5 w-5" />
+                      <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <Button
                       onClick={toggleVoiceInput}
-                      className={`h-10 w-10 rounded-lg ${
+                      className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg ${
                         isListening 
                           ? 'bg-red-500 hover:bg-red-600 animate-pulse text-white' 
                           : 'bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300'
@@ -835,18 +835,18 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
                       title={isListening ? 'Stop listening' : 'Start voice input'}
                     >
                       {isListening ? (
-                        <MicOff className="h-5 w-5" />
+                        <MicOff className="h-4 w-4 sm:h-5 sm:w-5" />
                       ) : (
-                        <Mic className="h-5 w-5" />
+                        <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
                       )}
                     </Button>
                     <Button
                       onClick={handleSendMessage}
                       disabled={!input.trim() || isTyping}
-                      className="h-10 w-10 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Send message"
                     >
-                      <Send className="h-5 w-5" />
+                      <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </div>
                 </div>
@@ -866,51 +866,51 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
 
             {/* INSIGHTS TAB */}
             {activeTab === 'insights' && (
-              <div className="p-6 space-y-3 overflow-y-auto h-full">
+              <div className="p-3 sm:p-6 space-y-2 sm:space-y-3 overflow-y-auto h-full">
                 {/* Quick Insights */}
                 <div 
-                  className="bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-cyan-500/30 transition-colors cursor-pointer"
+                  className="bg-gray-900 border border-gray-800 rounded-lg p-3 sm:p-4 hover:border-cyan-500/30 transition-colors cursor-pointer"
                   onClick={() => handleInsightClick('quick')}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
-                      <Lightbulb className="h-6 w-6 text-yellow-400" />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                      <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold mb-1">Quick Insights</h3>
-                      <p className="text-gray-400 text-sm">AI-generated summaries of your recent activities</p>
+                      <h3 className="text-sm sm:text-base font-semibold mb-1">Quick Insights</h3>
+                      <p className="text-gray-400 text-xs sm:text-sm">AI-generated summaries of your recent activities</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Trends */}
                 <div 
-                  className="bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-cyan-500/30 transition-colors cursor-pointer"
+                  className="bg-gray-900 border border-gray-800 rounded-lg p-3 sm:p-4 hover:border-cyan-500/30 transition-colors cursor-pointer"
                   onClick={() => handleInsightClick('trends')}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="h-6 w-6 text-blue-400" />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold mb-1">Trends</h3>
-                      <p className="text-gray-400 text-sm">Patterns and insights from your data</p>
+                      <h3 className="text-sm sm:text-base font-semibold mb-1">Trends</h3>
+                      <p className="text-gray-400 text-xs sm:text-sm">Patterns and insights from your data</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Recommendations */}
                 <div 
-                  className="bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-cyan-500/30 transition-colors cursor-pointer"
+                  className="bg-gray-900 border border-gray-800 rounded-lg p-3 sm:p-4 hover:border-cyan-500/30 transition-colors cursor-pointer"
                   onClick={() => handleInsightClick('recommendations')}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                      <Target className="h-6 w-6 text-purple-400" />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <Target className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold mb-1">Recommendations</h3>
-                      <p className="text-gray-400 text-sm">Personalized suggestions for improvement</p>
+                      <h3 className="text-sm sm:text-base font-semibold mb-1">Recommendations</h3>
+                      <p className="text-gray-400 text-xs sm:text-sm">Personalized suggestions for improvement</p>
                     </div>
                   </div>
                 </div>
@@ -919,8 +919,8 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
 
           {/* SETTINGS TAB */}
           {activeTab === 'settings' && (
-            <div className="p-6 overflow-y-auto flex-1">
-              <h3 className="text-xl font-semibold mb-6">AI Preferences</h3>
+            <div className="p-3 sm:p-6 overflow-y-auto flex-1">
+              <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">AI Preferences</h3>
               
               <div className="space-y-4">
                 {/* Voice Input */}

@@ -21,6 +21,12 @@ type AIMessage = {
   type: 'user' | 'ai'
   content: string
   timestamp: Date
+  confirmation?: {
+    confirmationId: string
+    action: string
+    preview?: any[]
+    totalCount?: number
+  }
   insights?: Array<{
     type: 'warning' | 'success' | 'info'
     message: string
@@ -61,6 +67,7 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState<AIMessage[]>([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [isExecutingAction, setIsExecutingAction] = useState(false)
   const [showInsights, setShowInsights] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -385,6 +392,14 @@ The more data you track, the smarter my insights become! 📊`
         type: 'ai',
         content: result.response || result.message || 'I processed your request.',
         timestamp: new Date(),
+        confirmation: result.requiresConfirmation
+          ? {
+              confirmationId: result.confirmationId,
+              action: result.action || 'action',
+              preview: result.preview,
+              totalCount: result.totalCount
+            }
+          : undefined,
         quickActions: [
           { label: 'View Details', action: 'details' },
           { label: 'Export Report', action: 'export' }
@@ -417,6 +432,62 @@ The more data you track, the smarter my insights become! 📊`
     }
   }
 
+  const confirmPendingAction = async (confirmationId: string) => {
+    setIsExecutingAction(true)
+    try {
+      const res = await fetch('/api/ai-assistant/actions', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: true, confirmationId })
+      })
+
+      const result = await res.json()
+
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 2).toString(),
+          type: 'ai',
+          content: result.message || result.response || '✅ Action executed.',
+          timestamp: new Date(),
+        }
+      ])
+
+      if (result.triggerReload) {
+        if (typeof window !== 'undefined') {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          window.dispatchEvent(new CustomEvent('ai-assistant-saved'))
+        }
+      }
+    } catch (e) {
+      console.error('❌ Confirm action error:', e)
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 2).toString(),
+          type: 'ai',
+          content: '❌ Failed to execute the confirmed action. Please try again.',
+          timestamp: new Date(),
+        }
+      ])
+    } finally {
+      setIsExecutingAction(false)
+    }
+  }
+
+  const cancelPendingAction = () => {
+    setMessages(prev => [
+      ...prev,
+      {
+        id: (Date.now() + 2).toString(),
+        type: 'ai',
+        content: 'Cancelled — I won’t make any changes.',
+        timestamp: new Date(),
+      }
+    ])
+  }
+
   const handleQuickCommand = (command: string) => {
     // Add user message directly
     const userMessage: AIMessage = {
@@ -446,6 +517,14 @@ The more data you track, the smarter my insights become! 📊`
           type: 'ai',
           content: result.response || result.message || 'I processed your request.',
           timestamp: new Date(),
+          confirmation: result.requiresConfirmation
+            ? {
+                confirmationId: result.confirmationId,
+                action: result.action || 'action',
+                preview: result.preview,
+                totalCount: result.totalCount
+              }
+            : undefined,
           quickActions: [
             { label: 'View Details', action: 'details' }
           ]
@@ -615,6 +694,45 @@ The more data you track, the smarter my insights become! 📊`
                         </div>
                       )}
                       <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+
+                      {message.type === 'ai' && message.confirmation && (
+                        <div className="mt-3 space-y-3">
+                          {Array.isArray(message.confirmation.preview) && message.confirmation.preview.length > 0 && (
+                            <div className="rounded-md border bg-background p-3">
+                              <div className="text-xs font-semibold mb-2">
+                                Preview ({message.confirmation.totalCount || message.confirmation.preview.length})
+                              </div>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {message.confirmation.preview.slice(0, 10).map((p: any) => (
+                                  <div key={p.id || JSON.stringify(p)} className="text-xs">
+                                    <div className="font-medium">{p.title || p.name || 'Untitled'}</div>
+                                    {p.date && <div className="text-muted-foreground">{String(p.date)}</div>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isExecutingAction}
+                              onClick={cancelPendingAction}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={isExecutingAction}
+                              onClick={() => confirmPendingAction(message.confirmation!.confirmationId)}
+                            >
+                              {isExecutingAction ? 'Executing...' : 'Confirm'}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
                       {message.quickActions && message.quickActions.length > 0 && (
                         <div className="flex gap-2 mt-3">
                           {message.quickActions.map((action, index) => (

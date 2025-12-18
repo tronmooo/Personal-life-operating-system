@@ -143,7 +143,6 @@ export class EnhancedServiceComparatorEngine extends ServiceComparatorEngine {
         ...baseComparison.personalized_insights,
         ...enhancedInsights,
       ],
-      // @ts-ignore - adding enhanced metadata
       enhanced_analysis: {
         factors_considered: this.getFactorsConsidered(enhancedFactors),
         confidence_level: this.calculateConfidenceLevel(enhancedFactors),

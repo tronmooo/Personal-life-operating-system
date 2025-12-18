@@ -264,29 +264,29 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-4 sm:p-6 space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <Link href="/domains" className="hover:text-foreground flex items-center">
           <ChevronLeft className="h-4 w-4" />
           Domains
         </Link>
         <span>/</span>
-        <span className="text-foreground">{domain.name}</span>
+        <span className="text-foreground truncate max-w-[70vw] sm:max-w-none">{domain.name}</span>
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4 min-w-0">
           <div className={`h-16 w-16 rounded-xl ${domain.color} flex items-center justify-center text-white text-2xl font-bold`}>
             {items.length}
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">{domain.name}</h1>
-            <p className="text-muted-foreground">{domain.description}</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">{domain.name}</h1>
+            <p className="text-muted-foreground text-sm sm:text-base line-clamp-2">{domain.description}</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
           {domainId === 'financial' && (
             <Button variant="outline" asChild>
               <Link href="/finance">
@@ -305,7 +305,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
             />
           )}
           
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add New
           </Button>
@@ -316,33 +316,31 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
       <Tabs defaultValue={
         domainId === 'financial' ? 'profiles' : 'items'
       } className="w-full">
-        <TabsList className={`grid w-full max-w-4xl ${
-          domainId === 'financial'
-            ? (DOMAIN_LOGGING_CONFIGS[domainId]?.enabled ? 'grid-cols-5' : 'grid-cols-4')
-            : (DOMAIN_LOGGING_CONFIGS[domainId]?.enabled ? 'grid-cols-4' : 'grid-cols-3')
-        }`}>
-          {domainId === 'financial' && (
-            <TabsTrigger value="profiles">
-              <Layers className="h-4 w-4 mr-2" />
-              Bills
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-max min-w-full">
+            {domainId === 'financial' && (
+              <TabsTrigger value="profiles" className="whitespace-nowrap">
+                <Layers className="h-4 w-4 mr-2" />
+                Bills
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="items" className="whitespace-nowrap">Items ({items.length})</TabsTrigger>
+            <TabsTrigger value="documents" className="whitespace-nowrap">
+              <FileText className="h-4 w-4 mr-2" />
+              Documents
             </TabsTrigger>
-          )}
-          <TabsTrigger value="items">Items ({items.length})</TabsTrigger>
-          <TabsTrigger value="documents">
-            <FileText className="h-4 w-4 mr-2" />
-            Documents
-          </TabsTrigger>
-          {DOMAIN_LOGGING_CONFIGS[domainId]?.enabled && (
-            <TabsTrigger value="log">
-              <Zap className="h-4 w-4 mr-2" />
-              Quick Log
+            {DOMAIN_LOGGING_CONFIGS[domainId]?.enabled && (
+              <TabsTrigger value="log" className="whitespace-nowrap">
+                <Zap className="h-4 w-4 mr-2" />
+                Quick Log
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="analytics" className="whitespace-nowrap">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
             </TabsTrigger>
-          )}
-          <TabsTrigger value="analytics">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* Mindfulness tabs removed - mindfulness has early return and never reaches here */}
 
@@ -375,7 +373,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
               </CardContent>
             </Card>
           ) : items.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map((item) => (
                 <Card key={item.id}>
                   <CardHeader>
@@ -473,7 +471,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
 
       {/* Add Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New {domain.name} Item</DialogTitle>
             <DialogDescription>
@@ -558,7 +556,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit {domain.name} Item</DialogTitle>
             <DialogDescription>

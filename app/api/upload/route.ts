@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 
+// Sanitize filename to be Supabase-storage compatible (no spaces, special chars)
+function sanitizeFileName(name: string): string {
+  // Replace spaces with underscores, remove special chars except dots, dashes, underscores
+  return name
+    .replace(/\s+/g, '_')           // Replace spaces with underscores
+    .replace(/[^\w\-_.]/g, '')      // Remove special characters except word chars, dash, dot, underscore
+    .replace(/__+/g, '_')           // Collapse multiple underscores
+}
+
+// Sanitize a full path (preserves slashes for directory structure)
+function sanitizePath(filePath: string): string {
+  return filePath
+    .split('/')
+    .map(segment => sanitizeFileName(segment))
+    .join('/')
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
@@ -23,9 +40,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Create unique file path with user ID
+    // Create unique file path with user ID - sanitize to remove spaces and special chars
     const fileExt = file.name.split('.').pop()
-    const fileName = path || `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+    const rawPath = path || `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+    const fileName = sanitizePath(rawPath)
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage

@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, Globe, ExternalLink, Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Trash2, Globe, ExternalLink, Loader2, Edit } from 'lucide-react'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
 import { toast } from 'sonner'
 
@@ -25,12 +28,14 @@ interface Domain {
 
 export function DomainsTab() {
   // ✅ Use modern hook for real-time updates
-  const { entries, isLoading, createEntry, deleteEntry } = useDomainEntries('digital')
+  const { entries, isLoading, createEntry, updateEntry, deleteEntry } = useDomainEntries('digital')
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState<Partial<Domain>>({
     autoRenew: true,
     status: 'Active'
   })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState<Partial<Domain>>({})
 
   // ✅ Filter domains in real-time from entries
   const domains = entries
@@ -98,6 +103,50 @@ export function DomainsTab() {
     } catch (error) {
       console.error('Failed to delete domain:', error)
       toast.error('Failed to delete domain. Please try again.')
+    }
+  }
+
+  const handleEdit = (domain: typeof domains[0]) => {
+    setEditingId(domain.id)
+    setEditFormData({
+      domainName: domain.domainName,
+      registrar: domain.registrar,
+      registrationDate: domain.registrationDate,
+      expiryDate: domain.expiryDate,
+      autoRenew: domain.autoRenew,
+      annualCost: domain.annualCost,
+      status: domain.status,
+      nameservers: domain.nameservers,
+      notes: domain.notes
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return
+    
+    try {
+      await updateEntry({
+        id: editingId,
+        title: editFormData.domainName,
+        metadata: {
+          itemType: 'domain',
+          domainName: editFormData.domainName,
+          registrar: editFormData.registrar,
+          registrationDate: editFormData.registrationDate,
+          expiryDate: editFormData.expiryDate,
+          autoRenew: editFormData.autoRenew,
+          annualCost: editFormData.annualCost,
+          status: editFormData.status,
+          nameservers: editFormData.nameservers,
+          notes: editFormData.notes
+        }
+      })
+      setEditingId(null)
+      setEditFormData({})
+      toast.success('Domain updated successfully!')
+    } catch (error) {
+      console.error('Failed to update domain:', error)
+      toast.error('Failed to update domain. Please try again.')
     }
   }
 
@@ -304,20 +353,133 @@ export function DomainsTab() {
                     )}
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(domain.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(domain)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(domain.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Domain</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Domain Name</Label>
+              <Input
+                value={editFormData.domainName || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, domainName: e.target.value })}
+                placeholder="example.com"
+              />
+            </div>
+            <div>
+              <Label>Registrar</Label>
+              <Input
+                value={editFormData.registrar || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, registrar: e.target.value })}
+                placeholder="GoDaddy, Namecheap, etc."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Registration Date</Label>
+                <Input
+                  type="date"
+                  value={editFormData.registrationDate || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, registrationDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Expiry Date</Label>
+                <Input
+                  type="date"
+                  value={editFormData.expiryDate || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, expiryDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Annual Cost</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.annualCost || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, annualCost: e.target.value })}
+                  placeholder="12.99"
+                />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={editFormData.status || 'Active'}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, status: value as Domain['status'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Expired">Expired</SelectItem>
+                    <SelectItem value="Pending Transfer">Pending Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-auto-renew"
+                checked={editFormData.autoRenew || false}
+                onCheckedChange={(checked) => setEditFormData({ ...editFormData, autoRenew: checked as boolean })}
+              />
+              <Label htmlFor="edit-auto-renew" className="cursor-pointer">Auto-Renew</Label>
+            </div>
+            <div>
+              <Label>Nameservers</Label>
+              <Textarea
+                value={editFormData.nameservers || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, nameservers: e.target.value })}
+                placeholder="ns1.example.com, ns2.example.com"
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={editFormData.notes || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

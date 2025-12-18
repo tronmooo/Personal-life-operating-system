@@ -13,9 +13,6 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   console.log('🔵 [GMAIL SYNC] API request started at', new Date().toISOString());
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gmail/sync/route.ts:14',message:'Gmail sync API started',data:{startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   try {
     const supabase = await createServerClient()
     
@@ -127,12 +124,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Parsing emails for last ${daysBack} days...`)
     // #region agent log
     const parseStart = Date.now();
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gmail/sync/route.ts:125',message:'Starting email parsing',data:{daysBack,elapsedSoFar:Date.now()-startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     const classifiedEmails = await gmailParser.parseRecentEmails(daysBack)
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gmail/sync/route.ts:130',message:'Email parsing complete',data:{emailCount:classifiedEmails.length,parseTime:Date.now()-parseStart,totalElapsed:Date.now()-startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     
     console.log(`📧 Found ${classifiedEmails.length} actionable emails`)
 
@@ -185,9 +177,6 @@ export async function POST(request: NextRequest) {
       suggestions: storedEmails
     })
   } catch (error: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gmail/sync/route.ts:185',message:'Gmail sync API error caught',data:{errorMessage:error?.message,errorName:error?.name,errorCode:error?.code,totalElapsed:Date.now()-startTime},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
     console.error('❌ Gmail sync error - Full details:', {
       message: error?.message,
       stack: error?.stack,

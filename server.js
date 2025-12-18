@@ -115,8 +115,11 @@ app.prepare().then(() => {
     path: '/api/voice/stream'
   })
 
-  // Store active sessions
+  // Store active sessions (local for this server.js runtime)
   const activeSessions = new Map()
+  // Mirror state to a shared in-memory store so Next.js route handlers can read it
+  // (e.g. GET /api/voice/status?callSid=... for live transcript + quote)
+  const voiceSessionStore = require('./lib/services/voice-session-store')
 
   wss.on('connection', async (twilioWs) => {
     console.log('📞 New WebSocket connection from Twilio')
@@ -127,6 +130,7 @@ app.prepare().then(() => {
     let context = {}
     let audioBuffer = []
     let isOpenAIReady = false
+    let aiUtteranceBuffer = ''
 
     // Connect to OpenAI Realtime API
     async function connectToOpenAI() {
@@ -318,16 +322,50 @@ Begin the call now by introducing yourself.`
             // AI is speaking - log it
             if (event.delta) {
               process.stdout.write(`🤖 AI: ${event.delta}`)
+              aiUtteranceBuffer += event.delta
             }
             break
 
           case 'response.audio_transcript.done':
             console.log('') // New line after transcript
+            if (callSid && aiUtteranceBuffer.trim().length > 0) {
+              const msg = aiUtteranceBuffer.trim()
+              aiUtteranceBuffer = ''
+              // Persist for UI polling
+              voiceSessionStore.appendTranscript(callSid, {
+                speaker: 'ai',
+                message: msg,
+                timestamp: new Date().toISOString()
+              })
+              // Keep local copy for summaries/debugging
+              if (activeSessions.has(callSid)) {
+                activeSessions.get(callSid).transcript.push({
+                  speaker: 'ai',
+                  message: msg,
+                  timestamp: new Date()
+                })
+              }
+            }
             break
 
           case 'conversation.item.input_audio_transcription.completed':
             // Human speech transcribed
             console.log(`👤 Human: ${event.transcript}`)
+            if (callSid && event.transcript && String(event.transcript).trim().length > 0) {
+              const msg = String(event.transcript).trim()
+              voiceSessionStore.appendTranscript(callSid, {
+                speaker: 'human',
+                message: msg,
+                timestamp: new Date().toISOString()
+              })
+              if (activeSessions.has(callSid)) {
+                activeSessions.get(callSid).transcript.push({
+                  speaker: 'human',
+                  message: msg,
+                  timestamp: new Date()
+                })
+              }
+            }
             break
 
           case 'response.function_call_arguments.done':
@@ -381,6 +419,9 @@ Begin the call now by introducing yourself.`
           if (activeSessions.has(callSid)) {
             activeSessions.get(callSid).quote = argsObj
           }
+          if (callSid) {
+            voiceSessionStore.upsertSession(callSid, { quote: argsObj })
+          }
           break
 
         case 'schedule_appointment':
@@ -393,6 +434,9 @@ Begin the call now by introducing yourself.`
           if (activeSessions.has(callSid)) {
             activeSessions.get(callSid).appointment = argsObj
           }
+          if (callSid) {
+            voiceSessionStore.upsertSession(callSid, { appointment: argsObj })
+          }
           break
 
         case 'end_call':
@@ -400,6 +444,9 @@ Begin the call now by introducing yourself.`
           result = { success: true, message: 'Call ended' }
           if (activeSessions.has(callSid)) {
             activeSessions.get(callSid).endReason = argsObj
+          }
+          if (callSid) {
+            voiceSessionStore.upsertSession(callSid, { endReason: argsObj })
           }
           // Close connections gracefully after a short delay
           setTimeout(() => {
@@ -484,6 +531,14 @@ Begin the call now by introducing yourself.`
               context,
               transcript: []
             })
+            voiceSessionStore.upsertSession(callSid, {
+              callSid,
+              streamSid,
+              status: 'in-progress',
+              startTime: new Date().toISOString(),
+              context,
+              transcript: []
+            })
             
             console.log('▶️ Stream started:', {
               callSid,
@@ -533,7 +588,9 @@ Begin the call now by introducing yourself.`
                 appointment: session.appointment || 'none'
               })
             }
-            
+            if (callSid) {
+              voiceSessionStore.endSession(callSid, { status: 'completed' })
+            }
             activeSessions.delete(callSid)
             if (openaiWs) {
               openaiWs.close()
@@ -549,6 +606,7 @@ Begin the call now by introducing yourself.`
     twilioWs.on('close', () => {
       if (callSid) {
         activeSessions.delete(callSid)
+        voiceSessionStore.endSession(callSid, { status: 'completed' })
       }
       if (openaiWs) {
         openaiWs.close()

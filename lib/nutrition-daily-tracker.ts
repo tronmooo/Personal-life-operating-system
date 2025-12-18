@@ -19,11 +19,12 @@ export interface DailyNutrition {
 const MAX_HISTORY_DAYS = 90 // Keep 3 months of history
 
 /**
- * Get today's date in YYYY-MM-DD format
+ * Get today's date in YYYY-MM-DD format (LOCAL timezone, not UTC)
  */
 export function getTodayDate(): string {
   const now = new Date()
-  return now.toISOString().split('T')[0]
+  // Use local timezone instead of UTC
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 /**
@@ -39,9 +40,15 @@ export function isToday(dateString: string): boolean {
 export function getTodayNutrition(allNutritionData: any[]): any[] {
   const today = getTodayDate()
   return allNutritionData.filter(item => {
-    const itemDate = item.metadata?.date || item.createdAt
-    if (!itemDate) return false
-    return itemDate.split('T')[0] === today
+    // Handle multiple possible date fields (createdAt vs created_at)
+    const rawDate = item.metadata?.date || item.createdAt || item.created_at
+    if (!rawDate) return false
+    
+    // Parse and compare in LOCAL timezone
+    const itemDate = new Date(rawDate)
+    const itemLocalDate = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}-${String(itemDate.getDate()).padStart(2, '0')}`
+    
+    return itemLocalDate === today
   })
 }
 
@@ -75,15 +82,26 @@ export function calculateTodayTotals(allNutritionData: any[]): {
     // 🔧 FIX: Handle nested metadata.metadata structure
     const metadata = item.metadata?.metadata || item.metadata || {}
     
-    // Calculate water: check if this is a water entry (type='water' with value field)
+    // 🔧 FIX: Check for water entry using BOTH type AND itemType field names
+    const isWaterEntry = metadata.type === 'water' || 
+                         metadata.itemType === 'water' || 
+                         metadata.logType === 'water'
+    
+    // Calculate water: check if this is a water entry
     let waterAmount = 0
-    if (metadata.type === 'water') {
-      // Water entries use metadata.value field
-      waterAmount = Number(metadata.value || metadata.amount || 0)
+    if (isWaterEntry) {
+      // Water entries may use value, amount, or water field
+      waterAmount = Number(metadata.value || metadata.amount || metadata.water || 0)
     } else {
       // Legacy water entries might use metadata.water or metadata.waterOz
       waterAmount = Number(metadata.water || metadata.waterOz || 0)
     }
+    
+    // 🔧 FIX: Count meals using both type and itemType
+    const isMealEntry = metadata.mealType || 
+                        metadata.type === 'meal' || 
+                        metadata.itemType === 'meal' ||
+                        metadata.logType === 'meal'
     
     return {
       calories: totals.calories + (Number(metadata.calories) || 0),
@@ -91,7 +109,7 @@ export function calculateTodayTotals(allNutritionData: any[]): {
       carbs: totals.carbs + (Number(metadata.carbs) || 0),
       fats: totals.fats + (Number(metadata.fats) || 0),
       water: totals.water + waterAmount,
-      meals: totals.meals + (metadata.mealType || metadata.type === 'meal' ? 1 : 0)
+      meals: totals.meals + (isMealEntry ? 1 : 0)
     }
   }, {
     calories: 0,
@@ -224,15 +242,26 @@ export function archiveTodayNutrition(allNutritionData: any[]): { title: string;
   const totals = yesterdayData.reduce((acc, item) => {
     const metadata = item.metadata || {}
     
-    // Calculate water: check if this is a water entry (type='water' with value field)
+    // 🔧 FIX: Check for water entry using BOTH type AND itemType field names
+    const isWaterEntry = metadata.type === 'water' || 
+                         metadata.itemType === 'water' || 
+                         metadata.logType === 'water'
+    
+    // Calculate water: check if this is a water entry
     let waterAmount = 0
-    if (metadata.type === 'water') {
-      // Water entries use metadata.value field
-      waterAmount = Number(metadata.value || metadata.amount || 0)
+    if (isWaterEntry) {
+      // Water entries may use value, amount, or water field
+      waterAmount = Number(metadata.value || metadata.amount || metadata.water || 0)
     } else {
       // Legacy water entries might use metadata.water or metadata.waterOz
       waterAmount = Number(metadata.water || metadata.waterOz || 0)
     }
+    
+    // 🔧 FIX: Count meals using both type and itemType
+    const isMealEntry = metadata.mealType || 
+                        metadata.type === 'meal' || 
+                        metadata.itemType === 'meal' ||
+                        metadata.logType === 'meal'
     
     return {
       calories: acc.calories + (Number(metadata.calories) || 0),
@@ -240,7 +269,7 @@ export function archiveTodayNutrition(allNutritionData: any[]): { title: string;
       carbs: acc.carbs + (Number(metadata.carbs) || 0),
       fats: acc.fats + (Number(metadata.fats) || 0),
       water: acc.water + waterAmount,
-      meals: acc.meals + (metadata.mealType || metadata.type === 'meal' ? 1 : 0)
+      meals: acc.meals + (isMealEntry ? 1 : 0)
     }
   }, {
     calories: 0,

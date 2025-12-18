@@ -52,7 +52,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Public APIs - always allow
-    const publicApiPaths = ['/api/auth', '/api/cron', '/api/webhooks', '/api/plaid/webhook']
+    const publicApiPaths = ['/api/auth', '/api/cron', '/api/webhooks', '/api/plaid/webhook', '/api/voice', '/api/zillow-scrape', '/api/concierge', '/api/estimate']
     if (publicApiPaths.some(p => pathname.startsWith(p))) {
       return response
     }

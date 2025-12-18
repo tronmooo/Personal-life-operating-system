@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase/client'
-import { BookOpen, MessageCircle, Dumbbell, Smile, Sparkles, Send, Save, History, ChevronDown, ChevronUp, RotateCcw, Lightbulb, Trash2 } from 'lucide-react'
+import { BookOpen, MessageCircle, Dumbbell, Smile, Sparkles, Send, Save, History, ChevronDown, ChevronUp, RotateCcw, Lightbulb, Trash2, Loader2, Brain } from 'lucide-react'
 import { BreathingExercises } from '@/components/mindfulness/breathing-exercises'
 import { GuidedMeditations } from '@/components/mindfulness/guided-meditations'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 type Tab = 'journal' | 'chat' | 'exercise' | 'mood' | 'history'
 type MoodLevel = 1 | 2 | 3 | 4 | 5
@@ -56,16 +58,15 @@ export function MindfulnessAppFull() {
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Initial load with force reload to get fresh data
     loadMoodHistory()
-    loadJournalHistory()
-    // Don't generate prompts on mount - use initial fallback prompts instead
-    // Users can click "Generate new prompts" if they want fresh ones
+    loadJournalHistory(true)
     
-    // Listen for data updates
+    // Listen for data updates (don't force reload on events - use cache)
     const handleDataUpdate = () => {
-      console.log('📖 Data updated event fired, reloading journal history...')
+      console.log('📖 Data updated event fired, reloading...')
       loadMoodHistory()
-      loadJournalHistory()
+      loadJournalHistory(false)
     }
     window.addEventListener('data-updated', handleDataUpdate)
     window.addEventListener('mindfulness-data-updated', handleDataUpdate)
@@ -129,16 +130,19 @@ export function MindfulnessAppFull() {
     }
   }
 
-  const loadJournalHistory = async () => {
+  const loadJournalHistory = async (forceReload = false) => {
     try {
       console.log('📚 Loading journal history from DataProvider...')
       
-      // Force reload from database to get fresh data
-      await reloadDomain('mindfulness')
+      // Only force reload when explicitly requested (e.g., initial load)
+      // For normal operations, use cached data for speed
+      if (forceReload) {
+        await reloadDomain('mindfulness')
+      }
       
-      // Load from DataProvider after reload
+      // Load from DataProvider
       const mindfulnessData = getData('mindfulness')
-      console.log('📦 Total mindfulness items after reload:', mindfulnessData.length)
+      console.log('📦 Total mindfulness items:', mindfulnessData.length)
       
       if (!Array.isArray(mindfulnessData)) {
         console.warn('⚠️ mindfulnessData is not an array:', mindfulnessData)
@@ -158,13 +162,6 @@ export function MindfulnessAppFull() {
             item.metadata?.type === 'journal' || 
             item.metadata?.entryType === 'Journal' ||
             item.metadata?.logType === 'journal-entry'
-          if (isJournal) {
-            console.log('✅ Found journal entry:', {
-              id: item.id,
-              title: item.title,
-              hasFullContent: !!item.metadata?.fullContent
-            })
-          }
           return isJournal
         })
         .map((item: any) => ({
@@ -177,8 +174,7 @@ export function MindfulnessAppFull() {
         .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 50)
       
-      console.log('📖 Journal entries after filtering:', journals.length)
-      console.log('📖 Journal entries:', journals)
+      console.log('📖 Journal entries loaded:', journals.length)
       
       setJournalHistory(journals)
     } catch (error) {
@@ -210,67 +206,108 @@ export function MindfulnessAppFull() {
     { id: 'history' as Tab, icon: History, label: 'History' }
   ]
 
-  // Save Journal - DIRECT TO DATABASE
+  // Save Journal - DIRECT TO DATABASE with optimistic updates
+  const [isSavingJournal, setIsSavingJournal] = useState(false)
+  
   const saveJournal = async () => {
     if (!journalText.trim()) {
-      alert('Please write something first')
+      toast.error('Please write something first')
       return
     }
 
+    if (isSavingJournal) return // Prevent double-click
+    
+    setIsSavingJournal(true)
+    const savedText = journalText
+    const savedInsight = aiInsight
+    
+    // OPTIMISTIC: Clear form immediately for instant feedback
+    setJournalText('')
+    setAiInsight('')
+    setSuggestedActions([])
+    toast.loading('Saving journal...', { id: 'save-journal' })
+    
+    // OPTIMISTIC: Add to local history immediately
+    const optimisticEntry: JournalEntry = {
+      id: `temp-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      journalEntry: savedText,
+      moodScore: 5,
+      aiInsight: savedInsight || undefined
+    }
+    setJournalHistory(prev => [optimisticEntry, ...prev])
+
     try {
       console.log('💾 Saving journal entry...', {
-        textLength: journalText.length,
-        hasAiInsight: !!aiInsight
+        textLength: savedText.length,
+        hasAiInsight: !!savedInsight
       })
       
       // Save to DataProvider (auto-syncs to Supabase)
-      const result = await addData('mindfulness', {
+      await addData('mindfulness', {
         title: `Journal Entry - ${new Date().toLocaleDateString()}`,
-        description: journalText.substring(0, 200),
+        description: savedText.substring(0, 200),
         metadata: {
           type: 'journal',
           entryType: 'Journal',
           logType: 'journal-entry',
-          fullContent: journalText,
-          wordCount: journalText.split(/\s+/).length,
+          fullContent: savedText,
+          wordCount: savedText.split(/\s+/).length,
           date: new Date().toISOString(),
-          aiInsight: aiInsight || undefined
+          aiInsight: savedInsight || undefined
         }
       })
 
-      console.log('✅ Journal saved to database, result:', result)
+      console.log('✅ Journal saved to database')
+      toast.success('Journal saved! ✨', { id: 'save-journal' })
       
-      // Immediately reload history from fresh data
-      console.log('🔄 Reloading journal history after save...')
-      await loadJournalHistory()
-      
-      console.log('📖 Journal history reloaded successfully')
-      
-      alert('Journal saved successfully!')
-      setJournalText('')
-      setAiInsight('')
-      setSuggestedActions([])
+      // Background reload - don't wait for it
+      loadJournalHistory().catch(console.error)
     } catch (error) {
       console.error('❌ Error saving journal:', error)
-      alert('Failed to save journal')
+      toast.error('Failed to save journal', { id: 'save-journal' })
+      // Restore text on error
+      setJournalText(savedText)
+      setAiInsight(savedInsight)
+      // Remove optimistic entry
+      setJournalHistory(prev => prev.filter(e => e.id !== optimisticEntry.id))
+    } finally {
+      setIsSavingJournal(false)
     }
   }
 
   // AI Feedback for Journal - Using Journal Reflection Assistant
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  
   const getAIFeedback = async () => {
     if (!journalText.trim()) {
-      alert('Please write something first')
+      toast.error('Please write something first')
       return
     }
 
-    setLoading(true)
+    if (isAnalyzing) return // Prevent double-click
+    
+    setIsAnalyzing(true)
+    toast.loading('Analyzing your entry...', { id: 'ai-analysis' })
+    
     try {
       console.log('🧠 Getting AI journal reflection insight...')
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout
+      
       const response = await fetch('/api/ai/journal-reflection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: journalText })
+        body: JSON.stringify({ text: journalText }),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
 
       const data = await response.json()
       const insight = data.insight || 'Thank you for sharing. Your feelings are valid.'
@@ -283,16 +320,28 @@ export function MindfulnessAppFull() {
       console.log('✅ Suggested actions:', actions)
       setAiInsight(insight)
       setSuggestedActions(actions)
-    } catch (error) {
+      toast.success('Analysis complete! ✨', { id: 'ai-analysis' })
+    } catch (error: any) {
       console.error('Error getting AI feedback:', error)
-      setAiInsight("I notice you're expressing important thoughts. Remember to be kind to yourself and take breaks when needed.")
-      setSuggestedActions([
+      
+      // Provide helpful fallback insight
+      const fallbackInsight = "I notice you're expressing important thoughts. Remember to be kind to yourself and take breaks when needed."
+      const fallbackActions = [
         '🧘 Take a moment to breathe deeply',
         '💜 Be kind to yourself',
         '📝 Continue journaling when ready'
-      ])
+      ]
+      
+      setAiInsight(fallbackInsight)
+      setSuggestedActions(fallbackActions)
+      
+      if (error.name === 'AbortError') {
+        toast.error('Analysis timed out. Here are some general suggestions.', { id: 'ai-analysis' })
+      } else {
+        toast.error('AI unavailable. Here are some suggestions.', { id: 'ai-analysis' })
+      }
     } finally {
-      setLoading(false)
+      setIsAnalyzing(false)
     }
   }
 
@@ -630,20 +679,46 @@ export function MindfulnessAppFull() {
     }
   }
 
-  // Save Mood - Simplified version without reload
+  // Save Mood - Optimized with instant feedback
+  const [isSavingMood, setIsSavingMood] = useState(false)
+  
   const saveMood = async () => {
     if (selectedMood === null) {
-      alert('Please select a mood first')
+      toast.error('Please select a mood first')
       return
     }
 
-    setLoading(true)
+    if (isSavingMood) return // Prevent double-click
+    
+    setIsSavingMood(true)
+    const savedMood = selectedMood
+    
+    // Get current local date for accurate mood tracking
+    const now = new Date()
+    const localDateString = format(now, 'yyyy-MM-dd')
+    
+    // OPTIMISTIC: Update mood history immediately
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const todayDayName = dayNames[now.getDay()]
+    setMoodHistory(prev => {
+      const updated = [...prev]
+      const todayIndex = updated.findIndex(d => d.day === todayDayName)
+      if (todayIndex !== -1) {
+        updated[todayIndex] = {
+          ...updated[todayIndex],
+          progress: (savedMood * 2 / 10) * 100,
+          mood: getMoodEmoji(savedMood * 2)
+        }
+      }
+      return updated
+    })
+    
+    // Clear selection and show loading
+    setSelectedMood(null)
+    toast.loading('Saving mood...', { id: 'save-mood' })
+    
     try {
-      console.log('💾 Saving mood:', selectedMood)
-      
-      // Get current local date for accurate mood tracking
-      const now = new Date()
-      const localDateString = format(now, 'yyyy-MM-dd')
+      console.log('💾 Saving mood:', savedMood)
       
       // Check if there's already a mood entry for today (from current state)
       const mindfulnessData = getData('mindfulness')
@@ -659,8 +734,8 @@ export function MindfulnessAppFull() {
         await updateData('mindfulness', todaysMood.id, {
           metadata: {
             ...todaysMood.metadata,
-            moodScore: selectedMood * 2, // 1-5 → 2-10 scale
-            moodValue: selectedMood,
+            moodScore: savedMood * 2, // 1-5 → 2-10 scale
+            moodValue: savedMood,
             timestamp: now.toISOString(),
           }
         })
@@ -669,13 +744,13 @@ export function MindfulnessAppFull() {
         console.log('➕ Creating new mood entry for today')
         await addData('mindfulness', {
           title: `Mood Check-in - ${new Date().toLocaleDateString()}`,
-          description: `Mood: ${getMoodEmoji(selectedMood * 2)} (${selectedMood}/5)`,
+          description: `Mood: ${getMoodEmoji(savedMood * 2)} (${savedMood}/5)`,
           metadata: {
             type: 'mood',
             entryType: 'Mood',
             logType: 'mood-checkin',
-            moodScore: selectedMood * 2, // 1-5 → 2-10 scale
-            moodValue: selectedMood,
+            moodScore: savedMood * 2, // 1-5 → 2-10 scale
+            moodValue: savedMood,
             date: localDateString, // yyyy-MM-dd format for correct day grouping
             timestamp: now.toISOString(),
             energyLevel: 3,
@@ -684,27 +759,40 @@ export function MindfulnessAppFull() {
         })
       }
       
-      // Quick refresh mood history without full reload
-      setTimeout(() => {
-        loadMoodHistory()
-      }, 500)
+      toast.success('Mood saved! 🎉', { id: 'save-mood' })
       
-      alert('Mood saved successfully! 🎉')
-      setSelectedMood(null)
+      // Background reload - don't wait for it
+      loadMoodHistory().catch(console.error)
     } catch (error) {
       console.error('❌ Error saving mood:', error)
-      alert(`Failed to save mood: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast.error('Failed to save mood', { id: 'save-mood' })
+      // Restore selection on error
+      setSelectedMood(savedMood)
     } finally {
-      setLoading(false)
+      setIsSavingMood(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-purple-950 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+        {/* Back Button */}
+        <DomainBackButton />
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-lg">
+            <Brain className="w-7 h-7 md:w-8 md:h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Mindfulness</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">Journal, meditate, and track your mood</p>
+          </div>
+        </div>
+
         {/* Tab Navigation */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-2 shadow-lg">
-          <div className="grid grid-cols-5 gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-2 shadow-lg overflow-x-auto">
+          <div className="grid grid-cols-5 gap-1 sm:gap-2 min-w-[320px]">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -718,7 +806,7 @@ export function MindfulnessAppFull() {
                   }`}
                 >
                   <Icon className="w-5 h-5 md:w-6 md:h-6" />
-                  <span className="text-xs md:text-sm font-medium">{tab.label}</span>
+                  <span className="text-[10px] sm:text-xs md:text-sm font-medium">{tab.label}</span>
                 </button>
               )
             })}
@@ -794,18 +882,26 @@ export function MindfulnessAppFull() {
                   variant="outline" 
                   className="flex-1 rounded-xl py-4 md:py-6"
                   onClick={saveJournal}
-                  disabled={loading}
+                  disabled={isSavingJournal || !journalText.trim()}
                 >
-                  <Save className="w-5 h-5 mr-2" />
-                  Save
+                  {isSavingJournal ? (
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-5 h-5 mr-2" />
+                  )}
+                  {isSavingJournal ? 'Saving...' : 'Save'}
                 </Button>
                 <Button 
                   className="flex-1 bg-purple-600 hover:bg-purple-700 rounded-xl py-4 md:py-6"
                   onClick={getAIFeedback}
-                  disabled={loading}
+                  disabled={isAnalyzing || !journalText.trim()}
                 >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  {loading ? 'Analyzing...' : 'AI Feedback'}
+                  {isAnalyzing ? (
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-5 h-5 mr-2" />
+                  )}
+                  {isAnalyzing ? 'Analyzing...' : 'AI Feedback'}
                 </Button>
               </div>
             </Card>
@@ -1004,9 +1100,16 @@ export function MindfulnessAppFull() {
               <Button 
                 className="w-full bg-purple-600 hover:bg-purple-700 rounded-xl py-4 md:py-6 text-base md:text-lg"
                 onClick={saveMood}
-                disabled={loading}
+                disabled={isSavingMood || selectedMood === null}
               >
-                {loading ? 'Saving...' : "Save Today's Mood"}
+                {isSavingMood ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Today's Mood"
+                )}
               </Button>
             </Card>
 

@@ -16,6 +16,7 @@ export interface NetWorthCalculation {
     vehicleValue: number
     collectiblesValue: number
     miscValue: number
+    appliancesValue: number
     financialAssets: number
     financialLiabilities: number
     cashIncome: number
@@ -42,6 +43,7 @@ export function calculateUnifiedNetWorth(
     vehicleValue: 0,
     collectiblesValue: 0,
     miscValue: 0,
+    appliancesValue: 0,
     financialAssets: 0,
     financialLiabilities: 0,
     cashIncome: 0
@@ -108,6 +110,58 @@ export function calculateUnifiedNetWorth(
     )
     return sum + value
   }, 0)
+
+  // Calculate appliances value (appliances are physical assets with depreciated value)
+  const appliancesData = domainData.appliances || []
+  breakdown.appliancesValue = appliancesData.reduce((sum, item) => {
+    const meta = item.metadata as any
+    
+    // If user manually set an estimated/current value, use that first
+    if (meta?.estimatedValue || meta?.currentValue) {
+      const manualValue = parseFloat(meta?.estimatedValue || meta?.currentValue || '0')
+      if (manualValue > 0) {
+        console.log('🔌 Appliance (manual value):', manualValue, 'from:', item.title)
+        return sum + manualValue
+      }
+    }
+    
+    // Otherwise calculate depreciated value based on age and lifespan
+    const purchasePrice = parseFloat(meta?.purchasePrice || meta?.value || '0')
+    if (purchasePrice <= 0) return sum
+    
+    // Get purchase date and lifespan for depreciation calculation
+    const purchaseDateStr = meta?.purchaseDate
+    const lifespanYears = parseFloat(meta?.estimatedLifespan || meta?.expectedLifespan || '10') // Default 10 years
+    
+    let estimatedCurrentValue = purchasePrice
+    
+    if (purchaseDateStr) {
+      const purchaseDate = new Date(purchaseDateStr)
+      const now = new Date()
+      const ageInMs = now.getTime() - purchaseDate.getTime()
+      const ageInYears = ageInMs / (1000 * 60 * 60 * 24 * 365.25)
+      
+      if (ageInYears > 0 && lifespanYears > 0) {
+        // Linear depreciation with 10% residual value (appliances retain some scrap/resale value)
+        const depreciationRate = Math.min(ageInYears / lifespanYears, 0.9) // Max 90% depreciation
+        estimatedCurrentValue = purchasePrice * (1 - depreciationRate)
+        
+        console.log('🔌 Appliance depreciation:', {
+          name: item.title,
+          purchasePrice,
+          purchaseDate: purchaseDateStr,
+          ageInYears: ageInYears.toFixed(2),
+          lifespanYears,
+          depreciationRate: (depreciationRate * 100).toFixed(1) + '%',
+          estimatedCurrentValue: estimatedCurrentValue.toFixed(2)
+        })
+      }
+    } else {
+      console.log('🔌 Appliance (no date, using purchase price):', purchasePrice, 'from:', item.title)
+    }
+    
+    return sum + estimatedCurrentValue
+  }, 0)
   
   // Add finance data if provided
   if (financeData) {
@@ -125,15 +179,25 @@ export function calculateUnifiedNetWorth(
 
     for (const item of financialDomain) {
       const meta = item?.metadata || {}
-      const rawBalance = Number(meta.balance ?? meta.currentValue ?? meta.value ?? 0)
+      
+      // Check if this is a debt item - check multiple fields for detection
       const type = String(meta.accountType || meta.type || '').toLowerCase()
-
-      // Treat credit/loan/mortgage as liabilities; otherwise assets
-      const isDebt = ['credit', 'loan', 'mortgage', 'liability', 'debt'].some(k => type.includes(k))
+      const itemType = String(meta.itemType || '').toLowerCase()
+      const loanType = String(meta.loanType || '').toLowerCase()
+      
+      // Treat items marked as debt via itemType, or with debt-related accountType/loanType
+      const isDebt = itemType === 'debt' || 
+        ['credit', 'loan', 'mortgage', 'liability', 'debt'].some(k => 
+          type.includes(k) || loanType.includes(k)
+        )
 
       if (isDebt) {
+        // For debt items, use currentBalance first (most common for debts), then fallback to other fields
+        const rawBalance = Number(meta.currentBalance ?? meta.balance ?? meta.currentValue ?? meta.value ?? 0)
         domainLiabilities += Math.abs(rawBalance)
+        console.log('💳 Debt found:', item.title, 'Balance:', rawBalance, 'Type:', itemType || loanType || type)
       } else {
+        const rawBalance = Number(meta.balance ?? meta.currentValue ?? meta.value ?? 0)
         // Some datasets store liabilities as negative balances; guard against that
         domainAssets += rawBalance > 0 ? rawBalance : 0
       }
@@ -150,6 +214,7 @@ export function calculateUnifiedNetWorth(
     breakdown.vehicleValue + 
     breakdown.collectiblesValue + 
     breakdown.miscValue + 
+    breakdown.appliancesValue +
     breakdown.financialAssets
   
   const totalLiabilities = breakdown.financialLiabilities
@@ -209,6 +274,49 @@ export function getVehicleValue(vehicleData: DomainData[]): number {
       )
       return sum + value
     }, 0)
+}
+
+/**
+ * Calculate the estimated current value of a single appliance
+ * Uses linear depreciation based on purchase date and expected lifespan
+ * Maintains 10% residual value (appliances retain some scrap/resale value)
+ */
+export function calculateApplianceCurrentValue(meta: Record<string, unknown>): number {
+  // If user manually set an estimated/current value, use that
+  if (meta?.estimatedValue || meta?.currentValue) {
+    const manualValue = parseFloat(String(meta?.estimatedValue || meta?.currentValue || '0'))
+    if (manualValue > 0) return manualValue
+  }
+  
+  const purchasePrice = parseFloat(String(meta?.purchasePrice || meta?.value || '0'))
+  if (purchasePrice <= 0) return 0
+  
+  const purchaseDateStr = meta?.purchaseDate as string | undefined
+  const lifespanYears = parseFloat(String(meta?.estimatedLifespan || meta?.expectedLifespan || '10'))
+  
+  if (!purchaseDateStr) return purchasePrice
+  
+  const purchaseDate = new Date(purchaseDateStr)
+  const now = new Date()
+  const ageInMs = now.getTime() - purchaseDate.getTime()
+  const ageInYears = ageInMs / (1000 * 60 * 60 * 24 * 365.25)
+  
+  if (ageInYears <= 0 || lifespanYears <= 0) return purchasePrice
+  
+  // Linear depreciation with 10% residual value
+  const depreciationRate = Math.min(ageInYears / lifespanYears, 0.9)
+  return purchasePrice * (1 - depreciationRate)
+}
+
+/**
+ * Get appliances value from domain data
+ * Appliances are considered physical assets with depreciated monetary value
+ */
+export function getAppliancesValue(appliancesData: DomainData[]): number {
+  return appliancesData.reduce((sum, item) => {
+    const meta = item.metadata as Record<string, unknown> || {}
+    return sum + calculateApplianceCurrentValue(meta)
+  }, 0)
 }
 
 /**

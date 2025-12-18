@@ -30,14 +30,16 @@ async function setupTestUser() {
 
   try {
     // Try to get existing user
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
+    const listRes = await supabase.auth.admin.listUsers()
+    const listError = listRes.error
+    const users = (listRes.data?.users ?? []) as Array<{ id: string; email?: string | null }>
 
     if (listError) {
       console.error('❌ Error listing users:', listError.message)
       process.exit(1)
     }
 
-    const existingUser = users?.find(u => u.email === email)
+    const existingUser = users.find(u => u.email === email)
 
     if (existingUser) {
       console.log('✅ Test user already exists:', existingUser.id)

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createTwilioService } from '@/lib/services/twilio-voice-service'
 import { createHmac, timingSafeEqual } from 'crypto'
+import voiceSessionStore from '@/lib/services/voice-session-store'
 
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || ''
 
@@ -106,6 +107,11 @@ export async function POST(request: Request) {
       callDuration ? parseInt(callDuration) : undefined
     )
 
+    // Mirror status into shared session store for UI polling
+    if (callSid) {
+      voiceSessionStore.setStatus(callSid, status)
+    }
+
     return NextResponse.json({ success: true })
 
   } catch (error) {
@@ -117,7 +123,39 @@ export async function POST(request: Request) {
 
 // Allow GET for webhook verification
 export async function GET(request: Request) {
-  return NextResponse.json({ 
+  const url = new URL(request.url)
+  const callSid = url.searchParams.get('callSid') || ''
+
+  // If a callSid is provided, return live session info for UI polling
+  if (callSid) {
+    const session = voiceSessionStore.getSession(callSid)
+    if (!session) {
+      return NextResponse.json({
+        success: true,
+        callSid,
+        status: 'unknown',
+        transcript: [],
+        quote: null,
+        appointment: null,
+        endReason: null
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      callSid,
+      status: session.status || 'in-progress',
+      transcript: session.transcript || [],
+      quote: session.quote || null,
+      appointment: session.appointment || null,
+      endReason: session.endReason || null,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      context: session.context
+    })
+  }
+
+  return NextResponse.json({
     status: 'Voice status webhook active',
     timestamp: new Date().toISOString()
   })

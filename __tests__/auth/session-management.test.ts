@@ -11,6 +11,12 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { createMockUser, createMockSession, wait } from '../utils/test-helpers'
 import { idbSet, idbGet, idbClear } from '@/lib/utils/idb-cache'
 
+jest.mock('@/lib/utils/idb-cache', () => ({
+  idbSet: jest.fn(),
+  idbGet: jest.fn(),
+  idbClear: jest.fn(),
+}))
+
 describe('Authentication Session Management', () => {
   let mockSupabase: any
   

@@ -56,7 +56,8 @@ export function EditHomeDialog({ open, onOpenChange, home, onEdit }: EditHomeDia
     const fullAddress = `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`
     
     try {
-      const response = await fetch('/api/zillow-scrape', {
+      // Call Apify Zillow Scraper for real property values
+      const response = await fetch('/api/apify-zillow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: fullAddress })
@@ -64,20 +65,32 @@ export function EditHomeDialog({ open, onOpenChange, home, onEdit }: EditHomeDia
       
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Zillow API Response:', data)
+        console.log('✅ Apify Zillow Response:', data)
         
-        const propertyValue = data.estimatedValue || data.value || data.price || data.zestimate
+        // Extract the value from the response (prefer zestimate, then price, then estimatedValue)
+        const propertyValue = data.zestimate || data.price || data.estimatedValue
         
         if (propertyValue) {
           setFormData({ ...formData, propertyValue: propertyValue.toString() })
-          alert(`✅ Property value found: $${propertyValue.toLocaleString()}`)
+          
+          // Show detailed info if available
+          const source = data.source || 'Zillow'
+          const details = data.propertyDetails
+          let message = `✅ Property value found: $${propertyValue.toLocaleString()}\nSource: ${source}`
+          
+          if (details?.bedrooms || details?.bathrooms || details?.livingArea) {
+            message += `\n${details.bedrooms || '?'} bed, ${details.bathrooms || '?'} bath`
+            if (details.livingArea) message += `, ${details.livingArea.toLocaleString()} sqft`
+          }
+          
+          alert(message)
         } else {
           alert('⚠️ Could not find property value. Keeping current value.')
         }
       } else {
         const errorData = await response.json()
-        console.error('Zillow API error:', errorData)
-        alert('⚠️ Zillow API error. Keeping current value.')
+        console.error('Apify Zillow error:', errorData)
+        alert(`⚠️ Zillow lookup error: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error fetching property value:', error)
@@ -219,7 +232,7 @@ export function EditHomeDialog({ open, onOpenChange, home, onEdit }: EditHomeDia
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              AI will look up property value using Zillow API
+              AI will look up property value using Zillow via Apify
             </p>
           </div>
 

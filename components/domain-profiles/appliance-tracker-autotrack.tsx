@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
+import { calculateApplianceCurrentValue } from '@/lib/utils/unified-financial-calculator'
 import {
   Refrigerator,
   Plus,
@@ -38,7 +40,9 @@ import {
   Edit,
   Save,
   X,
-  ChevronLeft
+  TrendingDown,
+  Clock,
+  Receipt
 } from 'lucide-react'
 
 interface Appliance {
@@ -411,15 +415,15 @@ export function ApplianceTrackerAutoTrack() {
 
   const handleAddAppliance = async () => {
     try {
-      // Get current user session
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
         alert('Your session has expired. Please sign in again.')
         router.push('/auth/signin')
         return
       }
       
-      console.log('✅ Adding appliance for user:', session.user.email)
+      console.log('✅ Adding appliance for user:', user.email)
 
       // Upload photo if present
       let photoUrl: string | null = null
@@ -428,78 +432,73 @@ export function ApplianceTrackerAutoTrack() {
         console.log('📸 Photo uploaded:', photoUrl)
       }
 
-      // Insert appliance and return inserted row so we can sync domain_entries
+      // Generate a new UUID for the entry
+      const entryId = crypto.randomUUID()
+
+      // ✅ PRIMARY: Insert directly to domain_entries (the data source for this component)
+      const { data: inserted, error: insertError } = await supabase
+        .from('domain_entries')
+        .insert({
+          id: entryId,
+          user_id: user.id,
+          domain: 'appliances',
+          title: applianceForm.name,
+          description: applianceForm.brand ? `${applianceForm.brand} ${applianceForm.model || ''}`.trim() : null,
+          metadata: {
+            name: applianceForm.name,
+            brand: applianceForm.brand,
+            model: applianceForm.model,
+            serialNumber: applianceForm.serialNumber || null,
+            purchaseDate: applianceForm.purchaseDate,
+            purchasePrice: Number(applianceForm.purchasePrice) || 0,
+            value: Number(applianceForm.purchasePrice) || 0,
+            warrantyExpiry: applianceForm.warrantyExpiry || null,
+            maintenanceDue: applianceForm.maintenanceDue || null,
+            location: applianceForm.location || null,
+            condition: applianceForm.condition || 'Good',
+            estimatedLifespan: applianceForm.estimatedLifespan || 10,
+            notes: applianceForm.notes || null,
+            photoUrl: photoUrl || null,
+            category: applianceForm.category,
+          }
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('❌ Failed to add asset to domain_entries:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        })
+        alert(`Failed to add asset: ${insertError.message}`)
+        return
+      }
+
+      console.log('✅ Asset added to domain_entries:', inserted?.id)
+
+      // Optional: Also sync to legacy appliances table for backward compatibility
       const dbCategory = mapCategoryToDatabase(applianceForm.category)
-      
-      const { data: inserted, error } = await supabase
+      const { error: legacyError } = await supabase
         .from('appliances')
         .insert({
-          user_id: session.user.id,
+          id: entryId,  // Use same ID for consistency
+          user_id: user.id,
           name: applianceForm.name,
-          category: dbCategory, // Use mapped category for database
+          category: dbCategory,
           brand: applianceForm.brand,
           model_number: applianceForm.model,
           serial_number: applianceForm.serialNumber || null,
           purchase_date: applianceForm.purchaseDate,
-          // Preserve exactly what the user entered
           purchase_price: Number(applianceForm.purchasePrice),
           expected_lifespan: applianceForm.estimatedLifespan,
           location: applianceForm.location || null,
           notes: applianceForm.notes || null
         })
-        .select('id, name, brand, model_number, serial_number, purchase_date, purchase_price, expected_lifespan, location, notes')
-        .single()
-
-      if (error) {
-        console.error('❌ Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        alert(`Failed to add appliance: ${error.message}\n\nDetails: ${error.details || 'No additional details'}`)
-        return
-      }
-
-      // Synchronize to domain_entries so dashboard metrics reflect this appliance
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user && inserted?.id) {
-          const { error: syncError } = await supabase
-            .from('domain_entries')
-            .upsert({
-              id: inserted.id,  // Use the actual UUID, don't modify it
-              user_id: user.id,
-              domain: 'appliances',
-              title: inserted.name,
-              description: inserted.brand ? `${inserted.brand} ${inserted.model_number || ''}`.trim() : null,
-              metadata: {
-                name: inserted.name,
-                brand: inserted.brand,
-                model: inserted.model_number,
-                serialNumber: inserted.serial_number,
-                purchaseDate: inserted.purchase_date,
-                purchasePrice: Number(inserted.purchase_price) || 0,
-                value: Number(inserted.purchase_price) || 0,
-                warrantyExpiry: applianceForm.warrantyExpiry || null,  // ✅ ACTUAL DATE FROM FORM
-                maintenanceDue: applianceForm.maintenanceDue || null,  // ✅ ACTUAL DATE FROM FORM
-                location: inserted.location,
-                condition: 'Good',
-                estimatedLifespan: inserted.expected_lifespan,
-                notes: inserted.notes || undefined,
-                photoUrl: photoUrl || undefined,  // ✅ PHOTO URL
-                category: applianceForm.category,  // ✅ PRESERVE UI CATEGORY
-              }
-            })
-          
-          if (syncError) {
-            console.error('❌ Failed to sync to domain_entries:', syncError)
-          } else {
-            console.log('✅ Successfully synced appliance to domain_entries')
-          }
-        }
-      } catch (e) {
-        console.error('⚠️ Failed to sync appliance to domain_entries:', e)
+      if (legacyError) {
+        // Ignore legacy table errors - domain_entries is the source of truth
+        console.warn('⚠️ Legacy appliances table sync skipped:', legacyError.message)
       }
 
       await loadAppliances()
@@ -515,14 +514,14 @@ export function ApplianceTrackerAutoTrack() {
         location: '',
         condition: 'Good',
         estimatedLifespan: 10,
-        warrantyExpiry: '',  // Reset warranty date
-        maintenanceDue: '',  // Reset maintenance date
+        warrantyExpiry: '',
+        maintenanceDue: '',
         notes: '',
-        photoUrl: ''  // Reset photo URL
+        photoUrl: ''
       })
       setPhotoFile(null)
       setPhotoPreview(null)
-      setAiValueEstimate(null) // Reset AI estimate
+      setAiValueEstimate(null)
       alert('Asset added successfully!')
     } catch (error: any) {
       console.error('❌ Error adding appliance:', error)
@@ -800,13 +799,53 @@ export function ApplianceTrackerAutoTrack() {
     if (!supabase) return
 
     try {
-      const { error } = await supabase.from('appliances').delete().eq('id', id)
-      if (error) throw error
+      // Get current user for safety
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        alert('You must be signed in to delete assets.')
+        return
+      }
+
+      console.log('🗑️ Deleting asset:', { id, userId: user.id })
+
+      // Delete from domain_entries (the actual data source)
+      const { error: domainError, count } = await supabase
+        .from('domain_entries')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', user.id)
+
+      console.log('🗑️ Delete result:', { domainError, count })
+
+      if (domainError) {
+        console.error('❌ Error deleting from domain_entries:', domainError)
+        alert(`Failed to delete asset: ${domainError.message}`)
+        return
+      }
+
+      if (count === 0) {
+        console.warn('⚠️ No entries deleted - entry may not exist or user mismatch')
+      }
+
+      // Also try to delete from legacy appliances table (in case it exists there too)
+      const { error: legacyDeleteError } = await supabase
+        .from('appliances')
+        .delete()
+        .eq('id', id)
+      if (legacyDeleteError) {
+        console.warn('⚠️ Legacy table delete skipped:', legacyDeleteError.message)
+      }
+
+      // Clear selection if we deleted the selected appliance
+      if (selectedAppliance?.id === id) {
+        setSelectedAppliance(null)
+      }
+
       await loadAppliances()
       alert('Asset deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting appliance:', error)
-      alert('Failed to delete asset')
+    } catch (error: any) {
+      console.error('❌ Error deleting appliance:', error)
+      alert(`Failed to delete asset: ${error?.message || 'Unknown error'}`)
     }
   }
 
@@ -887,7 +926,49 @@ export function ApplianceTrackerAutoTrack() {
     if (!selectedAppliance || !supabase) return
 
     try {
-      const { error } = await supabase
+      // Get current user for safety
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        alert('You must be signed in to update assets.')
+        return
+      }
+
+      // ✅ PRIMARY: Update domain_entries (the data source for this component)
+      const { error: updateError } = await supabase
+        .from('domain_entries')
+        .update({
+          title: editForm.name || selectedAppliance.name,
+          description: (editForm.brand || (selectedAppliance as any).brand)
+            ? `${editForm.brand || (selectedAppliance as any).brand} ${(editForm.model || (selectedAppliance as any).model_number) || ''}`.trim()
+            : null,
+          metadata: {
+            name: editForm.name || selectedAppliance.name,
+            brand: editForm.brand || (selectedAppliance as any).brand,
+            model: editForm.model || (selectedAppliance as any).model_number,
+            serialNumber: editForm.serialNumber || selectedAppliance.serial_number,
+            purchaseDate: editForm.purchaseDate || selectedAppliance.purchase_date,
+            purchasePrice: Number(editForm.purchasePrice ?? selectedAppliance.purchase_price) || 0,
+            value: Number(editForm.purchasePrice ?? selectedAppliance.purchase_price) || 0,
+            warrantyExpiry: undefined,
+            maintenanceDue: undefined,
+            location: editForm.location || (selectedAppliance as any).location,
+            condition: (selectedAppliance as any).condition || 'Good',
+            estimatedLifespan: editForm.estimatedLifespan || (selectedAppliance as any).expected_lifespan,
+            notes: editForm.notes || undefined,
+          }
+        })
+        .eq('id', selectedAppliance.id)
+        .eq('user_id', user.id)
+
+      if (updateError) {
+        console.error('❌ Failed to update asset:', updateError)
+        throw updateError
+      }
+
+      console.log('✅ Asset updated in domain_entries')
+
+      // Optional: Also sync to legacy appliances table
+      const { error: legacyUpdateError } = await supabase
         .from('appliances')
         .update({
           name: editForm.name,
@@ -895,55 +976,15 @@ export function ApplianceTrackerAutoTrack() {
           model_number: editForm.model,
           serial_number: editForm.serialNumber || null,
           purchase_date: editForm.purchaseDate,
-          // Preserve exactly what the user entered
           purchase_price: Number(editForm.purchasePrice),
           location: editForm.location || null,
           expected_lifespan: editForm.estimatedLifespan,
           notes: editForm.notes || null
         })
         .eq('id', selectedAppliance.id)
-
-      if (error) throw error
-
-      // Synchronize to domain_entries so dashboard metrics reflect this appliance
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const { error: syncError } = await supabase
-            .from('domain_entries')
-            .upsert({
-              id: selectedAppliance.id,  // Use the actual UUID, don't modify it
-              user_id: user.id,
-              domain: 'appliances',
-              title: editForm.name || selectedAppliance.name,
-              description: (editForm.brand || (selectedAppliance as any).brand)
-                ? `${editForm.brand || (selectedAppliance as any).brand} ${(editForm.model || (selectedAppliance as any).model_number) || ''}`.trim()
-                : null,
-              metadata: {
-                name: editForm.name || selectedAppliance.name,
-                brand: editForm.brand || (selectedAppliance as any).brand,
-                model: editForm.model || (selectedAppliance as any).model_number,
-                serialNumber: editForm.serialNumber || selectedAppliance.serial_number,
-                purchaseDate: editForm.purchaseDate || selectedAppliance.purchase_date,
-                purchasePrice: Number(editForm.purchasePrice ?? selectedAppliance.purchase_price) || 0,
-                value: Number(editForm.purchasePrice ?? selectedAppliance.purchase_price) || 0,
-                warrantyExpiry: undefined,
-                maintenanceDue: undefined,
-                location: editForm.location || (selectedAppliance as any).location,
-                condition: (selectedAppliance as any).condition || 'Good',
-                estimatedLifespan: editForm.estimatedLifespan || (selectedAppliance as any).expected_lifespan,
-                notes: editForm.notes || undefined,
-              }
-            })
-          
-          if (syncError) {
-            console.error('❌ Failed to sync to domain_entries:', syncError)
-          } else {
-            console.log('✅ Successfully synced appliance to domain_entries')
-          }
-        }
-      } catch (e) {
-        console.error('⚠️ Failed to sync appliance to domain_entries:', e)
+      if (legacyUpdateError) {
+        // Ignore legacy table errors
+        console.warn('⚠️ Legacy appliances table sync skipped:', legacyUpdateError.message)
       }
 
       await loadAppliances()
@@ -974,13 +1015,18 @@ export function ApplianceTrackerAutoTrack() {
 
   if (appliances.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0f1419] p-6">
+      <div className="min-h-screen bg-[#0f1419] p-4 md:p-6">
+        {/* Back Button */}
+        <div className="mb-6">
+          <DomainBackButton variant="dark" />
+        </div>
+        
         <Card className="bg-[#1a202c] border-gray-800">
-          <CardContent className="p-12 text-center">
-            <Refrigerator className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Assets Added</h3>
-            <p className="text-gray-400 mb-6">Start tracking your valuable assets by adding your first one.</p>
-            <Button onClick={() => setIsAddApplianceOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <CardContent className="p-8 md:p-12 text-center">
+            <Refrigerator className="w-12 h-12 md:w-16 md:h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No Assets Added</h3>
+            <p className="text-sm md:text-base text-gray-400 mb-6">Start tracking your valuable assets by adding your first one.</p>
+            <Button onClick={() => setIsAddApplianceOpen(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Add Your First Asset
             </Button>
@@ -1145,30 +1191,31 @@ export function ApplianceTrackerAutoTrack() {
 
   const totalValue = appliances.reduce((sum, a) => sum + (a.purchase_price || 0), 0)
   const totalMaintenance = maintenanceRecords.length
-  const totalCosts = costs.reduce((sum, c) => sum + (c.amount || 0), 0)
+  // Total costs includes purchase prices + all maintenance/repair costs
+  const totalCosts = totalValue + costs.reduce((sum, c) => sum + (c.amount || 0), 0)
   const activeWarranties = warranties.filter(w => new Date(w.expiry_date) > new Date()).length
 
   return (
     <div className="min-h-screen bg-[#0f1419] text-white">
       {/* Header */}
       <div className="bg-[#1a202c] border-b border-gray-800">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => router.push('/domains')}
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
-              >
-                <ChevronLeft className="w-5 h-5 mr-1" />
-                Back
-              </Button>
+        <div className="px-4 md:px-6 py-4">
+          {/* Back Button */}
+          <div className="mb-4">
+            <DomainBackButton variant="dark" />
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-emerald-600 rounded-2xl flex items-center justify-center">
+                <Refrigerator className="w-6 h-6 md:w-7 md:h-7 text-white" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">Asset Tracker Pro</h1>
-                <p className="text-gray-400">Track Valuable Assets & Warranties</p>
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">Asset Tracker Pro</h1>
+                <p className="text-xs md:text-sm text-gray-400">Track Valuable Assets & Warranties</p>
               </div>
             </div>
-            <Button onClick={() => setIsAddApplianceOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => setIsAddApplianceOpen(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Add Asset
             </Button>
@@ -1231,52 +1278,148 @@ export function ApplianceTrackerAutoTrack() {
       <div className="p-6">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Refrigerator className="w-8 h-8 text-white opacity-80" />
-                    <Badge className="bg-white/20 text-white border-0">Active</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{appliances.length}</div>
-                  <div className="text-sm text-blue-100">Total Assets</div>
-                </CardContent>
-              </Card>
+            {/* Per-Asset Dashboard (when asset selected) or Global Overview */}
+            {selectedAppliance ? (
+              <>
+                {/* ITEM-SPECIFIC STATS */}
+                {(() => {
+                  // Calculate item-specific stats
+                  const itemCosts = costs.filter(c => c.appliance_id === selectedAppliance.id)
+                  const itemMaintenance = maintenanceRecords.filter(m => m.appliance_id === selectedAppliance.id)
+                  const itemWarranties = warranties.filter(w => w.appliance_id === selectedAppliance.id)
+                  const itemActiveWarranties = itemWarranties.filter(w => new Date(w.expiry_date) > new Date())
+                  const itemTotalCosts = (selectedAppliance.purchase_price || 0) + itemCosts.reduce((sum, c) => sum + (c.amount || 0), 0)
+                  
+                  // Calculate depreciation & lifespan
+                  const purchaseDate = selectedAppliance.purchase_date ? new Date(selectedAppliance.purchase_date) : null
+                  const lifespan = (selectedAppliance as any).expected_lifespan || 10
+                  const ageInYears = purchaseDate ? (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365) : 0
+                  const lifespanProgress = Math.min(100, (ageInYears / lifespan) * 100)
+                  const estimatedCurrentValue = Math.max(0, (selectedAppliance.purchase_price || 0) * (1 - (ageInYears / lifespan)))
+                  const nextMaintenance = itemMaintenance.find(m => new Date(m.scheduled_date || m.date) > new Date())
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {/* Asset Value Card */}
+                      <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 border-0">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <DollarSign className="w-8 h-8 text-white opacity-80" />
+                            <Badge className="bg-white/20 text-white border-0">Value</Badge>
+                          </div>
+                          <div className="text-3xl font-bold text-white mb-1">${(selectedAppliance.purchase_price || 0).toLocaleString()}</div>
+                          <div className="text-sm text-emerald-100">Purchase Price</div>
+                          <div className="mt-2 text-xs text-emerald-200">
+                            Est. Current: ${estimatedCurrentValue.toFixed(0)}
+                          </div>
+                        </CardContent>
+                      </Card>
 
-              <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Calendar className="w-8 h-8 text-white opacity-80" />
-                    <Badge className="bg-white/20 text-white border-0">Scheduled</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{totalMaintenance}</div>
-                  <div className="text-sm text-orange-100">Service Records</div>
-                </CardContent>
-              </Card>
+                      {/* Lifespan Progress Card */}
+                      <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <Clock className="w-8 h-8 text-white opacity-80" />
+                            <Badge className="bg-white/20 text-white border-0">Age</Badge>
+                          </div>
+                          <div className="text-3xl font-bold text-white mb-1">{ageInYears.toFixed(1)} yrs</div>
+                          <div className="text-sm text-blue-100">of {lifespan} year lifespan</div>
+                          <div className="mt-2 w-full bg-white/20 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${lifespanProgress > 80 ? 'bg-red-400' : lifespanProgress > 50 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                              style={{ width: `${lifespanProgress}%` }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
 
-              <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <DollarSign className="w-8 h-8 text-white opacity-80" />
-                    <Badge className="bg-white/20 text-white border-0">YTD</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">${totalCosts.toFixed(0)}</div>
-                  <div className="text-sm text-green-100">Total Costs</div>
-                </CardContent>
-              </Card>
+                      {/* Item Total Costs Card */}
+                      <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <Receipt className="w-8 h-8 text-white opacity-80" />
+                            <Badge className="bg-white/20 text-white border-0">Spent</Badge>
+                          </div>
+                          <div className="text-3xl font-bold text-white mb-1">${itemTotalCosts.toLocaleString()}</div>
+                          <div className="text-sm text-orange-100">Total Investment</div>
+                          <div className="mt-2 text-xs text-orange-200">
+                            {itemMaintenance.length} service records • {itemCosts.length} expenses
+                          </div>
+                        </CardContent>
+                      </Card>
 
-              <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Shield className="w-8 h-8 text-white opacity-80" />
-                    <Badge className="bg-white/20 text-white border-0">Protected</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{activeWarranties}/{warranties.length}</div>
-                  <div className="text-sm text-purple-100">Active Warranties</div>
-                </CardContent>
-              </Card>
-            </div>
+                      {/* Warranty Status Card */}
+                      <Card className={`bg-gradient-to-br ${itemActiveWarranties.length > 0 ? 'from-purple-600 to-purple-700' : 'from-gray-600 to-gray-700'} border-0`}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <Shield className="w-8 h-8 text-white opacity-80" />
+                            <Badge className={`${itemActiveWarranties.length > 0 ? 'bg-white/20' : 'bg-red-500/50'} text-white border-0`}>
+                              {itemActiveWarranties.length > 0 ? 'Protected' : 'Expired'}
+                            </Badge>
+                          </div>
+                          <div className="text-3xl font-bold text-white mb-1">
+                            {itemActiveWarranties.length}/{itemWarranties.length}
+                          </div>
+                          <div className="text-sm text-purple-100">Active Warranties</div>
+                          {itemActiveWarranties[0] && (
+                            <div className="mt-2 text-xs text-purple-200">
+                              Expires: {new Date(itemActiveWarranties[0].expiry_date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )
+                })()}
+              </>
+            ) : (
+              /* GLOBAL OVERVIEW STATS (when no asset selected) */
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <Refrigerator className="w-8 h-8 text-white opacity-80" />
+                      <Badge className="bg-white/20 text-white border-0">Active</Badge>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-1">{appliances.length}</div>
+                    <div className="text-sm text-blue-100">Total Assets</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <Calendar className="w-8 h-8 text-white opacity-80" />
+                      <Badge className="bg-white/20 text-white border-0">Scheduled</Badge>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-1">{totalMaintenance}</div>
+                    <div className="text-sm text-orange-100">Service Records</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <DollarSign className="w-8 h-8 text-white opacity-80" />
+                      <Badge className="bg-white/20 text-white border-0">YTD</Badge>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-1">${totalCosts.toFixed(0)}</div>
+                    <div className="text-sm text-green-100">Total Costs</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <Shield className="w-8 h-8 text-white opacity-80" />
+                      <Badge className="bg-white/20 text-white border-0">Protected</Badge>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-1">{activeWarranties}/{warranties.length}</div>
+                    <div className="text-sm text-purple-100">Active Warranties</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Appliance Details */}
             {selectedAppliance && (
@@ -1439,7 +1582,7 @@ export function ApplianceTrackerAutoTrack() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                         <div>
                           <div className="text-sm text-gray-400 mb-1">Purchase Date</div>
                           <div className="text-white font-medium">
@@ -1449,6 +1592,32 @@ export function ApplianceTrackerAutoTrack() {
                         <div>
                           <div className="text-sm text-gray-400 mb-1">Purchase Price</div>
                           <div className="text-white font-medium">${(selectedAppliance.purchase_price || 0).toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-400 mb-1 flex items-center gap-1">
+                            <TrendingDown className="w-3 h-3" />
+                            Est. Current Value
+                          </div>
+                          <div className="text-emerald-400 font-bold text-lg">
+                            ${calculateApplianceCurrentValue({
+                              purchasePrice: selectedAppliance.purchase_price,
+                              purchaseDate: selectedAppliance.purchase_date,
+                              estimatedLifespan: (selectedAppliance as any).expected_lifespan
+                            }).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {(() => {
+                              const purchasePrice = selectedAppliance.purchase_price || 0
+                              const currentValue = calculateApplianceCurrentValue({
+                                purchasePrice: selectedAppliance.purchase_price,
+                                purchaseDate: selectedAppliance.purchase_date,
+                                estimatedLifespan: (selectedAppliance as any).expected_lifespan
+                              })
+                              const depreciation = purchasePrice - currentValue
+                              const depPercent = purchasePrice > 0 ? ((depreciation / purchasePrice) * 100).toFixed(0) : 0
+                              return depreciation > 0 ? `${depPercent}% depreciated` : 'New'
+                            })()}
+                          </div>
                         </div>
                         <div>
                           <div className="text-sm text-gray-400 mb-1">Est. Lifespan</div>

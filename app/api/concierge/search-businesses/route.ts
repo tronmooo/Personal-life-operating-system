@@ -30,8 +30,24 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Searching businesses for:', { intent, specificBusiness, locationAddress })
 
-    if (!intent) {
-      return NextResponse.json({ error: 'Intent required' }, { status: 400 })
+    // Google Places is required for real business search
+    const googleApiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+    if (!googleApiKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Google Places API is not configured. Set GOOGLE_PLACES_API_KEY (and enable billing + Places + Geocoding APIs).',
+          needsConfig: true,
+        },
+        { status: 500 }
+      )
+    }
+
+    // Allow either an intent ("pizza") or a specific business ("Pizza Hut")
+    const resolvedIntent = intent || specificBusiness
+    if (!resolvedIntent) {
+      return NextResponse.json({ success: false, error: 'Intent required' }, { status: 400 })
     }
 
     // Get user (optional - for future use with personalization)
@@ -50,15 +66,15 @@ export async function POST(request: NextRequest) {
     if (!location) {
       return NextResponse.json({
         success: false,
-        error: 'Location required. Please enable location access or enter your address manually.',
+        error: locationAddress
+          ? 'Could not locate that address. Please enter a full address including city and state (e.g. "123 Main St, City, ST").'
+          : 'Location required. Please enable location access or enter your address manually.',
         needsLocation: true
       }, { status: 400 })
     }
 
     // Build search query
-    const searchQuery = specificBusiness 
-      ? `${specificBusiness}` 
-      : intent
+    const searchQuery = specificBusiness ? `${specificBusiness}` : resolvedIntent
 
     // Search for businesses - sorted by distance (closest first)
     const businesses = await businessSearch.searchBusinesses(searchQuery, {
@@ -83,13 +99,15 @@ export async function POST(request: NextRequest) {
     for (const biz of businesses) {
       let phone = biz.formattedPhone || biz.phone
 
-      // Get details if no phone
+      // Get details if no phone (call Place Details API)
       if (!phone && biz.placeId) {
+        console.log(`📞 Fetching phone for ${biz.name} (placeId: ${biz.placeId})`)
         try {
           const details = await businessSearch.getBusinessDetails(biz.placeId)
           phone = details?.formattedPhone || details?.phone
-        } catch (e) {
-          console.warn('Failed to get details for', biz.name)
+          console.log(`📞 Got phone for ${biz.name}: ${phone || 'NOT FOUND'}`)
+        } catch (e: any) {
+          console.warn(`❌ Failed to get details for ${biz.name}:`, e.message)
         }
       }
 
@@ -130,9 +148,30 @@ export async function POST(request: NextRequest) {
 
   } catch (error: unknown) {
     console.error('Business search error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to search for businesses'
+
+    // Convert common Google Places misconfig into actionable 400s (instead of opaque 500s)
+    // Example: "REQUEST_DENIED - The provided API key is invalid."
+    const lower = message.toLowerCase()
+    const looksLikeGoogleConfig =
+      lower.includes('google places api key not configured') ||
+      lower.includes('google places api error: request_denied') ||
+      lower.includes('api key is invalid') ||
+      lower.includes('billing') ||
+      lower.includes('request_denied')
+
+    if (looksLikeGoogleConfig) {
+      return NextResponse.json({
+        success: false,
+        error: message,
+        needsGooglePlaces: true,
+        help: 'Set GOOGLE_PLACES_API_KEY (or NEXT_PUBLIC_GOOGLE_PLACES_API_KEY) to a valid key with Places API + Geocoding API enabled and billing on.'
+      }, { status: 400 })
+    }
+
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to search for businesses'
+      error: message
     }, { status: 500 })
   }
 }

@@ -14,6 +14,7 @@ export interface PetsStats {
   petProfileCount: number
   vaccinesDue: number
   vetVisitsLast30Cost: number
+  totalCosts: number
   monthlyCost: number
   vaccineAlerts: VaccineAlert[]
 }
@@ -28,6 +29,7 @@ export function usePetsStats() {
     petProfileCount: 0,
     vaccinesDue: 0,
     vetVisitsLast30Cost: 0,
+    totalCosts: 0,
     monthlyCost: 0,
     vaccineAlerts: [],
   })
@@ -57,6 +59,7 @@ export function usePetsStats() {
           petProfileCount: 0,
           vaccinesDue: 0,
           vetVisitsLast30Cost: 0,
+          totalCosts: 0,
           monthlyCost: 0,
           vaccineAlerts: [],
         })
@@ -73,6 +76,7 @@ export function usePetsStats() {
           petProfileCount: 0,
           vaccinesDue: 0,
           vetVisitsLast30Cost: 0,
+          totalCosts: 0,
           monthlyCost: 0,
           vaccineAlerts: [],
         })
@@ -123,9 +127,14 @@ export function usePetsStats() {
       // Calculate vet visits cost in last 30 days
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
       let vetVisitsLast30Cost = 0
+      let totalCosts = 0
       costsResults.forEach(result => {
         const costs = result.costs || []
         costs.forEach((cost: any) => {
+          // Add to total costs (all costs)
+          totalCosts += Number(cost.amount) || 0
+          
+          // Also track vet costs in last 30 days
           if (cost.cost_type === 'vet') {
             const costDate = new Date(cost.date)
             if (costDate >= thirtyDaysAgo) {
@@ -151,6 +160,7 @@ export function usePetsStats() {
         petProfileCount: petCount,
         vaccinesDue,
         vetVisitsLast30Cost,
+        totalCosts,
         monthlyCost,
         vaccineAlerts,
       })
@@ -162,6 +172,7 @@ export function usePetsStats() {
         petProfileCount: 0,
         vaccinesDue: 0,
         vetVisitsLast30Cost: 0,
+        totalCosts: 0,
         monthlyCost: 0,
         vaccineAlerts: [],
       })

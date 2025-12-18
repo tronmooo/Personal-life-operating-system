@@ -593,7 +593,7 @@ export class ShareService {
    */
   async executeShare(request: ShareRequest): Promise<ShareResult> {
     const details: ShareResult['details'] = []
-    let generatedFiles: string[] = []
+    const generatedFiles: string[] = []
 
     // Generate any needed exports
     if (request.data_query) {

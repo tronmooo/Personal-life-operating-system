@@ -5,7 +5,7 @@
  * This can be used with a custom Node.js server or WebSocket-enabled platform
  */
 
-import { WebSocket } from 'ws'
+import { WebSocket, WebSocketServer } from 'ws'
 import { createAgentCoordinator } from './agent-coordinator'
 import type { CallContext } from './realtime-voice-agent'
 
@@ -332,7 +332,6 @@ export function getAudioHandler(): WebSocketAudioHandler {
  * This should be called from a custom server.js file
  */
 export function createWebSocketServer(server: any) {
-  const { WebSocketServer } = require('ws')
   const wss = new WebSocketServer({ 
     server,
     path: '/api/voice/stream'

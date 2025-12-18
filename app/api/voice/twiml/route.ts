@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createTwilioService } from '@/lib/services/twilio-voice-service'
+import { getPublicWsBaseUrl } from '@/lib/utils/public-url'
 
 /**
  * GET/POST /api/voice/twiml
@@ -37,8 +38,8 @@ async function handleTwiML(request: Request) {
     }
 
     // Generate TwiML with WebSocket streaming for Realtime API
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const wsUrl = appUrl.replace('https://', 'wss://').replace('http://', 'ws://')
+    // Prefer the public origin Twilio is calling (or forwarded headers) so the WS URL is reachable.
+    const wsUrl = getPublicWsBaseUrl(request)
     
     console.log('🔗 TwiML WebSocket URL:', `${wsUrl}/api/voice/stream`)
     

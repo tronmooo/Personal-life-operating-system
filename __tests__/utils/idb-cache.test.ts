@@ -3,17 +3,12 @@
  * Tests CRUD operations for offline-first data caching
  */
 
-import { idbGet, idbSet, idbDel, idbGetAll, idbGetAllKeys } from '@/lib/utils/idb-cache'
+import { idbGet, idbSet, idbDel, idbGetAll, idbGetAllKeys, idbClear } from '@/lib/utils/idb-cache'
 
 describe('idb-cache', () => {
   beforeEach(async () => {
-    // Clear IndexedDB before each test
-    const dbs = await indexedDB.databases()
-    for (const db of dbs) {
-      if (db.name) {
-        indexedDB.deleteDatabase(db.name)
-      }
-    }
+    // Clear between tests (supports both IndexedDB-backed and in-memory fallback implementations)
+    await idbClear()
   })
 
   describe('idbSet and idbGet', () => {

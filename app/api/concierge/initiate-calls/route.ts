@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 
 import { businessSearch } from '@/lib/services/business-search'
 import { userContextBuilder } from '@/lib/services/user-context-builder'
+import { getPublicBaseUrl } from '@/lib/utils/public-url'
 
 interface Business {
   name: string
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Determine a search location
     // Priority: 1. Geocoded address 2. Lat/Long payload 3. User profile 4. Default
-    let location = await resolveUserLocation(user?.id, userLocation, locationAddress)
+    const location = await resolveUserLocation(user?.id, userLocation, locationAddress)
     
     // Debug logging to trace location resolution
     console.log('📍 Resolved Location:', { 
@@ -48,13 +49,13 @@ export async function POST(request: NextRequest) {
       resolved: location 
     })
 
-    // DEFAULT LOCATION: Use San Francisco if no location is provided (for testing)
+    // Require an explicit location for real concierge behavior (no silent defaults)
     if (!location) {
-      console.log('⚠️ No location found, using default San Francisco location for testing')
-      location = {
-        latitude: 37.7749,  // San Francisco
-        longitude: -122.4194
-      }
+      return NextResponse.json({
+        success: false,
+        error: 'Location required. Please enable location access or enter your address manually.',
+        needsLocation: true
+      }, { status: 400 })
     }
 
     // Find businesses based on intent and specific business name if provided
@@ -78,7 +79,8 @@ export async function POST(request: NextRequest) {
     // Initiate calls to all businesses
     const callPromises = businesses.map(async (business) => {
       try {
-        const callResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/voice/initiate-call`, {
+        const baseUrl = getPublicBaseUrl(request)
+        const callResponse = await fetch(`${baseUrl}/api/voice/initiate-call`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

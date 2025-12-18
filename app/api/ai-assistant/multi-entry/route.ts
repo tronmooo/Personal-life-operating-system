@@ -402,8 +402,31 @@ export async function POST(request: NextRequest) {
         // Normalize entity data to match what the UI expects
         const normalizedData: Record<string, any> = { ...entity.data }
         
+        // 🔧 FIX: Check for WATER FIRST before meals to prevent water from being misclassified as meal
+        // Check all possible ways the AI might indicate water: type, itemType, or logType
+        const isWaterEntry = entity.domain === 'nutrition' && (
+          normalizedData.type === 'water' ||
+          normalizedData.itemType === 'water' ||
+          normalizedData.logType === 'water' ||
+          entity.title?.toLowerCase().includes('water')
+        )
+        
+        // NUTRITION WATER: Ensure proper type field (CHECK THIS FIRST!)
+        if (isWaterEntry) {
+          console.log(`💧 [MULTI-ENTRY] Detected water entry, normalizing...`)
+          normalizedData.type = 'water'
+          normalizedData.logType = 'water'
+          normalizedData.value = Number(normalizedData.water) || Number(normalizedData.value) || Number(normalizedData.amount) || 0
+          normalizedData.unit = normalizedData.unit || 'oz'
+          // Remove fields that would cause it to be treated as a meal
+          delete normalizedData.itemType
+          delete normalizedData.mealType
+          delete normalizedData.calories
+          console.log(`💧 [MULTI-ENTRY] Normalized water data:`, normalizedData)
+        }
         // NUTRITION MEALS: Ensure proper type and logType fields + estimate macros
-        if (entity.domain === 'nutrition' && (normalizedData.itemType === 'meal' || normalizedData.mealType)) {
+        // Only process as meal if it's NOT a water entry
+        else if (entity.domain === 'nutrition' && (normalizedData.itemType === 'meal' || normalizedData.mealType || normalizedData.type === 'meal')) {
           normalizedData.type = 'meal'
           normalizedData.logType = 'meal'
           normalizedData.name = normalizedData.name || normalizedData.description || entity.title?.replace(/\s*\(.*?\)\s*$/, '') || 'Meal'
@@ -434,14 +457,6 @@ export async function POST(request: NextRequest) {
           }
           
           console.log(`🥗 [MULTI-ENTRY] Normalized meal data:`, normalizedData)
-        }
-        
-        // NUTRITION WATER: Ensure proper type field
-        if (entity.domain === 'nutrition' && normalizedData.itemType === 'water') {
-          normalizedData.type = 'water'
-          normalizedData.logType = 'water'
-          normalizedData.value = Number(normalizedData.water) || Number(normalizedData.value) || 0
-          delete normalizedData.itemType
         }
         
         const { data, error } = await supabase

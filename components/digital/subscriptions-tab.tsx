@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2, CreditCard, DollarSign, Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Plus, Trash2, CreditCard, DollarSign, Loader2, Edit } from 'lucide-react'
 import { sanitizeInput } from '@/lib/validation'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
 import { toast } from 'sonner'
@@ -23,8 +25,11 @@ interface Subscription {
 
 export function SubscriptionsTab() {
   // ✅ Use modern hook for real-time updates
-  const { entries, isLoading, createEntry, deleteEntry } = useDomainEntries('digital')
+  const { entries, isLoading, createEntry, updateEntry, deleteEntry } = useDomainEntries('digital')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState<Partial<Subscription>>({})
+
 
   // #region agent log
   console.log('🔍 [DEBUG-SUBS-TAB] useDomainEntries("digital") returned:', entries.length, 'entries')
@@ -114,6 +119,46 @@ export function SubscriptionsTab() {
     } catch (error) {
       console.error('Failed to delete subscription:', error)
       toast.error('Failed to delete subscription. Please try again.')
+    }
+  }
+
+  const handleEdit = (sub: typeof subscriptions[0]) => {
+    setEditingId(sub.id)
+    setEditFormData({
+      serviceName: String(sub.serviceName || ''),
+      category: String(sub.category || ''),
+      monthlyCost: String(sub.monthlyCost || ''),
+      billingCycle: (sub.billingCycle as Subscription['billingCycle']) || 'Monthly',
+      renewalDate: String(sub.renewalDate || ''),
+      status: (sub.status as Subscription['status']) || 'Active',
+      notes: sub.notes ? String(sub.notes) : undefined
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return
+    
+    try {
+      await updateEntry({
+        id: editingId,
+        title: `${editFormData.serviceName} Subscription`,
+        metadata: {
+          type: 'subscription',
+          serviceName: editFormData.serviceName,
+          category: editFormData.category,
+          monthlyCost: editFormData.monthlyCost,
+          billingCycle: editFormData.billingCycle,
+          renewalDate: editFormData.renewalDate,
+          status: editFormData.status,
+          notes: editFormData.notes
+        }
+      })
+      setEditingId(null)
+      setEditFormData({})
+      toast.success('Subscription updated successfully!')
+    } catch (error) {
+      console.error('Failed to update subscription:', error)
+      toast.error('Failed to update subscription. Please try again.')
     }
   }
 
@@ -290,20 +335,137 @@ export function SubscriptionsTab() {
                     )}
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(sub.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(sub)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(sub.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Subscription</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Service Name</Label>
+              <Input
+                value={editFormData.serviceName || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, serviceName: e.target.value })}
+                placeholder="Netflix, Spotify, etc."
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select
+                value={editFormData.category || ''}
+                onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Streaming">Streaming</SelectItem>
+                  <SelectItem value="Software">Software</SelectItem>
+                  <SelectItem value="Gaming">Gaming</SelectItem>
+                  <SelectItem value="Music">Music</SelectItem>
+                  <SelectItem value="News">News</SelectItem>
+                  <SelectItem value="Productivity">Productivity</SelectItem>
+                  <SelectItem value="Storage">Storage</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Monthly Cost</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.monthlyCost || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, monthlyCost: e.target.value })}
+                  placeholder="9.99"
+                />
+              </div>
+              <div>
+                <Label>Billing Cycle</Label>
+                <Select
+                  value={editFormData.billingCycle || 'Monthly'}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, billingCycle: value as Subscription['billingCycle'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Monthly">Monthly</SelectItem>
+                    <SelectItem value="Yearly">Yearly</SelectItem>
+                    <SelectItem value="Quarterly">Quarterly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Renewal Date</Label>
+                <Input
+                  type="date"
+                  value={editFormData.renewalDate || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, renewalDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={editFormData.status || 'Active'}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, status: value as Subscription['status'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Trial">Trial</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={editFormData.notes || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Plus, Home as HomeIcon, Trash2, Edit } from 'lucide-react'
 import { AddHomeDialog } from '@/components/home/add-home-dialog'
 import { EditHomeDialog } from '@/components/home/edit-home-dialog'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Home {
   id: string
@@ -24,7 +26,7 @@ interface Home {
 
 export function HomePageWrapper() {
   const router = useRouter()
-  const { entries, createEntry, updateEntry, deleteEntry } = useDomainEntries('home')
+  const { entries, isLoading, createEntry, updateEntry, deleteEntry } = useDomainEntries('home')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingHome, setEditingHome] = useState<Home | null>(null)
@@ -112,6 +114,61 @@ export function HomePageWrapper() {
     setShowEditDialog(true)
   }
 
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-4">
+              <DomainBackButton variant="light" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 md:p-3 bg-white/20 rounded-xl">
+                <HomeIcon className="h-6 w-6 md:h-8 md:w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Property Manager</h1>
+                <p className="text-purple-100 text-sm md:text-base">Manage your properties, maintenance, and assets</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto p-4 md:p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <HomeIcon className="h-5 w-5 md:h-6 md:w-6" />
+            <h1 className="text-xl md:text-2xl font-bold">My Properties</h1>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+                <div className="flex items-start justify-between mb-4">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <div className="text-right space-y-2">
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-6 w-20" />
+                  </div>
+                </div>
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-4" />
+                <div className="grid grid-cols-2 gap-3 pt-4 border-t">
+                  <div>
+                    <Skeleton className="h-3 w-16 mb-1" />
+                    <Skeleton className="h-6 w-8" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-3 w-16 mb-1" />
+                    <Skeleton className="h-6 w-8" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (homes.length === 0) {
     return (
       <>
@@ -128,25 +185,32 @@ export function HomePageWrapper() {
             onEdit={handleEditHome}
           />
         )}
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center p-6">
-          <Card className="max-w-md w-full p-12 text-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-            <div className="mb-6 flex justify-center">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 flex items-center justify-center">
-                <HomeIcon className="h-16 w-16 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
-              </div>
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 p-4 md:p-6">
+          <div className="max-w-md mx-auto">
+            {/* Back Button */}
+            <div className="mb-6">
+              <DomainBackButton />
             </div>
-            <h2 className="text-3xl font-bold mb-3 text-slate-900 dark:text-white">No Homes Added Yet</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
-              Get started by adding your first property
-            </p>
-            <Button 
-              onClick={() => setShowAddDialog(true)}
-              className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
-            >
-              <Plus className="h-6 w-6 mr-2" />
-              Add Your First Home
-            </Button>
-          </Card>
+            
+            <Card className="w-full p-8 md:p-12 text-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <div className="mb-6 flex justify-center">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 flex items-center justify-center">
+                  <HomeIcon className="h-12 w-12 md:h-16 md:w-16 text-purple-600 dark:text-purple-400" strokeWidth={1.5} />
+                </div>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3 text-slate-900 dark:text-white">No Homes Added Yet</h2>
+              <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 mb-8">
+                Get started by adding your first property
+              </p>
+              <Button 
+                onClick={() => setShowAddDialog(true)}
+                className="w-full h-12 md:h-14 text-base md:text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
+              >
+                <Plus className="h-5 w-5 md:h-6 md:w-6 mr-2" />
+                Add Your First Home
+              </Button>
+            </Card>
+          </div>
         </div>
       </>
     )
@@ -168,22 +232,33 @@ export function HomePageWrapper() {
         />
       )}
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold mb-2">Property Manager</h1>
-            <p className="text-purple-100">Manage your properties, maintenance, and assets</p>
+            {/* Back Button */}
+            <div className="mb-4">
+              <DomainBackButton variant="light" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 md:p-3 bg-white/20 rounded-xl">
+                <HomeIcon className="h-6 w-6 md:h-8 md:w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Property Manager</h1>
+                <p className="text-purple-100 text-sm md:text-base">Manage your properties, maintenance, and assets</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="max-w-7xl mx-auto p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <HomeIcon className="h-6 w-6" />
-              <h1 className="text-2xl font-bold">My Properties</h1>
+              <HomeIcon className="h-5 w-5 md:h-6 md:w-6" />
+              <h1 className="text-xl md:text-2xl font-bold">My Properties</h1>
             </div>
             <Button 
               onClick={() => setShowAddDialog(true)}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 w-full sm:w-auto"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Property
@@ -256,6 +331,11 @@ export function HomePageWrapper() {
     </>
   )
 }
+
+
+
+
+
 
 
 

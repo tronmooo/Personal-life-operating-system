@@ -5,8 +5,10 @@ import { idbGet, idbSet, idbDel } from '@/lib/utils/idb-cache'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
+import { debugIngest } from '@/lib/utils/debug-ingest'
 import {
   AlertTriangle,
   CheckCircle,
@@ -41,9 +43,12 @@ import {
   Star,
   Calendar,
   Loader2,
+  Zap,
+  CreditCard,
 } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { calculateUnifiedNetWorth } from '@/lib/utils/unified-financial-calculator'
+import { useServiceProviders } from '@/lib/hooks/use-service-providers'
 import { CategorizedAlertsDialog } from '../dialogs/categorized-alerts-dialog'
 import { getTodayNutrition, calculateTodayTotals } from '@/lib/nutrition-daily-tracker'
 import Link from 'next/link'
@@ -117,6 +122,7 @@ export function CommandCenterRedesigned() {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const { data, tasks, habits, events, addTask, updateTask, deleteTask, addHabit, toggleHabit, deleteHabit, addEvent, isLoading, isLoaded } = useData()
+  const { analytics: serviceProvidersAnalytics, analyticsLoading: serviceProvidersLoading } = useServiceProviders()
   const [addTaskOpen, setAddTaskOpen] = useState(false)
   const [addHabitOpen, setAddHabitOpen] = useState(false)
   const [addEventOpen, setAddEventOpen] = useState(false)
@@ -144,17 +150,28 @@ export function CommandCenterRedesigned() {
   useEffect(() => {
     const handleDataUpdate = (event: CustomEvent) => {
       console.log('🔔 Dashboard received data update event:', event.detail)
+      // #region agent log
+      debugIngest({
+        location: 'command-center-redesigned.tsx:handleDataUpdate',
+        message: 'Dashboard received data-updated event',
+        data: { domain: event.detail?.domain, action: event.detail?.action, dataCount: event.detail?.data?.length },
+        sessionId: 'debug-session',
+        hypothesisId: 'H5',
+      })
+      // #endregion
       setRefreshTrigger(prev => prev + 1) // Force re-render of memoized stats
     }
 
     window.addEventListener('data-updated', handleDataUpdate as EventListener)
     window.addEventListener('fitness-data-updated', handleDataUpdate as EventListener)
     window.addEventListener('financial-data-updated', handleDataUpdate as EventListener)
+    window.addEventListener('digital-data-updated', handleDataUpdate as EventListener)
     
     return () => {
       window.removeEventListener('data-updated', handleDataUpdate as EventListener)
       window.removeEventListener('fitness-data-updated', handleDataUpdate as EventListener)
       window.removeEventListener('financial-data-updated', handleDataUpdate as EventListener)
+      window.removeEventListener('digital-data-updated', handleDataUpdate as EventListener)
     }
   }, [])
   
@@ -298,6 +315,21 @@ export function CommandCenterRedesigned() {
           .select('*')
           .eq('user_id', user.id)
         
+        // #region agent log
+        console.log('🔴🔴🔴 [DEBUG] Vehicles table query result:', {
+          vehiclesCount: vehicles?.length||0,
+          vehicleIds: vehicles?.map((v:any)=>v.id)||[],
+          error: error?.message||null
+        });
+        debugIngest({
+          location: 'command-center-redesigned.tsx:loadVehicles',
+          message: 'Loaded from vehicles table',
+          data: { vehiclesCount: vehicles?.length || 0, vehicleIds: vehicles?.map((v: any) => v.id) || [], error: error?.message || null },
+          sessionId: 'debug-session',
+          hypothesisId: 'H2',
+        })
+        // #endregion
+
         if (error) {
           // Vehicles table might not exist or have different structure - that's OK
           // We'll rely on domain_entries for vehicles
@@ -609,7 +641,8 @@ export function CommandCenterRedesigned() {
         unified.breakdown.homeValue +
         unified.breakdown.vehicleValue +
         unified.breakdown.collectiblesValue +
-        unified.breakdown.miscValue,
+        unified.breakdown.miscValue +
+        unified.breakdown.appliancesValue,
       liabilities: unified.breakdown.financialLiabilities,
       netWorth: unified.netWorth,
       income: financialActivity.incomeLast30,
@@ -622,7 +655,7 @@ export function CommandCenterRedesigned() {
     const items = Array.isArray(data.financial) ? data.financial : []
     const insuranceItems = Array.isArray(data.insurance) ? data.insurance : []
     const digitalItems = Array.isArray(data.digital) ? data.digital : []
-    const initial = { housing: 0, food: 0, insurance: 0, transport: 0, utilities: 0, other: 0 }
+    const initial = { housing: 0, food: 0, insurance: 0, transport: 0, utilities: 0, pets: 0, other: 0 }
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
@@ -715,7 +748,7 @@ export function CommandCenterRedesigned() {
       }
     })
 
-    // Add digital subscriptions to utilities category
+    // Add digital subscriptions to "Other" category
     // #region agent log
     console.log('🔍 [DEBUG-H1] Digital items for monthlyExpenses:', digitalItems.length, digitalItems.slice(0, 5).map((i: any) => ({ title: i.title, type: i.metadata?.type, cost: i.metadata?.monthlyCost || i.metadata?.cost })))
     // #endregion
@@ -735,35 +768,126 @@ export function CommandCenterRedesigned() {
         console.log('🔍 [DEBUG-H2] Subscription found:', item.title, 'cost:', cost)
         // #endregion
         if (cost > 0) {
-          result.utilities += cost
+          result.other += cost  // Changed from utilities to other
         }
       }
     })
 
-    // Add home domain utility bills to utilities category
+    // Add ALL home domain bills to appropriate categories
     const homeItems = Array.isArray(data.home) ? data.home : []
+    console.log('🏠 [MONTHLY-EXPENSES] Processing home domain for bills:', {
+      homeItemsCount: homeItems.length,
+      homeItemsSample: homeItems.slice(0, 5).map((i: any) => ({
+        id: i.id,
+        title: i.title,
+        itemType: i.metadata?.itemType,
+        category: i.metadata?.category,
+        amount: i.metadata?.amount
+      }))
+    })
+    
     homeItems.forEach(item => {
       const meta = item?.metadata || {}
-      const tokens = normaliseTokens(meta)
       
-      // Check if this is a utility bill or recurring bill
-      const isUtilityBill = tokens.includes('utility') || 
-                           tokens.includes('utility_payment') ||
-                           meta?.type === 'utility_payment' ||
-                           meta?.type === 'utility' ||
-                           (meta?.itemType === 'bill' && meta?.category === 'utilities')
+      // Check if this is a bill from the home domain
+      const itemType = String(meta?.itemType || '').toLowerCase()
+      if (itemType !== 'bill') return
       
-      if (isUtilityBill) {
-        const amount = parseFloat(String(meta?.amount || meta?.monthlyCost || meta?.cost || 0))
-        if (amount > 0) {
-          result.utilities += amount
-          console.log(`💡 Added utility bill to monthlyExpenses: $${amount}`)
-        }
+      const amount = parseFloat(String(meta?.amount || meta?.monthlyCost || meta?.cost || 0))
+      if (amount <= 0) return
+      
+      const category = String(meta?.category || '').toLowerCase()
+      
+      // Categorize home bills into the appropriate expense bucket
+      if (category === 'mortgage' || category === 'rent' || category === 'tax') {
+        // Mortgage, rent, and property tax go to housing
+        result.housing += amount
+        console.log(`🏠 Added home ${category} bill to housing: $${amount} (${item.title})`)
+      } else if (category === 'utilities') {
+        result.utilities += amount
+        console.log(`💡 Added home utilities bill to utilities: $${amount} (${item.title})`)
+      } else if (category === 'insurance') {
+        result.insurance += amount
+        console.log(`🛡️ Added home insurance bill to insurance: $${amount} (${item.title})`)
+      } else {
+        // 'other' or any unknown category
+        result.other += amount
+        console.log(`📄 Added home ${category || 'other'} bill to other: $${amount} (${item.title})`)
       }
     })
 
+    // Add service provider costs from dedicated service_providers table
+    if (serviceProvidersAnalytics?.spending_by_category) {
+      serviceProvidersAnalytics.spending_by_category.forEach(({ category, amount }) => {
+        if (category === 'insurance') {
+          result.insurance += amount
+        } else if (category === 'utilities' || category === 'telecom') {
+          result.utilities += amount
+        } else {
+          result.other += amount
+        }
+      })
+    }
+
+    // Add vehicle domain costs (fuel, repair, maintenance) to transport category
+    // Include costs from the CURRENT MONTH (not just last 30 days)
+    const vehicleItems = Array.isArray(data.vehicles) ? data.vehicles : []
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    
+    console.log('🚗 [MONTHLY-EXPENSES] Processing vehicle domain for costs:', {
+      vehicleItemsCount: vehicleItems.length,
+      startOfMonth: startOfMonth.toISOString(),
+      thirtyDaysAgo: thirtyDaysAgo.toISOString(),
+      vehicleItemsSample: vehicleItems.slice(0, 15).map((i: any) => ({
+        id: i.id,
+        title: i.title,
+        type: i.metadata?.type,
+        costType: i.metadata?.costType,
+        amount: i.metadata?.amount,
+        date: i.metadata?.date
+      }))
+    })
+    
+    let vehicleCostTotal = 0
+    vehicleItems.forEach(item => {
+      const meta = item?.metadata || {}
+      const itemType = String(meta?.type || '').toLowerCase()
+      
+      // Only process cost entries from vehicles domain
+      if (itemType !== 'cost') {
+        return
+      }
+      
+      const amount = parseFloat(String(meta?.amount || 0))
+      if (amount <= 0) {
+        console.log(`🚗 [TRANSPORT] Skipping ${item.title}: amount <= 0 (${meta?.amount})`)
+        return
+      }
+      
+      // Check if within current month OR last 30 days (whichever is more inclusive)
+      const dateValue = meta?.date || item?.createdAt
+      if (dateValue) {
+        const costDate = new Date(dateValue)
+        const isInCurrentMonth = costDate >= startOfMonth
+        const isInLast30Days = costDate >= thirtyDaysAgo
+        
+        if (!isInCurrentMonth && !isInLast30Days) {
+          console.log(`🚗 [TRANSPORT] Skipping ${item.title}: date ${costDate.toISOString()} is before ${startOfMonth.toISOString()} (start of month) AND ${thirtyDaysAgo.toISOString()} (30 days ago)`)
+          return
+        }
+      }
+      
+      // All vehicle costs (fuel, repair, maintenance, insurance, etc.) go to transport
+      result.transport += amount
+      vehicleCostTotal += amount
+      console.log(`🚗 [TRANSPORT] ✅ Added vehicle cost: $${amount} (${item.title}, type: ${meta?.costType})`)
+    })
+    
+    console.log('🚗 [MONTHLY-EXPENSES] Vehicle costs total added to transport:', vehicleCostTotal)
+
     return result
-  }, [data.financial, data.insurance, data.digital, data.home])
+  }, [data.financial, data.insurance, data.digital, data.home, data.vehicles, serviceProvidersAnalytics])
   const [isClient, setIsClient] = useState(false)
 
   const formatNumber = (value: number | undefined | null, digits = 0, hasData = true) => {
@@ -1042,21 +1166,62 @@ export function CommandCenterRedesigned() {
   const vehiclesStats = useMemo(() => {
     const fromDomainEntries = (data.vehicles || []) as any[]
     const fromTable = vehiclesFromTable || []
+    const today = new Date()
+    const fourteenDaysFromNow = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)
     
-    // Filter domain_entries for vehicles
+    // #region agent log
+    console.log('🔴🔴🔴 [DEBUG] vehiclesStats computing:', {
+      fromDomainEntriesCount: fromDomainEntries.length,
+      fromDomainEntriesIds: fromDomainEntries.map((e:any)=>e.id),
+      fromTableCount: fromTable.length,
+      fromTableIds: fromTable.map((e:any)=>e.id),
+      refreshTrigger
+    });
+    debugIngest({
+      location: 'command-center-redesigned.tsx:vehiclesStats',
+      message: 'Computing vehiclesStats',
+      data: {
+        fromDomainEntriesCount: fromDomainEntries.length,
+        fromDomainEntriesIds: fromDomainEntries.map((e: any) => e.id),
+        fromTableCount: fromTable.length,
+        fromTableIds: fromTable.map((e: any) => e.id),
+        refreshTrigger,
+      },
+      sessionId: 'debug-session',
+      hypothesisId: 'H2,H4',
+    })
+    // #endregion
+    
+    // Filter domain_entries for actual vehicle entries (not maintenance/costs)
     const vehiclesFromEntries = fromDomainEntries.filter((entry) => {
       const meta = extractMetadata(entry)
       const itemType = pickStringTokens(meta, ['itemType', 'type']).join(' ')
       const hasVehicleIdentifiers = hasTruthyValue(meta, ['make', 'model', 'vin', 'vehicleName'])
-      return (
-        itemType.includes('vehicle') ||
-        itemType.includes('car') ||
-        itemType.includes('truck') ||
-        hasVehicleIdentifiers
-      )
+      // Only include actual vehicles, not maintenance/cost entries
+      const isVehicleEntry = itemType.includes('vehicle') || hasVehicleIdentifiers
+      const isMaintenanceOrCost = itemType.includes('maintenance') || itemType.includes('cost') || itemType.includes('warranty')
+      return isVehicleEntry && !isMaintenanceOrCost
     })
     
-    // Merge both sources
+    // Filter for maintenance entries to count upcoming services
+    const maintenanceEntries = fromDomainEntries.filter((entry) => {
+      const meta = extractMetadata(entry)
+      const itemType = pickStringTokens(meta, ['itemType', 'type']).join(' ')
+      const isMaintenance = itemType.includes('maintenance')
+      if (isMaintenance) {
+        console.log('🔧 [SERVICE-DUE] Found maintenance entry:', {
+          id: entry.id,
+          title: entry.title,
+          itemType,
+          nextServiceDate: meta['nextServiceDate'],
+          serviceDue: meta['serviceDue'],
+          dueDate: meta['dueDate']
+        })
+      }
+      return isMaintenance
+    })
+    
+    // Merge both sources for vehicle count
     const vehicles = [...vehiclesFromEntries, ...fromTable]
 
     const totalValue = vehicles.reduce((sum, entry) => {
@@ -1071,25 +1236,46 @@ export function CommandCenterRedesigned() {
       return sum + value
     }, 0)
 
-    const needsService = vehicles.filter((entry) => {
+    // Count services due: check both vehicle entries AND separate maintenance entries
+    let needsServiceCount = 0
+    
+    // Check vehicle entries themselves for service dates
+    vehicles.forEach((entry) => {
       const meta = extractMetadata(entry)
       if (meta['needsService'] === true) {
-        return true
+        needsServiceCount++
+        return
       }
 
       const serviceDate = pickFirstDate(meta, ['serviceDue', 'nextServiceDate', 'nextMaintenance', 'inspectionDue'])
-      if (serviceDate && serviceDate <= new Date()) {
-        return true
+      if (serviceDate && serviceDate <= fourteenDaysFromNow) {
+        needsServiceCount++
+        return
       }
 
       const statusTokens = pickStringTokens(meta, ['status', 'serviceStatus'])
       if (statusTokens.some((token) => ['due', 'overdue', 'needs service', 'attention'].some((flag) => token.includes(flag)))) {
-        return true
+        needsServiceCount++
       }
-
-      const itemType = pickStringTokens(meta, ['itemType']).join(' ')
-      return itemType.includes('service') || itemType.includes('maintenance')
-    }).length
+    })
+    
+    // Check separate maintenance entries for upcoming service dates
+    // Use 30-day window to match alert system behavior
+    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+    maintenanceEntries.forEach((entry) => {
+      const meta = extractMetadata(entry)
+      const nextServiceDate = pickFirstDate(meta, ['nextServiceDate', 'serviceDue', 'dueDate'])
+      console.log('🔧 [SERVICE-DUE] Checking maintenance:', {
+        title: entry.title,
+        nextServiceDate: nextServiceDate?.toISOString(),
+        thirtyDaysFromNow: thirtyDaysFromNow.toISOString(),
+        isWithinWindow: nextServiceDate && nextServiceDate <= thirtyDaysFromNow
+      })
+      if (nextServiceDate && nextServiceDate <= thirtyDaysFromNow) {
+        needsServiceCount++
+        console.log('🔧 [SERVICE-DUE] ✅ Counted maintenance entry:', entry.title)
+      }
+    })
 
     const totalMileage = vehicles.reduce((sum, entry) => {
       const meta = extractMetadata(entry)
@@ -1099,9 +1285,17 @@ export function CommandCenterRedesigned() {
       return sum + mileage
     }, 0)
 
-    console.log('🚗 Vehicles Stats:', { count: vehicles.length, totalValue, needsService, totalMileage, fromDomainEntries: vehiclesFromEntries.length, fromTable: fromTable.length })
+    console.log('🚗 Vehicles Stats:', { 
+      count: vehicles.length, 
+      totalValue, 
+      needsService: needsServiceCount, 
+      totalMileage, 
+      fromDomainEntries: vehiclesFromEntries.length, 
+      fromTable: fromTable.length,
+      maintenanceEntriesCount: maintenanceEntries.length
+    })
     
-    return { totalValue, needsService, totalMileage, count: vehicles.length }
+    return { totalValue, needsService: needsServiceCount, totalMileage, count: vehicles.length }
   }, [data.vehicles, vehiclesFromTable])
 
   // Liabilities breakdown from financial domain
@@ -1523,6 +1717,72 @@ export function CommandCenterRedesigned() {
     return { totalValue, categories, count: miscEntries.length }
   }, [data.miscellaneous, mapWithMeta])
 
+  // Service Providers metrics
+  const serviceProvidersStats = useMemo(() => {
+    const servicesEntries = mapWithMeta(Array.isArray(data.services) ? data.services : [])
+    if (!servicesEntries.length) {
+      return { 
+        count: 0, 
+        totalMonthlyCost: 0, 
+        insuranceCount: 0, 
+        utilitiesCount: 0,
+        renewingSoon: 0,
+        hasData: false
+      }
+    }
+
+    let totalMonthlyCost = 0
+    let insuranceCount = 0
+    let utilitiesCount = 0
+    let renewingSoon = 0
+    const now = new Date()
+
+    servicesEntries.forEach(({ meta }) => {
+      // Sum monthly costs
+      const monthlyCost = Number(meta.monthlyCost ?? 0)
+      const annualCost = Number(meta.annualCost ?? 0)
+      if (monthlyCost > 0) {
+        totalMonthlyCost += monthlyCost
+      } else if (annualCost > 0) {
+        totalMonthlyCost += annualCost / 12
+      }
+
+      // Count by type
+      const serviceType = String(meta.serviceType ?? '').toLowerCase()
+      if (serviceType.includes('insurance')) {
+        insuranceCount++
+      }
+      if (serviceType.includes('utility') || serviceType.includes('electric') || 
+          serviceType.includes('gas') || serviceType.includes('water') ||
+          serviceType.includes('internet') || serviceType.includes('mobile')) {
+        utilitiesCount++
+      }
+
+      // Check for contracts ending soon
+      const contractEnd = meta.contractEnd ?? meta.contractEndDate
+      if (contractEnd) {
+        const endDate = new Date(String(contractEnd))
+        if (!isNaN(endDate.getTime())) {
+          const daysUntil = differenceInDays(endDate, now)
+          if (daysUntil >= 0 && daysUntil <= 30) {
+            renewingSoon++
+          }
+        }
+      }
+    })
+
+    return { 
+      count: servicesEntries.length, 
+      totalMonthlyCost,
+      insuranceCount,
+      utilitiesCount,
+      renewingSoon,
+      hasData: true
+    }
+  }, [data.services, mapWithMeta])
+
+  const hasServiceProvidersData = serviceProvidersStats.hasData
+
   // Get critical alerts from real data
   const alerts = useMemo(() => {
     const urgentAlerts: any[] = []
@@ -1771,9 +2031,10 @@ export function CommandCenterRedesigned() {
         
         // Check for maintenance tasks due within 14 days
         if (daysUntilDue >= -7 && daysUntilDue <= 14) {
+          const categoryText = typeof meta.category === 'string' ? meta.category.toLowerCase() : ''
           const isMaintenance = meta.itemType === 'maintenance' || 
                                 meta.type === 'maintenance' ||
-                                meta.category?.toLowerCase().includes('maintenance')
+                                categoryText.includes('maintenance')
           
           if (isMaintenance || meta.dueDate) {
             const alertId = `home-maint-${item.id}-${dueDateStr}`
@@ -1896,7 +2157,8 @@ export function CommandCenterRedesigned() {
       .slice(0, 8) // Increased from 5 to 8 to show more alerts
   }, [data, expiringDocuments, tasks, dismissedAlerts, petsStats, appliancesFromTable, vehiclesFromTable, travelBookings])
 
-  const totalMonthlyExpenses = Object.values(monthlyExpenses).reduce((sum, val) => sum + val, 0)
+  // Include pet costs in total monthly expenses
+  const totalMonthlyExpenses = Object.values(monthlyExpenses).reduce((sum, val) => sum + val, 0) + (petsStats.totalCosts || 0)
 
   const [activeView, setActiveView] = useState('overview')
 
@@ -1991,6 +2253,11 @@ export function CommandCenterRedesigned() {
             </div>
           </div>
         )}
+
+        {/* Dashboard Header */}
+        <div className="mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Command Center</h1>
+        </div>
 
         {/* Top Row - Priority Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2181,9 +2448,6 @@ export function CommandCenterRedesigned() {
 
           {/* Upcoming Bills - Next 30 Days */}
           <UpcomingBillsCard />
-
-          {/* Recent Activity - Latest Updates Across Domains */}
-          <RecentActivityCard />
         </div>
 
         {/* Financial Stats Row */}
@@ -2215,18 +2479,22 @@ export function CommandCenterRedesigned() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Shield className="w-8 h-8 opacity-80" />
-              </div>
-              <div className="text-3xl font-bold mb-1" suppressHydrationWarning>
-                ${isClient ? (liabilitiesStats.total / 1000).toFixed(0) : 0}K
-              </div>
-              <div className="text-sm opacity-90">Liabilities</div>
-              <div className="text-xs opacity-75 mt-1">Mort + Loans</div>
-            </CardContent>
-          </Card>
+          <Link href="/domains/financial">
+            <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg transition-all cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <CreditCard className="w-8 h-8 opacity-80" />
+                </div>
+                <div className="text-3xl font-bold mb-1" suppressHydrationWarning>
+                  ${isClient ? (financeNetWorth.liabilities / 1000).toFixed(1) : 0}K
+                </div>
+                <div className="text-sm opacity-90">Liabilities</div>
+                <div className="text-xs opacity-75 mt-1">
+                  Total debt across all accounts
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
             <CardContent className="p-6">
@@ -2248,8 +2516,8 @@ export function CommandCenterRedesigned() {
             <CardTitle className="text-lg">Monthly Expenses Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-              {Object.entries(monthlyExpenses).map(([category, amount]) => (
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+              {Object.entries({ ...monthlyExpenses, pets: petsStats.totalCosts || 0 }).map(([category, amount]) => (
                 <div key={category} className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400" suppressHydrationWarning>
                     ${isClient ? amount : 0}
@@ -2514,70 +2782,6 @@ export function CommandCenterRedesigned() {
               </Card>
             </Link>
 
-            {/* Fitness Distance Progress Chart */}
-            {hasFitnessData && (() => {
-              // Calculate last 7 days of distance
-              const last7Days: Array<{ date: string; distance: number }> = []
-              const today = new Date()
-              for (let i = 6; i >= 0; i--) {
-                const date = new Date(today)
-                date.setDate(date.getDate() - i)
-                const dateStr = date.toDateString()
-                const monthDay = `${date.getMonth() + 1}/${date.getDate()}`
-                
-                const dayDistance = (data.fitness || []).filter((f: any) => {
-                  const meta = getMeta(f)
-                  const entryDate = meta?.date || f.createdAt || f.created_at
-                  return entryDate && new Date(entryDate).toDateString() === dateStr
-                }).reduce((sum, f: any) => {
-                  const meta = getMeta(f)
-                  return sum + (Number(meta?.distance) || 0)
-                }, 0)
-                
-                last7Days.push({ date: monthDay, distance: dayDistance })
-              }
-              
-              const hasDistanceData = last7Days.some(d => d.distance > 0)
-              if (!hasDistanceData) return null
-              
-              return (
-                <Card className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-orange-500">
-                  <CardContent className="p-4">
-                    <Link href="/domains/fitness">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-orange-500" />
-                          <h3 className="font-semibold text-sm">Distance Progress (7 Days)</h3>
-                        </div>
-                      </div>
-                      <div className="h-20 mt-2">
-                        {isClient && (
-                          <div className="flex items-end justify-between h-full gap-1">
-                            {last7Days.map((day, idx) => {
-                              const maxDistance = Math.max(...last7Days.map(d => d.distance), 1)
-                              const heightPercent = (day.distance / maxDistance) * 100
-                              return (
-                                <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full">
-                                  <div 
-                                    className="w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t transition-all hover:from-orange-600 hover:to-orange-500"
-                                    style={{ height: `${heightPercent}%`, minHeight: day.distance > 0 ? '8px' : '2px' }}
-                                    title={`${day.date}: ${day.distance.toFixed(1)} mi`}
-                                  />
-                                  <div className="text-[9px] text-gray-500 mt-1">{day.date.split('/')[1]}</div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-2 text-xs text-center text-gray-600">
-                        Total: <span className="font-semibold">{last7Days.reduce((sum, d) => sum + d.distance, 0).toFixed(1)} mi</span>
-                      </div>
-                    </Link>
-                  </CardContent>
-                </Card>
-              )
-            })()}
 
             {/* Mindful Domain */}
             <Link href="/domains/mindfulness">
@@ -2641,9 +2845,9 @@ export function CommandCenterRedesigned() {
                       <div className="font-semibold" suppressHydrationWarning>{isClient ? formatNumber(petsStats.petProfileCount, 0, hasPetsData) : 0}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Vet 30d</div>
+                      <div className="text-gray-500">Total Costs</div>
                       <div className="font-semibold" suppressHydrationWarning>
-                        {isClient ? formatCurrency(petsStats.vetVisitsLast30Cost, hasPetsData, 0) : '--'}
+                        {isClient ? formatCurrency(petsStats.totalCosts, hasPetsData, 0) : '--'}
                       </div>
                     </div>
                     <div>
@@ -2748,42 +2952,49 @@ export function CommandCenterRedesigned() {
               </Card>
             </Link>
 
-            {/* Liabilities Domain */}
-            <Link href="/domains/financial">
-              <Card className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-red-500">
+            {/* Service Providers Domain */}
+            <Link href="/domains/services">
+              <Card className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-cyan-500">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />
-                      <h3 className="font-semibold text-sm">Liabilities</h3>
+                      <Zap className="w-4 h-4 text-cyan-500" />
+                      <h3 className="font-semibold text-sm">Service Providers</h3>
                     </div>
                     <Badge variant="outline" className="text-xs" suppressHydrationWarning>
-                      {isClient ? liabilitiesStats.accounts : 0}
+                      {isClient ? (serviceProvidersAnalytics?.active_providers ?? 0) : 0}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <div className="text-gray-500">Total Debt</div>
-                      <div className="font-semibold text-red-600" suppressHydrationWarning>
-                        {isClient ? formatCurrencyK(liabilitiesStats.total, liabilitiesStats.hasData) : '--'}
+                      <div className="text-gray-500">Monthly Cost</div>
+                      <div className="font-semibold text-cyan-600" suppressHydrationWarning>
+                        {isClient ? formatCurrency(serviceProvidersAnalytics?.monthly_total ?? 0, !!serviceProvidersAnalytics?.active_providers, 0) : '--'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Mortgage</div>
+                      <div className="text-gray-500">Insurance</div>
                       <div className="font-semibold" suppressHydrationWarning>
-                        {isClient ? formatCurrencyK(liabilitiesStats.mortgage, liabilitiesStats.hasData) : '--'}
+                        {isClient ? formatNumber(serviceProvidersAnalytics?.spending_by_category?.find(c => c.category === 'insurance')?.count ?? 0, 0, !!serviceProvidersAnalytics?.active_providers) : '--'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Auto Loans</div>
+                      <div className="text-gray-500">Utilities</div>
                       <div className="font-semibold" suppressHydrationWarning>
-                        {isClient ? formatCurrencyK(liabilitiesStats.autoLoans, liabilitiesStats.hasData) : '--'}
+                        {isClient ? formatNumber(serviceProvidersAnalytics?.spending_by_category?.find(c => c.category === 'utilities')?.count ?? 0, 0, !!serviceProvidersAnalytics?.active_providers) : '--'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Credit Cards</div>
+                      <div className="text-gray-500 flex items-center gap-1">
+                        Renewing
+                        {isClient && (serviceProvidersAnalytics?.expiring_soon ?? 0) > 0 && (
+                          <span className="text-amber-500 font-bold" title={`${serviceProvidersAnalytics?.expiring_soon} contracts renewing soon!`}>
+                            ⚠️
+                          </span>
+                        )}
+                      </div>
                       <div className="font-semibold" suppressHydrationWarning>
-                        {isClient ? formatCurrencyK(liabilitiesStats.creditCards, liabilitiesStats.hasData) : '--'}
+                        {isClient ? formatNumber(serviceProvidersAnalytics?.expiring_soon ?? 0, 0, !!serviceProvidersAnalytics?.active_providers) : '--'}
                       </div>
                     </div>
                   </div>
@@ -2835,6 +3046,9 @@ export function CommandCenterRedesigned() {
             </Link>
           </div>
         </div>
+
+        {/* Recent Activity - Latest Updates Across Domains (Bottom of Page) */}
+        <RecentActivityCard />
 
         </div>
       </div>

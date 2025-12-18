@@ -162,7 +162,7 @@ describe('Call Tasks API', () => {
       const canStartCall = task.status === 'ready_to_call'
       const hasPhoneNumber = task.target_phone_number || task.contact?.phone_number
 
-      expect(canStartCall && hasPhoneNumber).toBe(true)
+      expect(canStartCall && !!hasPhoneNumber).toBe(true)
     })
   })
 

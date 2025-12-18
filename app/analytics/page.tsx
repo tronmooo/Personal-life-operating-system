@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,8 @@ import { WhatIfScenarios } from '@/components/analytics/what-if-scenarios'
 import { ComparativeBenchmarking } from '@/components/analytics/comparative-benchmarking'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { format } from 'date-fns'
+// eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
+import { useData } from '@/lib/providers/data-provider'
 
 interface AnalyticsSummary {
   total_events: number
@@ -37,13 +39,125 @@ interface ComprehensiveAnalytics {
   predictions: any
 }
 
+interface UserMetrics {
+  autoInsurance: number
+  healthInsurance: number
+  subscriptions: number
+  savings: number
+  fitnessActivity: number
+}
+
+interface UserProfile {
+  age: number
+  location: string
+  incomeRange: string
+}
+
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
   const [comprehensiveAnalytics, setComprehensiveAnalytics] = useState<ComprehensiveAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingComprehensive, setIsLoadingComprehensive] = useState(true)
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d')
+  const [userSettings, setUserSettings] = useState<Record<string, any>>({})
   const supabase = createClientComponentClient()
+  
+  // Get real domain data
+  const { data: domainData } = useData()
+  
+  // Calculate real user metrics from actual domain data
+  const userMetrics = useMemo((): UserMetrics => {
+    // Calculate auto insurance from insurance domain
+    const insuranceEntries = (domainData?.insurance || []) as any[]
+    const autoInsuranceEntries = insuranceEntries.filter(
+      (e: any) => e.metadata?.policyType === 'auto' || e.metadata?.type === 'auto' || 
+                  e.title?.toLowerCase().includes('auto') || e.title?.toLowerCase().includes('car')
+    )
+    const autoInsurance = autoInsuranceEntries.reduce((sum: number, e: any) => {
+      const premium = parseFloat(e.metadata?.monthlyPremium || e.metadata?.premium || 0)
+      return sum + premium
+    }, 0) || 0
+    
+    // Calculate health insurance from insurance domain
+    const healthInsuranceEntries = insuranceEntries.filter(
+      (e: any) => e.metadata?.policyType === 'health' || e.metadata?.type === 'health' ||
+                  e.title?.toLowerCase().includes('health')
+    )
+    const healthInsurance = healthInsuranceEntries.reduce((sum: number, e: any) => {
+      const premium = parseFloat(e.metadata?.monthlyPremium || e.metadata?.premium || 0)
+      return sum + premium
+    }, 0) || 0
+    
+    // Calculate subscriptions from digital domain
+    const digitalEntries = (domainData?.digital || []) as any[]
+    const subscriptions = digitalEntries.reduce((sum: number, e: any) => {
+      const cost = parseFloat(e.metadata?.monthlyCost || e.metadata?.cost || e.metadata?.price || 0)
+      return sum + cost
+    }, 0) || 0
+    
+    // Calculate savings from financial domain
+    const financialEntries = (domainData?.financial || []) as any[]
+    const savingsEntries = financialEntries.filter(
+      (e: any) => e.metadata?.accountType === 'savings' || e.metadata?.type === 'savings' ||
+                  e.title?.toLowerCase().includes('saving')
+    )
+    const savings = savingsEntries.reduce((sum: number, e: any) => {
+      const balance = parseFloat(e.metadata?.balance || e.metadata?.amount || 0)
+      return sum + balance
+    }, 0) || 0
+    
+    // Calculate fitness activity from fitness domain (entries in last 7 days)
+    const fitnessEntries = (domainData?.fitness || []) as any[]
+    const now = new Date()
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const recentFitness = fitnessEntries.filter((e: any) => {
+      const date = new Date(e.createdAt || e.created_at)
+      return date >= weekAgo
+    })
+    const fitnessActivity = recentFitness.length
+    
+    return {
+      autoInsurance,
+      healthInsurance,
+      subscriptions,
+      savings,
+      fitnessActivity
+    }
+  }, [domainData])
+  
+  // Calculate user profile from settings or derive from data
+  const userProfile = useMemo((): UserProfile => {
+    // Use settings if available, otherwise use reasonable defaults
+    return {
+      age: userSettings.age || userSettings.profileAge || 35,
+      location: userSettings.location || userSettings.country || 'USA',
+      incomeRange: userSettings.incomeRange || '50k-100k'
+    }
+  }, [userSettings])
+  
+  // Load user settings
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        const { data } = await supabase
+          .from('user_settings')
+          .select('settings')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (data?.settings) {
+          setUserSettings(data.settings)
+        }
+      } catch (error) {
+        console.error('Failed to load user settings:', error)
+      }
+    }
+    
+    loadUserSettings()
+  }, [supabase])
 
   const loadAnalytics = useCallback(async () => {
     setIsLoading(true)
@@ -406,19 +520,15 @@ export default function AnalyticsPage() {
                   }}
                 />
 
-                {/* Comparative Benchmarking */}
+                {/* Comparative Benchmarking - Using real user data */}
                 <ComparativeBenchmarking 
-                  userProfile={{
-                    age: 35,
-                    location: 'USA',
-                    incomeRange: '50k-100k'
-                  }}
+                  userProfile={userProfile}
                   userMetrics={{
-                    autoInsurance: 180,
-                    healthInsurance: 450,
-                    subscriptions: comprehensiveAnalytics.costAnalysis.breakdown.subscriptions,
-                    savings: comprehensiveAnalytics.financialHealth.emergencyFund.current,
-                    fitnessActivity: 3
+                    autoInsurance: userMetrics.autoInsurance || comprehensiveAnalytics.costAnalysis?.breakdown?.insurance || 0,
+                    healthInsurance: userMetrics.healthInsurance || 0,
+                    subscriptions: userMetrics.subscriptions || comprehensiveAnalytics.costAnalysis?.breakdown?.subscriptions || 0,
+                    savings: userMetrics.savings || comprehensiveAnalytics.financialHealth?.emergencyFund?.current || 0,
+                    fitnessActivity: userMetrics.fitnessActivity || 0
                   }}
                 />
               </>

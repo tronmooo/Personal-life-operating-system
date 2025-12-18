@@ -103,9 +103,6 @@ export function AddProviderDialog({ open, onOpenChange, onSubmit }: AddProviderD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'add-provider-dialog.tsx:handleSubmit',message:'Form submitted',data:{providerName:formData.provider_name,category:formData.category},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
     
     if (!formData.provider_name) {
       return

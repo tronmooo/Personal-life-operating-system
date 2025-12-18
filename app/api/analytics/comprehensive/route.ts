@@ -77,6 +77,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const timeRange = searchParams.get('timeRange') || '30' // days
 
+    // Fetch user settings to get budget
+    const { data: userSettingsData } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', user.id)
+      .single()
+    
+    const userSettings = userSettingsData?.settings || {}
+    const userBudget = userSettings.monthlyBudget || userSettings.budget || null
+
     // Fetch all domain entries for user
     const { data: entries, error: entriesError } = await supabase
       .from('domain_entries')
@@ -116,7 +126,7 @@ export async function GET(request: Request) {
     const trends = detectTrends(currentEntries, previousEntries)
 
     // 5. PREDICTIVE ANALYTICS
-    const predictions = generatePredictiveAnalytics(entries || [], costAnalysis)
+    const predictions = generatePredictiveAnalytics(entries || [], costAnalysis, userBudget)
 
     return NextResponse.json({
       success: true,
@@ -362,7 +372,7 @@ function detectTrends(currentEntries: any[], previousEntries: any[]): TrendDetec
   return trends
 }
 
-function generatePredictiveAnalytics(entries: any[], costAnalysis: CostAnalysis): PredictiveAnalytics {
+function generatePredictiveAnalytics(entries: any[], costAnalysis: CostAnalysis, userBudget: number | null): PredictiveAnalytics {
   const recommendations: string[] = []
   
   // Calculate projected spending (trend-based)
@@ -379,9 +389,24 @@ function generatePredictiveAnalytics(entries: any[], costAnalysis: CostAnalysis)
     return sum + (amount < 0 ? Math.abs(amount) : 0)
   }, 0)
 
-  // Project next month
+  // Project next month - use user budget if available, otherwise calculate from income
   const projectedSpending = totalSpent + costAnalysis.totalMonthlyCost
-  const currentBudget = 5000 // TODO: get from user settings
+  
+  // Calculate budget: use user's set budget, or estimate based on income entries
+  let currentBudget = userBudget || 0
+  if (!currentBudget) {
+    // Try to calculate from income entries
+    const incomeEntries = financialEntries.filter(e => 
+      e.metadata?.transactionType === 'income' || e.metadata?.type === 'income'
+    )
+    const totalIncome = incomeEntries.reduce((sum, e) => {
+      const amount = parseFloat(e.metadata?.amount || e.metadata?.value || 0)
+      return sum + (amount > 0 ? amount : 0)
+    }, 0)
+    // If we have income data, use 80% as budget (20% savings target)
+    currentBudget = totalIncome > 0 ? totalIncome * 0.8 : 5000 // fallback only if no data
+  }
+  
   const overageAmount = Math.max(0, projectedSpending - currentBudget)
 
   // Generate recommendations

@@ -3,7 +3,7 @@
  * Compare insurance, utilities, and service providers with comprehensive multi-factor analysis
  */
 
-import { EnhancedServiceComparatorAI } from '@/components/service-comparator/enhanced-service-comparator';
+import { ComprehensiveServiceComparator } from '@/components/service-comparator/comprehensive-service-comparator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ComparisonHistoryDashboard } from '@/components/service-comparator/comparison-history-dashboard';
 
@@ -14,23 +14,28 @@ export const metadata = {
 
 export default function ServiceComparatorPage() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Service Comparator AI</h1>
-        <p className="text-muted-foreground">
-          Comprehensive multi-factor analysis considering location, usage patterns, financial constraints, risk profile, and more
-        </p>
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <Tabs defaultValue="compare" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="compare">Compare Services</TabsTrigger>
-          <TabsTrigger value="history">History & Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="compare" className="mt-6">
-          <EnhancedServiceComparatorAI />
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">Service Comparator AI</h1>
+                <p className="text-sm text-muted-foreground">
+                  Comprehensive multi-factor analysis for accurate estimates
+                </p>
+              </div>
+              <TabsList>
+                <TabsTrigger value="compare">Compare Services</TabsTrigger>
+                <TabsTrigger value="history">History & Analytics</TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+        </div>
+        <TabsContent value="compare" className="mt-0">
+          <ComprehensiveServiceComparator />
         </TabsContent>
-        <TabsContent value="history" className="mt-6">
+        <TabsContent value="history" className="mt-6 container mx-auto px-4">
           <ComparisonHistoryDashboard />
         </TabsContent>
       </Tabs>

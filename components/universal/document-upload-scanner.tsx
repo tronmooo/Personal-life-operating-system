@@ -95,7 +95,8 @@ export function DocumentUploadScanner({
           // Try to parse the date
           const parts = dateStr.split(/[-\/]/)
           if (parts.length === 3) {
-            let [month, day, year] = parts
+            const [month, day, yearRaw] = parts
+            let year = yearRaw
             
             // Handle 2-digit years
             if (year.length === 2) {

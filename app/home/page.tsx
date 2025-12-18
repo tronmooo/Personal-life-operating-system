@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Home as HomeIcon, Trash2, Edit } from 'lucide-react'
+import { Plus, Home as HomeIcon, Trash2, Edit, Loader2 } from 'lucide-react'
 import { AddHomeDialog } from '@/components/home/add-home-dialog'
 import { EditHomeDialog } from '@/components/home/edit-home-dialog'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Home {
   id: string
@@ -24,7 +25,7 @@ interface Home {
 
 export default function HomePage() {
   const router = useRouter()
-  const { entries, createEntry, updateEntry, deleteEntry } = useDomainEntries('home')
+  const { entries, isLoading, createEntry, updateEntry, deleteEntry } = useDomainEntries('home')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingHome, setEditingHome] = useState<Home | null>(null)
@@ -110,6 +111,53 @@ export default function HomePage() {
   const openEditDialog = (home: Home) => {
     setEditingHome(home)
     setShowEditDialog(true)
+  }
+
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold mb-2">Property Manager</h1>
+            <p className="text-purple-100">Manage your properties, maintenance, and assets</p>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <HomeIcon className="h-6 w-6" />
+              <h1 className="text-2xl font-bold">My Properties</h1>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+                <div className="flex items-start justify-between mb-4">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <div className="text-right space-y-2">
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-6 w-20" />
+                  </div>
+                </div>
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-4" />
+                <div className="grid grid-cols-2 gap-3 pt-4 border-t">
+                  <div>
+                    <Skeleton className="h-3 w-16 mb-1" />
+                    <Skeleton className="h-6 w-8" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-3 w-16 mb-1" />
+                    <Skeleton className="h-6 w-8" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (homes.length === 0) {

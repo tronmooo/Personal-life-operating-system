@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { CreditCard, AlertCircle, RefreshCw } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
-import { useMemo } from 'react'
+import { useServiceProviders } from '@/lib/hooks/use-service-providers'
+import { useMemo, useEffect, useState } from 'react'
 import { differenceInDays, parseISO, format } from 'date-fns'
 
 interface BillItem {
@@ -20,10 +21,71 @@ interface BillItem {
 }
 
 export function UpcomingBillsCard() {
-  const { bills, data } = useData() // Get both bills AND domain data
+  const { bills, data, isLoaded } = useData() // Get both bills AND domain data
+  const { payments: servicePayments, providers: serviceProviders } = useServiceProviders()
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  // 🔧 FIX: Use data.home directly from DataProvider (same source as command center which works)
+  const homeEntries = Array.isArray(data.home) ? data.home : []
+  const homeEntriesLength = homeEntries.length
+  
+  // 🔧 DEBUG: Log what we're getting from DataProvider
+  useEffect(() => {
+    console.log('🏠 [UpcomingBills] === HOME ENTRIES DEBUG ===')
+    console.log('🏠 data.home count:', homeEntries.length)
+    console.log('🏠 isLoaded:', isLoaded)
+    
+    // Log each home entry
+    homeEntries.forEach((entry: any, i: number) => {
+      console.log(`🏠 Home entry ${i}:`, {
+        id: entry.id,
+        title: entry.title,
+        itemType: entry.metadata?.itemType,
+        dueDate: entry.metadata?.dueDate,
+        amount: entry.metadata?.amount,
+        category: entry.metadata?.category
+      })
+    })
+    
+    // Check specifically for bills
+    const bills = homeEntries.filter((e: any) => e.metadata?.itemType === 'bill')
+    console.log('🏠 Bills in home domain:', bills.length)
+    bills.forEach((b: any) => {
+      console.log('🏠 Bill:', b.title, 'dueDate:', b.metadata?.dueDate, 'amount:', b.metadata?.amount)
+    })
+    console.log('🏠 === END DEBUG ===')
+  }, [homeEntries, isLoaded])
+
+  // Listen for data update events to refresh the card
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      console.log('🔄 [UpcomingBills] Data update detected, refreshing...')
+      setRefreshTrigger(prev => prev + 1)
+    }
+
+    window.addEventListener('data-updated', handleDataUpdate)
+    window.addEventListener('home-data-updated', handleDataUpdate)
+    window.addEventListener('domain-entry-created', handleDataUpdate)
+    window.addEventListener('domain-entry-updated', handleDataUpdate)
+    window.addEventListener('domain-entry-deleted', handleDataUpdate)
+
+    return () => {
+      window.removeEventListener('data-updated', handleDataUpdate)
+      window.removeEventListener('home-data-updated', handleDataUpdate)
+      window.removeEventListener('domain-entry-created', handleDataUpdate)
+      window.removeEventListener('domain-entry-updated', handleDataUpdate)
+      window.removeEventListener('domain-entry-deleted', handleDataUpdate)
+    }
+  }, [])
 
   const allBills = useMemo(() => {
     const billsList: BillItem[] = []
+
+    const coerceDueDateString = (value: unknown): string => {
+      if (value == null) return ''
+      if (value instanceof Date) return value.toISOString()
+      return String(value)
+    }
 
     // 1. Get bills from bills table
     if (bills && bills.length > 0) {
@@ -32,7 +94,7 @@ export function UpcomingBillsCard() {
           billsList.push({
             title: bill.title,
             amount: bill.amount,
-            dueDate: bill.dueDate,
+            dueDate: coerceDueDateString(bill.dueDate),
             category: bill.category,
             isRecurring: bill.recurring,
             source: 'bills'
@@ -55,7 +117,7 @@ export function UpcomingBillsCard() {
           billsList.push({
             title: entry.title || meta.name || meta.provider || 'Financial Expense',
             amount: parseFloat(String(meta.amount || entry.amount || meta.value || 0)),
-            dueDate: dueDate,
+            dueDate: coerceDueDateString(dueDate),
             category: meta.category || 'Expense',
             isRecurring: Boolean(meta.recurring || meta.frequency),
             source: 'finance'
@@ -65,9 +127,9 @@ export function UpcomingBillsCard() {
     })
 
     // 5. Get bills from housing domain (property-related bills)
-    const housingEntries = data.home || []
-    console.log('🏠 [UpcomingBills] Home domain entries:', housingEntries.length)
-    housingEntries.forEach((entry: any) => {
+    // 🔧 FIX: Use homeEntries from outer scope for better dependency tracking
+    console.log('🏠 [UpcomingBills] Home domain entries:', homeEntries.length, 'items:', homeEntries.map((e: any) => e.title))
+    homeEntries.forEach((entry: any) => {
       const meta = entry.metadata || {}
       const itemType = (meta.itemType || '').toLowerCase()
       
@@ -76,46 +138,55 @@ export function UpcomingBillsCard() {
         itemType: meta.itemType,
         homeId: meta.homeId,
         dueDate: meta.dueDate,
-        amount: meta.amount
+        amount: meta.amount,
+        category: meta.category
       })
       
-      // Include bills from home domain - check itemType is 'bill' and has homeId
-      if (itemType === 'bill' && meta.homeId) {
+      // Include ALL bills from home domain - check itemType is 'bill' (homeId is optional for legacy entries)
+      if (itemType === 'bill') {
+        // Get due date - could be ISO date, day-of-month string (e.g., "14", "15th"), or other formats
         const dueDate = meta.dueDate || meta.nextDueDate || meta.paymentDate || meta.date
-        console.log('🏠 [UpcomingBills] Found home bill:', entry.title, 'dueDate:', dueDate)
-        if (dueDate) {
+        console.log('🏠 [UpcomingBills] Found home bill:', entry.title, 'dueDate:', dueDate, 'amount:', meta.amount)
+        
+        // Accept bills with due date or recurring bills (they have a frequency)
+        if (dueDate || meta.frequency) {
+          // Map home bill categories to display labels
+          const categoryLabel = (meta.category || '').toLowerCase()
+          const displayCategory = 
+            categoryLabel === 'mortgage' ? 'Mortgage' :
+            categoryLabel === 'utilities' ? 'Utilities' :
+            categoryLabel === 'insurance' ? 'Insurance' :
+            categoryLabel === 'tax' ? 'Tax' :
+            categoryLabel === 'rent' ? 'Rent' :
+            'Housing'
+          
           billsList.push({
             title: meta.billName || entry.title || meta.name || 'Housing Bill',
             amount: parseFloat(String(meta.amount || entry.amount || meta.value || 0)),
-            dueDate: dueDate,
-            category: meta.category || 'Housing',
-            isRecurring: Boolean(meta.recurring || meta.frequency),
+            // Coerce to string because some UIs store day-of-month as number (e.g. 20) which breaks parsing
+            dueDate: coerceDueDateString(dueDate || new Date().toISOString().split('T')[0]), // Default to today if no due date
+            category: displayCategory,
+            isRecurring: Boolean(meta.recurring || meta.frequency === 'monthly' || meta.frequency === 'quarterly' || meta.frequency === 'annually'),
             source: 'housing'
           })
-          console.log('✅ [UpcomingBills] Added home bill:', meta.billName || entry.title)
+          console.log('✅ [UpcomingBills] Added home bill:', meta.billName || entry.title, 'category:', displayCategory)
         }
       }
     })
 
     // 3. Get subscriptions from digital domain
     const digitalEntries = data.digital || []
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upcoming-bills-card.tsx:digitalEntries',message:'Digital entries for bills',data:{count:digitalEntries.length,entries:digitalEntries.slice(0,5).map((e:any)=>({id:e.id,title:e.title,type:e.metadata?.type,renewalDate:e.metadata?.renewalDate,monthlyCost:e.metadata?.monthlyCost,cost:e.metadata?.cost}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
     digitalEntries.forEach((entry: any) => {
       const meta = entry.metadata || {}
       if (meta.type === 'subscription' || meta.itemType === 'subscription') {
         // Calculate next billing date
         const billingDate = meta.nextBilling || meta.renewalDate || meta.billingDate || meta.nextDueDate
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upcoming-bills-card.tsx:subCheck',message:'Checking subscription for bills',data:{title:entry.title,billingDate,hasBillingDate:!!billingDate,meta:{type:meta.type,renewalDate:meta.renewalDate,nextBilling:meta.nextBilling,cost:meta.cost,monthlyCost:meta.monthlyCost,amount:meta.amount}},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-        // #endregion
         if (billingDate) {
           billsList.push({
             title: entry.title || meta.name || meta.service || 'Subscription',
             // 🔧 FIX: Prioritize monthlyCost (used by SubscriptionsTab) first
             amount: parseFloat(String(meta.monthlyCost || meta.cost || meta.price || meta.amount || meta.monthlyFee || 0)),
-            dueDate: billingDate,
+            dueDate: coerceDueDateString(billingDate),
             category: 'Subscription',
             isRecurring: true,
             source: 'subscriptions'
@@ -133,7 +204,7 @@ export function UpcomingBillsCard() {
         billsList.push({
           title: entry.title || meta.policyName || 'Insurance Policy',
           amount: parseFloat(String(meta.premium || meta.amount || meta.monthlyPremium || 0)),
-          dueDate: renewalDate,
+          dueDate: coerceDueDateString(renewalDate),
           category: 'Insurance',
           isRecurring: true,
           source: 'bills'
@@ -141,8 +212,31 @@ export function UpcomingBillsCard() {
       }
     })
 
+    // 6. Get service provider payments from dedicated service_payments table
+    if (servicePayments && servicePayments.length > 0) {
+      servicePayments.forEach(payment => {
+        if (payment.due_date && payment.status === 'pending') {
+          // Find the provider to get category info
+          const provider = serviceProviders?.find(p => p.id === payment.provider_id)
+          const categoryLabel = provider?.category === 'insurance' ? 'Insurance' :
+                               provider?.category === 'utilities' ? 'Utilities' :
+                               provider?.category === 'telecom' ? 'Telecom' :
+                               provider?.category === 'subscriptions' ? 'Subscription' : 'Service'
+          
+          billsList.push({
+            title: payment.provider_name || provider?.provider_name || 'Service Payment',
+            amount: payment.amount,
+            dueDate: coerceDueDateString(payment.due_date),
+            category: categoryLabel,
+            isRecurring: true,
+            source: 'bills'
+          })
+        }
+      })
+    }
+
     return billsList
-  }, [bills, data])
+  }, [bills, data, homeEntries, homeEntriesLength, servicePayments, serviceProviders, refreshTrigger])
 
   const upcomingBills = useMemo(() => {
     if (allBills.length === 0) return []
@@ -150,8 +244,11 @@ export function UpcomingBillsCard() {
     const now = new Date()
     
     // Helper function to parse due date (handles both ISO dates and day-of-month)
-    const parseDueDate = (dueDateStr: string): Date | null => {
+    const parseDueDate = (dueDateValue: unknown): Date | null => {
       try {
+        if (dueDateValue == null) return null
+        const dueDateStr = dueDateValue instanceof Date ? dueDateValue.toISOString() : String(dueDateValue)
+
         // First try parsing as ISO date
         let dueDate = parseISO(dueDateStr)
         if (!isNaN(dueDate.getTime())) {
@@ -184,7 +281,8 @@ export function UpcomingBillsCard() {
         const dueDate = parseDueDate(bill.dueDate)
         if (!dueDate) return false
         const daysUntilDue = differenceInDays(dueDate, now)
-        return daysUntilDue >= 0 && daysUntilDue <= 30 // Next 30 days
+        // Show the next upcoming bills regardless of date range (still exclude past-due)
+        return daysUntilDue >= 0
       })
       .map(bill => {
         const dueDate = parseDueDate(bill.dueDate)!
@@ -231,14 +329,14 @@ export function UpcomingBillsCard() {
           </Badge>
         </CardTitle>
         <p className="text-xs text-gray-500 mt-1">
-          {allBills.length} total • Next 30 days
+          {allBills.length} total • Next {upcomingBills.length} upcoming
         </p>
       </CardHeader>
       <CardContent>
         {upcomingBills.length === 0 ? (
           <div className="text-center py-6">
             <CreditCard className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-sm text-gray-500 mb-1">No bills due in next 30 days</p>
+            <p className="text-sm text-gray-500 mb-1">No upcoming bills</p>
             <p className="text-xs text-gray-400">
               Add bills, subscriptions, or expenses to track
             </p>

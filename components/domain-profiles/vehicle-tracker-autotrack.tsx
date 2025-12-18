@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 import {
   Dialog,
   DialogContent,
@@ -253,7 +254,8 @@ export function VehicleTrackerAutoTrack() {
         } catch { setRecalls([]) }
       })()
     }
-  }, [selectedVehicle])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVehicle, domainEntries])
 
   // Process vehicle data when domainEntries changes
   useEffect(() => {
@@ -587,7 +589,8 @@ export function VehicleTrackerAutoTrack() {
       })
 
       if (result) {
-        await loadVehicleData(selectedVehicle.id)
+        // Refresh domain data - useEffect watching domainEntries will re-run loadVehicleData
+        await refreshDomain()
         setIsAddMaintenanceOpen(false)
         setMaintenanceForm({
           serviceName: '',
@@ -617,7 +620,9 @@ export function VehicleTrackerAutoTrack() {
         }
       })
       if (result) {
-        await loadVehicleData(selectedVehicle.id)
+        // Refresh domain data to include the new cost
+        // The useEffect watching domainEntries will re-run loadVehicleData
+        await refreshDomain()
         setIsAddCostOpen(false)
         setCostForm({
           costType: 'fuel',
@@ -672,7 +677,8 @@ export function VehicleTrackerAutoTrack() {
       })
       
       if (result) {
-        await loadVehicleData(selectedVehicle.id)
+        // Refresh domain data - useEffect watching domainEntries will re-run loadVehicleData
+        await refreshDomain()
         
         setIsAddWarrantyOpen(false)
         setWarrantyForm({
@@ -833,8 +839,9 @@ export function VehicleTrackerAutoTrack() {
   const handleDeleteMaintenance = async (id: string) => {
     try {
       const deleted = await removeEntry(id)
-      if (deleted && selectedVehicle) {
-        await loadVehicleData(selectedVehicle.id)
+      if (deleted) {
+        // Refresh domain data - useEffect watching domainEntries will re-run loadVehicleData
+        await refreshDomain()
       }
     } catch (e) {
       console.error('Failed to delete maintenance', e)
@@ -844,8 +851,9 @@ export function VehicleTrackerAutoTrack() {
   const handleDeleteCost = async (id: string) => {
     try {
       const deleted = await removeEntry(id)
-      if (deleted && selectedVehicle) {
-        await loadVehicleData(selectedVehicle.id)
+      if (deleted) {
+        // Refresh domain data - useEffect watching domainEntries will re-run loadVehicleData
+        await refreshDomain()
       }
     } catch (e) {
       console.error('Failed to delete cost', e)
@@ -855,8 +863,9 @@ export function VehicleTrackerAutoTrack() {
   const handleDeleteWarranty = async (id: string) => {
     try {
       const deleted = await removeEntry(id)
-      if (deleted && selectedVehicle) {
-        await loadVehicleData(selectedVehicle.id)
+      if (deleted) {
+        // Refresh domain data - useEffect watching domainEntries will re-run loadVehicleData
+        await refreshDomain()
       }
     } catch (e) {
       console.error('Failed to delete warranty', e)
@@ -1047,8 +1056,13 @@ export function VehicleTrackerAutoTrack() {
 
   if (vehicles.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0f1419] p-6">
-        <div className="text-center py-16">
+      <div className="min-h-screen bg-[#0f1419] p-4 md:p-6">
+        {/* Back Button */}
+        <div className="mb-6">
+          <DomainBackButton variant="dark" />
+        </div>
+        
+        <div className="text-center py-8 md:py-16">
           <div className="inline-flex items-center justify-center p-4 bg-blue-900/20 rounded-full mb-4">
             <Car className="h-8 w-8 text-blue-400" />
           </div>
@@ -1056,7 +1070,7 @@ export function VehicleTrackerAutoTrack() {
           <p className="text-gray-400 mb-4">
             Start tracking your vehicles by adding your first one
           </p>
-          <Button onClick={() => setIsAddVehicleOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => setIsAddVehicleOpen(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Add Your First Vehicle
           </Button>
@@ -1261,18 +1275,23 @@ export function VehicleTrackerAutoTrack() {
     <div className="min-h-screen bg-[#0f1419] text-white">
       {/* Header */}
       <div className="bg-[#1a202c] border-b border-gray-800">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center">
-                <Car className="w-7 h-7 text-white" />
+        <div className="px-4 md:px-6 py-4">
+          {/* Back Button */}
+          <div className="mb-4">
+            <DomainBackButton variant="dark" />
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-600 rounded-2xl flex items-center justify-center">
+                <Car className="w-6 h-6 md:w-7 md:h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">AutoTrack Pro</h1>
-                <p className="text-sm text-gray-400">Complete Vehicle Management</p>
+                <h1 className="text-xl md:text-2xl font-bold text-white">AutoTrack Pro</h1>
+                <p className="text-xs md:text-sm text-gray-400">Complete Vehicle Management</p>
               </div>
             </div>
-            <Button onClick={() => setIsAddVehicleOpen(true)} className="bg-blue-600 hover:bg-blue-700 px-6 py-6 rounded-xl">
+            <Button onClick={() => setIsAddVehicleOpen(true)} className="bg-blue-600 hover:bg-blue-700 px-4 md:px-6 py-3 md:py-6 rounded-xl w-full sm:w-auto">
               <Plus className="w-5 h-5 mr-2" />
               Add Vehicle
             </Button>

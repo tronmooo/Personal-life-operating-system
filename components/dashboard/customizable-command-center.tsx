@@ -15,6 +15,7 @@ import { LegalCard } from './domain-cards/legal-card'
 import { InsuranceCard } from './domain-cards/insurance-card'
 import { VehicleCard } from './domain-cards/vehicle-card'
 import { DigitalLifeCard } from './domain-cards/digital-life-card'
+import { NutritionCard } from './domain-cards/nutrition-card'
 import { MobileSettingsSheet } from '@/components/settings/mobile-settings-sheet'
 import { OnboardingTutorial } from '@/components/onboarding/onboarding-tutorial'
 import { LoadingState } from '@/components/ui/loading-state'
@@ -434,6 +435,9 @@ function DomainCard({ domain, size, data }: DomainCardProps) {
 
     case 'digital':
       return <DigitalLifeCard {...cardProps} />
+
+    case 'nutrition':
+      return <NutritionCard {...cardProps} />
 
     default:
       return <GenericDomainCard domain={domain} {...cardProps} />

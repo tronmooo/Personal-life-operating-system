@@ -76,6 +76,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     load()
 
+
     // Realtime subscription
     const channel = supabase
       .channel('public:notifications')
@@ -83,6 +84,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         load()
       })
       .subscribe()
+
 
     return () => {
       isMounted = false

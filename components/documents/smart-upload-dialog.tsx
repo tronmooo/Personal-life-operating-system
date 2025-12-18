@@ -45,6 +45,7 @@ export function SmartUploadDialog({
   const [filePreview, setFilePreview] = useState<string | null>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
 
@@ -629,6 +630,14 @@ export function SmartUploadDialog({
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
               />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+              />
 
               <Upload className="h-16 w-16 mx-auto mb-4 text-gray-400" />
               
@@ -639,12 +648,22 @@ export function SmartUploadDialog({
                 or click to browse
               </p>
 
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                size="lg"
-              >
-                Choose File
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  size="lg"
+                >
+                  Choose File
+                </Button>
+                <Button
+                  onClick={() => cameraInputRef.current?.click()}
+                  size="lg"
+                  variant="outline"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Take Photo
+                </Button>
+              </div>
 
               <p className="text-xs text-muted-foreground mt-4">
                 Supports PDF, JPG, PNG, WEBP (max 10MB)

@@ -23,17 +23,15 @@ import {
   Package,
   TrendingUp,
   Sparkles,
-  ArrowLeft,
   StickyNote,
-  ListChecks,
-  ChevronLeft
+  ListChecks
 } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { format } from 'date-fns'
 import Image from 'next/image'
 import { toast } from 'sonner'
-import { BackButton } from '@/components/ui/back-button'
+import { DomainBackButton } from '@/components/ui/domain-back-button'
 import Link from 'next/link'
 
 interface MiscellaneousItem {
@@ -297,29 +295,23 @@ export default function MiscellaneousPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-500 to-purple-500">
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Breadcrumb / Back Navigation */}
-        <div className="flex items-center space-x-2 text-sm">
-          <Link 
-            href="/domains" 
-            className="flex items-center text-white/90 hover:text-white transition-colors bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/20"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Domains
-          </Link>
-        </div>
+      <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Back Button */}
+        <DomainBackButton variant="light" />
 
         {/* Header */}
-        <div className="text-center text-white space-y-2 py-6">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-md shadow-lg">
-              <Package className="h-8 w-8 text-white" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 md:py-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 md:p-3 rounded-xl bg-white/20 backdrop-blur-md shadow-lg">
+              <Package className="h-6 w-6 md:h-8 md:w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">Miscellaneous Assets</h1>
+              <p className="text-sm md:text-base text-white/90">
+                Track boats, collectibles, jewelry, and more
+              </p>
             </div>
           </div>
-          <h1 className="text-4xl font-bold">Miscellaneous Asset Tracker</h1>
-          <p className="text-lg text-white/90">
-            Track boats, collectibles, jewelry, and other valuable items
-          </p>
         </div>
 
         {/* Quick Notes Section */}

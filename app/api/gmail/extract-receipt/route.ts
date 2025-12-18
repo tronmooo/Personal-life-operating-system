@@ -88,7 +88,9 @@ async function extractReceiptWithVision(base64Data: string, mimeType: string) {
     messages: [
       {
         role: 'user',
-        content: [
+          // NOTE: our OpenAI wrapper types content as string, but vision uses an array payload.
+          // Safe cast here since this endpoint is explicitly vision-based.
+          content: ([
           {
             type: 'text',
             text: `Extract ALL information from this receipt image. Return JSON only:
@@ -118,7 +120,7 @@ Extract as much as possible. Use null for fields not found.`
             type: 'image_url',
             image_url: { url: imageUrl }
           }
-        ]
+          ] as any)
       }
     ],
     temperature: 0.1,
@@ -138,5 +140,10 @@ Extract as much as possible. Use null for fields not found.`
 
   return { rawText: content, confidence: 0.5 }
 }
+
+
+
+
+
 
 

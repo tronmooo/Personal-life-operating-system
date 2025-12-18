@@ -132,6 +132,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [activePersonId, setActivePersonId] = useState<string>('me')
 
+  const getLastDomainSnapshotKey = useCallback(
+    (personId: string) => `domain_entries_snapshot_last_${personId}`,
+    []
+  )
+  const getLastTasksSnapshotKey = useCallback((personId: string) => `tasks_snapshot_last_${personId}`, [])
+  const getLastHabitsSnapshotKey = useCallback((personId: string) => `habits_snapshot_last_${personId}`, [])
+  const getLastBillsSnapshotKey = useCallback((personId: string) => `bills_snapshot_last_${personId}`, [])
+
   const getDomainSnapshotKey = useCallback(() => {
     const userId = session?.user?.id
     return userId ? `domain_entries_snapshot_${userId}_${activePersonId}` : null
@@ -168,21 +176,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) {
       console.warn('⚠️ Supabase not initialized yet')
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-provider.tsx:supabase-null',message:'DataProvider: Supabase not initialized',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
       return
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-provider.tsx:before-getSession',message:'DataProvider: About to call getSession',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('🔐 DataProvider: Initial session check', session?.user?.email || 'NO USER')
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'data-provider.tsx:getSession-result',message:'DataProvider: getSession result',data:{hasSession:!!session,hasUser:!!session?.user,userEmail:session?.user?.email||'none'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-      // #endregion
       setSession(session)
     })
 
@@ -219,7 +218,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const maxRetries = 3
     setIsLoading(true)
     console.log(`📡 Loading domain data from Supabase... (attempt ${retryCount + 1}/${maxRetries + 1})`)
-    console.log('🔐 Supabase Auth:', session?.user?.email)
+    console.log('🔐 Supabase Auth (provider state):', session?.user?.email)
 
     // Ensure supabase client is initialized
     if (!supabase) {
@@ -229,16 +228,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Use the session state from the provider
-      const user = session?.user
+      // 🔧 FIX: Get session directly from Supabase client if provider state doesn't have it yet
+      // This handles the race condition where loadData is called before session state is set
+      let user = session?.user
+      if (!user) {
+        console.log('🔄 Provider session not available, checking Supabase directly...')
+        const { data: sessionData } = await supabase.auth.getSession()
+        user = sessionData?.session?.user || null
+        console.log('🔐 Supabase direct session check:', user?.email || 'NO USER')
+        
+        // Update provider session state if we found a user
+        if (sessionData?.session) {
+          setSession(sessionData.session)
+        }
+      }
 
       // Treat missing session as non-fatal (no retries)
       // Session state is managed by the provider, no need to check for errors here
 
       if (!user) {
         console.log('👀 Viewing as guest - no user data to load')
-        // Allow viewing the app without authentication
-        // Data will be empty but UI will render
+        // Guest/offline mode: hydrate from last-known IndexedDB snapshots so dashboards can still render
+        // cached data even if the Supabase session cookie is missing/expired.
+        try {
+          const personId = await getActivePersonId()
+          setActivePersonId(personId)
+
+          const lastDomainKey = getLastDomainSnapshotKey(personId)
+          const lastTasksKey = getLastTasksSnapshotKey(personId)
+          const lastHabitsKey = getLastHabitsSnapshotKey(personId)
+          const lastBillsKey = getLastBillsSnapshotKey(personId)
+
+          const cachedDomains = await idbGet<Record<string, DomainData[]>>(lastDomainKey, {})
+          if (cachedDomains && Object.keys(cachedDomains).length > 0) {
+            console.log('🧠 Guest hydration: loaded cached domain data from IDB (last snapshot)', {
+              domainsCount: Object.keys(cachedDomains).length,
+              homeCount: cachedDomains.home?.length || 0,
+            })
+            setData(cachedDomains)
+          }
+
+          const cachedTasks = await idbGet<Task[]>(lastTasksKey, [])
+          if (Array.isArray(cachedTasks) && cachedTasks.length > 0) setTasks(cachedTasks)
+
+          const cachedHabits = await idbGet<Habit[]>(lastHabitsKey, [])
+          if (Array.isArray(cachedHabits) && cachedHabits.length > 0) setHabits(cachedHabits)
+
+          const cachedBills = await idbGet<Bill[]>(lastBillsKey, [])
+          if (Array.isArray(cachedBills) && cachedBills.length > 0) setBills(cachedBills)
+        } catch (e) {
+          console.warn('⚠️ Guest hydration failed (continuing with empty data):', e)
+        }
+
         setIsLoaded(true)
         setIsLoading(false)
         return
@@ -254,10 +295,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const tasksSnapshotKey = `tasks_snapshot_${snapshotSuffix}`
       const habitsSnapshotKey = `habits_snapshot_${snapshotSuffix}`
       const billsSnapshotKey = `bills_snapshot_${snapshotSuffix}`
+      const lastDomainSnapshotKey = getLastDomainSnapshotKey(currentPersonId)
+      const lastTasksSnapshotKey = getLastTasksSnapshotKey(currentPersonId)
+      const lastHabitsSnapshotKey = getLastHabitsSnapshotKey(currentPersonId)
+      const lastBillsSnapshotKey = getLastBillsSnapshotKey(currentPersonId)
 
       // Try cached snapshots first for instant UI (non-blocking)
+      // Load IDB cache for instant UI, but mark it as potentially stale
+      // Fresh Supabase data will overwrite this shortly
       if (domainSnapshotKey) {
         const cachedDomains = await idbGet<Record<string, DomainData[]>>(domainSnapshotKey, {})
+        // Only use cache for initial paint if we have data
+        // Fresh Supabase data will immediately overwrite this
         if (cachedDomains && Object.keys(cachedDomains).length > 0) {
           setData(cachedDomains)
         }
@@ -279,22 +328,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       const domainEntries = await listDomainEntries(supabase)
-      // #region agent log
-      console.log('🔍 [DEBUG-DATAPROVIDER] Raw domainEntries from listDomainEntries:', {
-        totalCount: domainEntries.length,
-        byDomain: domainEntries.reduce((acc: Record<string, number>, e) => {
-          acc[e.domain] = (acc[e.domain] || 0) + 1
-          return acc
-        }, {}),
-        digitalEntriesRaw: domainEntries.filter(e => e.domain === 'digital').slice(0, 3).map(e => ({
-          id: e.id,
-          title: e.title,
-          domain: e.domain,
-          metadataType: e.metadata?.type,
-          metadataKeys: Object.keys(e.metadata || {})
-        }))
-      })
-      // #endregion
+
       const domainsObj = domainEntries.reduce<Record<string, DomainData[]>>((acc, entry) => {
         if (!acc[entry.domain]) {
           acc[entry.domain] = []
@@ -303,28 +337,84 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return acc
       }, {})
 
+      // 🔧 FIX: Also fetch subscriptions from dedicated subscriptions table and merge into data.digital
+      // This ensures Netflix and other subscriptions added via the All Subscriptions page show in dashboards
+      try {
+        const { data: subscriptionsTable, error: subsError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+        
+        if (!subsError && subscriptionsTable && subscriptionsTable.length > 0) {
+          console.log(`📋 [DataProvider] Loaded ${subscriptionsTable.length} subscriptions from subscriptions table`)
+          
+          // Convert subscriptions table format to domain_entries format for compatibility
+          const subscriptionEntries: DomainData[] = subscriptionsTable.map((sub: any) => ({
+            id: `sub_${sub.id}`, // Prefix to avoid ID conflicts with domain_entries
+            domain: 'digital' as Domain,
+            title: sub.service_name || 'Subscription',
+            description: `${sub.category || 'Subscription'} - ${sub.frequency || 'monthly'}`,
+            createdAt: sub.created_at || new Date().toISOString(),
+            updatedAt: sub.updated_at || new Date().toISOString(),
+            metadata: {
+              type: 'subscription',
+              itemType: 'subscription',
+              serviceName: sub.service_name,
+              category: sub.category || 'Other',
+              monthlyCost: sub.frequency === 'yearly' 
+                ? (parseFloat(sub.cost) / 12).toFixed(2)
+                : sub.frequency === 'quarterly'
+                  ? (parseFloat(sub.cost) / 3).toFixed(2)
+                  : sub.cost?.toString() || '0',
+              cost: sub.cost?.toString() || '0',
+              billingCycle: sub.frequency === 'yearly' ? 'Yearly' : sub.frequency === 'quarterly' ? 'Quarterly' : 'Monthly',
+              renewalDate: sub.next_due_date,
+              nextBilling: sub.next_due_date,
+              status: sub.status === 'active' ? 'Active' : sub.status === 'trial' ? 'Trial' : 'Cancelled',
+              iconColor: sub.icon_color,
+              iconLetter: sub.icon_letter,
+              _source: 'subscriptions_table' // Track source for debugging
+            }
+          }))
+
+          // Merge with existing digital entries, avoiding duplicates
+          const existingDigital = domainsObj.digital || []
+          const existingIds = new Set(existingDigital.map(e => e.id))
+          const newSubscriptions = subscriptionEntries.filter(s => !existingIds.has(s.id))
+          
+          domainsObj.digital = [...existingDigital, ...newSubscriptions]
+          console.log(`📋 [DataProvider] Merged ${newSubscriptions.length} subscriptions into data.digital (total: ${domainsObj.digital.length})`)
+        }
+      } catch (subsError) {
+        console.warn('⚠️ [DataProvider] Failed to load subscriptions table:', subsError)
+      }
+
       console.log('✅ Loaded from Supabase domain_entries:', {
         domains: Object.keys(domainsObj).length,
         items: domainEntries.length,
-      })
-      // #region agent log
-      console.log('🔍 [DEBUG-DATAPROVIDER] Digital domain data:', {
-        digitalCount: domainsObj.digital?.length ?? 0,
         allDomains: Object.keys(domainsObj),
-        digitalEntries: domainsObj.digital?.slice(0, 5).map((e: any) => ({
+        homeCount: domainsObj.home?.length || 0,
+        homeBills: (domainsObj.home || []).filter((e: any) => e.metadata?.itemType === 'bill').map((e: any) => ({
           id: e.id,
           title: e.title,
-          type: e.metadata?.type,
-          monthlyCost: e.metadata?.monthlyCost
+          amount: e.metadata?.amount,
+          category: e.metadata?.category
         }))
       })
-      // #endregion
+
+      // ✅ FIX: Always overwrite IDB cache with fresh Supabase data BEFORE setting state
+      // This prevents stale cache from persisting if state update fails
+      if (domainSnapshotKey) {
+        try {
+          await idbSet(domainSnapshotKey, domainsObj)
+          await idbSet(lastDomainSnapshotKey, domainsObj)
+          console.log('✅ IDB cache overwritten with fresh Supabase data')
+        } catch (cacheErr) {
+          console.warn('Failed to update IDB cache:', cacheErr)
+        }
+      }
 
       setData(domainsObj)
-      // Save snapshot to IDB
-      if (domainSnapshotKey) {
-        idbSet(domainSnapshotKey, domainsObj)
-      }
 
       const userId = user.id
       
@@ -364,6 +454,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setTasks(mappedTasks)
           if (tasksSnapshotKey) {
             idbSet(tasksSnapshotKey, mappedTasks)
+            idbSet(lastTasksSnapshotKey, mappedTasks)
           }
           console.log(`✅ Loaded ${mappedTasks.length} tasks from database`)
         }
@@ -435,6 +526,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setHabits(mapped)
           if (habitsSnapshotKey) {
             idbSet(habitsSnapshotKey, mapped)
+            idbSet(lastHabitsSnapshotKey, mapped)
           }
           console.log(`✅ Loaded ${mapped.length} habits from database`)
         }
@@ -475,6 +567,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setBills(mappedBills)
           if (billsSnapshotKey) {
             idbSet(billsSnapshotKey, mappedBills)
+            idbSet(lastBillsSnapshotKey, mappedBills)
           }
           console.log(`✅ Loaded ${mappedBills.length} bills from database`)
         }
@@ -564,6 +657,44 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [session, supabase])
 
+  // 🔥 Listen for domain-data-updated events from useDomainEntries hook for INSTANT updates
+  useEffect(() => {
+    if (!session?.user || !supabase) return
+
+    const handleDomainUpdate = async (event: CustomEvent) => {
+      const { domain, data: eventData, action } = event.detail || {}
+      if (!domain) return
+      
+      console.log(`🔥 [DataProvider] Received ${domain}-data-updated event:`, action)
+      
+      // Immediately update local state with the new data for instant UI feedback
+      if (Array.isArray(eventData)) {
+        setData(prev => ({
+          ...prev,
+          [domain]: eventData,
+        }))
+        
+        // Also update IDB cache
+        const personId = await getActivePersonId()
+        const snapshotKey = `domain_entries_snapshot_${session.user.id}_${personId}`
+        idbSet(snapshotKey, (await idbGet(snapshotKey)) || {}).catch(() => {})
+      }
+    }
+
+    // Listen for events from all domains
+    const domains = ['digital', 'financial', 'health', 'home', 'vehicles', 'pets', 'insurance', 'appliances', 'fitness', 'nutrition', 'mindfulness', 'relationships', 'education', 'career', 'travel', 'legal', 'miscellaneous']
+    
+    domains.forEach(d => {
+      window.addEventListener(`${d}-data-updated`, handleDomainUpdate as EventListener)
+    })
+    
+    return () => {
+      domains.forEach(d => {
+        window.removeEventListener(`${d}-data-updated`, handleDomainUpdate as EventListener)
+      })
+    }
+  }, [session, supabase])
+
   // Realtime subscriptions for core tables (debounced domain reload)
   useEffect(() => {
     if (!session?.user || !supabase) return
@@ -591,7 +722,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           // Handle DELETE events immediately without full reload to avoid stale data
           if (payload.eventType === 'DELETE' && payload.old) {
             const deletedId = payload.old.id
-            console.log(`🗑️ Realtime DELETE detected for ${domain} entry ${deletedId}`)
+            console.log(`🔴🔴🔴 [DEBUG] Realtime DELETE detected for ${domain} entry ${deletedId}`)
             setData(prev => {
               const currentDomainData = Array.isArray(prev[domain]) ? prev[domain] as DomainData[] : []
               const filteredData = currentDomainData.filter(item => item.id !== deletedId)
@@ -781,6 +912,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (snapshotKey) {
         await idbSet(snapshotKey, updated)
       }
+      await idbSet(getLastDomainSnapshotKey(activePersonId), updated)
     } catch (err) {
       console.warn('Failed to update IDB cache:', err)
     }
@@ -802,6 +934,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const rollbackSnapshot = { ...data, [domain]: rollbackData }
         await idbSet(snapshotKey, rollbackSnapshot)
       }
+      await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: rollbackData })
         emitDomainEvents(domain, rollbackData, 'delete')
 
         // Show error to user
@@ -836,6 +969,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const finalSnapshot = { ...data, [domain]: finalData }
     await idbSet(snapshotKey, finalSnapshot)
   }
+  await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: finalData })
       emitDomainEvents(domain, finalData, 'update')
 
       // Show success toast
@@ -854,6 +988,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const rollbackSnapshot = { ...data, [domain]: rollbackData }
     await idbSet(snapshotKeyRollback, rollbackSnapshot)
   }
+  await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: rollbackData })
       emitDomainEvents(domain, rollbackData, 'delete')
 
       // Show user-friendly error
@@ -1076,14 +1211,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Persist to Supabase
     try {
-      // Use the session state from the provider
-      if (session?.user && supabase) {
+      if (!supabase) return
+      // Always fetch fresh session from Supabase to avoid stale closure state
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      if (freshSession?.user) {
         const personId = await getActivePersonId()
         const { data, error } = await supabase
           .from('tasks')
           .insert({
             id: newTask.id,
-            user_id: session.user.id,
+            user_id: freshSession.user.id,
             person_id: personId,
             title: newTask.title,
             description: newTask.description || null,
@@ -1146,13 +1283,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Persist to Supabase
     try {
-      // Use the session state from the provider
-      if (session?.user && supabase) {
+      if (!supabase) return
+      // Always fetch fresh session from Supabase to avoid stale closure state
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      if (freshSession?.user) {
         await supabase
           .from('tasks')
           .delete()
           .eq('id', id)
-          .eq('user_id', session.user.id)
+          .eq('user_id', freshSession.user.id)
         console.log('✅ Task deleted from database')
       }
     } catch (e) {
@@ -1183,8 +1322,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Persist to Supabase
     console.log('🔵 Starting Supabase save...')
     try {
-      // Use the session state from the provider
-      const user = session?.user
+      if (!supabase) {
+        console.error('❌ Supabase not initialized')
+        return
+      }
+      
+      // Always fetch fresh session from Supabase to avoid stale closure state
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      const user = freshSession?.user
       console.log('🔵 User check result:', { user: user?.id })
       
       if (!user) {
@@ -1194,10 +1339,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('🔵 Attempting to insert habit into database...')
-      if (!supabase) {
-        console.error('❌ Supabase not initialized')
-        return
-      }
       const personId = await getActivePersonId()
       const { data: insertedData, error: insertError } = await supabase
         .from('habits')
@@ -1259,13 +1400,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Persist to Supabase
     try {
-      // Use the session state from the provider
-      if (session?.user && supabase) {
+      if (!supabase) return
+      // Always fetch fresh session from Supabase to avoid stale closure state
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      if (freshSession?.user) {
         await supabase
           .from('habits')
           .delete()
           .eq('id', id)
-          .eq('user_id', session.user.id)
+          .eq('user_id', freshSession.user.id)
         console.log('✅ Habit deleted from database')
       }
     } catch (e) {
@@ -1276,8 +1419,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const toggleHabit = useCallback(async (id: string) => {
     console.log('🟢 toggleHabit called for id:', id)
     try {
-      // Use the session state from the provider
-      const user = session?.user
+      if (!supabase) {
+        console.error('❌ Supabase not initialized')
+        return
+      }
+      
+      // Always fetch fresh session from Supabase to avoid stale closure state
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      const user = freshSession?.user
       console.log('🟢 User check:', { user: user?.id })
       
       if (!user) {
@@ -1288,10 +1437,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Get current habit from database
       console.log('🟢 Fetching habit from database...')
-      if (!supabase) {
-        console.error('❌ Supabase not initialized')
-        return
-      }
       const { data: habitData, error: fetchError } = await supabase
         .from('habits')
         .select('*')

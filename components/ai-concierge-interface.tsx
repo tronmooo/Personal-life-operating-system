@@ -53,7 +53,8 @@ import {
   PhoneCall,
   RefreshCw,
   AlertCircle,
-  Volume2
+  Volume2,
+  Trash2
 } from 'lucide-react'
 
 interface Message {
@@ -489,6 +490,17 @@ export function AIConciergeInterface({
     }
   }, [])
 
+  // #region agent log - Debug H2: Track component mount and dialog states
+  useEffect(() => {
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ai-concierge-interface.tsx:mount',message:'AIConciergeInterface mounted',data:{activeTab,showCallConfirmation,showBusinessPicker,callHistoryLength:callHistory.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+  }, []);
+  useEffect(() => {
+    if (activeTab === 'calls') {
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ai-concierge-interface.tsx:calls-tab',message:'Calls tab activated',data:{callHistoryLength:callHistory.length,favoritesLength:favorites.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+    }
+  }, [activeTab, callHistory.length, favorites.length]);
+  // #endregion
+
   // Send initial message if provided
   useEffect(() => {
     if (initialMessage) {
@@ -675,6 +687,18 @@ export function AIConciergeInterface({
         }
         setMessages(prev => [...prev, foundMessage])
       } else {
+        if (data.needsGooglePlaces) {
+          toast.error('Google Places is not configured (or key is invalid). Add GOOGLE_PLACES_API_KEY and restart the server.')
+          const msg: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `⚠️ I can’t search for nearby businesses yet because Google Places is not configured (or the key is invalid).\n\nFix: set GOOGLE_PLACES_API_KEY (or NEXT_PUBLIC_GOOGLE_PLACES_API_KEY) in .env.local with billing enabled for Places + Geocoding, then restart your dev server.`,
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, msg])
+          return
+        }
+
         toast.error(data.error || 'No businesses found nearby')
         
         const noResultsMessage: Message = {
@@ -854,9 +878,33 @@ export function AIConciergeInterface({
           <p className="text-sm text-gray-400">Your intelligent life assistant</p>
         </div>
         
-        <Dialog open={isLocationDialogOpen} onOpenChange={setIsLocationDialogOpen}>
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Clear Chat Button */}
+          {messages.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-red-500/30 text-red-300 hover:bg-red-500/20"
+              onClick={() => {
+                setMessages([])
+                setConversationState(null)
+                setDetectedRequest(null)
+                setBusinessOptions([])
+                setSelectedBusiness(null)
+                setShowBusinessPicker(false)
+                setShowCallConfirmation(false)
+                setPendingCallRequest(null)
+                toast.success('Chat cleared')
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear Chat
+            </Button>
+          )}
+          
+          <Dialog open={isLocationDialogOpen} onOpenChange={setIsLocationDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto border-purple-500/30 text-purple-300 hover:bg-purple-500/20">
+            <Button variant="outline" size="sm" className="border-purple-500/30 text-purple-300 hover:bg-purple-500/20">
               <Settings className="h-4 w-4 mr-2" />
               {manualAddress || location ? 'Edit Location' : 'Set Location'}
             </Button>
@@ -942,6 +990,7 @@ export function AIConciergeInterface({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
 
         {isDetectingLocation ? (
           <Badge variant="outline" className="ml-2 border-blue-500/30 text-blue-400 animate-pulse">
@@ -1101,24 +1150,25 @@ export function AIConciergeInterface({
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
               Are you sure you want to call <span className="text-white font-semibold">{selectedBusiness?.name}</span>?
-              <div className="mt-3 p-3 bg-[#0f1729] rounded-lg text-sm">
-                <p className="flex items-center gap-2 text-gray-300">
-                  <MapPin className="h-4 w-4 text-gray-500" />
-                  {selectedBusiness?.address}
-                </p>
-                <p className="flex items-center gap-2 text-gray-300 mt-1">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  {selectedBusiness?.phone || 'Phone number available'}
-                </p>
-                {selectedBusiness?.distance && (
-                  <p className="flex items-center gap-2 text-green-400 mt-1">
-                    <Navigation className="h-4 w-4" />
-                    {formatDistance(selectedBusiness.distance)}
-                  </p>
-                )}
-              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {/* Moved outside AlertDialogDescription to avoid div-in-p nesting */}
+          <div className="mt-3 p-3 bg-[#0f1729] rounded-lg text-sm">
+            <p className="flex items-center gap-2 text-gray-300">
+              <MapPin className="h-4 w-4 text-gray-500" />
+              {selectedBusiness?.address}
+            </p>
+            <p className="flex items-center gap-2 text-gray-300 mt-1">
+              <Phone className="h-4 w-4 text-gray-500" />
+              {selectedBusiness?.phone || 'Phone number available'}
+            </p>
+            {selectedBusiness?.distance && (
+              <p className="flex items-center gap-2 text-green-400 mt-1">
+                <Navigation className="h-4 w-4" />
+                {formatDistance(selectedBusiness.distance)}
+              </p>
+            )}
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
               Cancel

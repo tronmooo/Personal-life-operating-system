@@ -3,6 +3,7 @@ import { createTwilioService } from '@/lib/services/twilio-voice-service'
 import { createServerClient } from '@/lib/supabase/server'
 
 import { CallContext } from '@/lib/services/openai-voice-agent'
+import { getPublicBaseUrl, getPublicWsBaseUrl } from '@/lib/utils/public-url'
 
 /**
  * POST /api/voice/initiate-call
@@ -58,8 +59,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create Twilio service and make call with Realtime API support
-    const twilioService = createTwilioService()
+    // Create Twilio service using a public base URL so Twilio callbacks/WebSocket target the right domain
+    const publicBaseUrl = getPublicBaseUrl(request)
+    const twilioService = createTwilioService(publicBaseUrl)
     const call = await twilioService.makeCall({
       to: phoneNumber,
       businessName,
@@ -70,8 +72,7 @@ export async function POST(request: Request) {
 
     // Make sure we always return a full URL for the websocketEndpoint
     // This is critical for Twilio Media Streams
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const wsUrl = appUrl.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
+    const wsUrl = getPublicWsBaseUrl(request)
     const websocketEndpoint = `${wsUrl}/api/voice/stream`
 
     console.log('✅ Call initiated successfully with Realtime API. SID:', call.callSid)

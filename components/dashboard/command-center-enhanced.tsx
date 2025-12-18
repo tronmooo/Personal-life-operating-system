@@ -110,10 +110,10 @@ export function CommandCenterEnhanced() {
       
       console.log('📉 Monthly Expenses from bills:', monthlyExpenses)
       
-      // Total assets from unified calculator (includes homes, vehicles, collectibles, misc)
+      // Total assets from unified calculator (includes homes, vehicles, collectibles, misc, appliances)
       const totalAssets = unified.breakdown.financialAssets + unified.breakdown.homeValue + 
                          unified.breakdown.vehicleValue + unified.breakdown.collectiblesValue + 
-                         unified.breakdown.miscValue
+                         unified.breakdown.miscValue + unified.breakdown.appliancesValue
       
       // Total liabilities (financial + loans)
       const totalLiabilities = unified.breakdown.financialLiabilities + totalLoans

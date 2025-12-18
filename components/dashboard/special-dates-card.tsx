@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,47 +42,10 @@ export function SpecialDatesCard() {
   const [loading, setLoading] = useState(true)
   const [specialDates, setSpecialDates] = useState<SpecialDate[]>([])
   const [dismissedDates, setDismissedDates] = useState<Set<string>>(new Set())
+  const [userId, setUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadSpecialDates()
-    loadDismissedDates()
-    
-    // Refresh every 30 seconds to catch new data
-    const interval = setInterval(loadSpecialDates, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadDismissedDates = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      
-      const key = `dismissed_special_dates_${user.id}`
-      const dismissed = await idbGet<string[]>(key, [])
-      setDismissedDates(new Set(dismissed))
-    } catch (error) {
-      console.error('Error loading dismissed dates:', error)
-    }
-  }
-
-  const handleDismissDate = async (dateId: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const newDismissed = new Set(dismissedDates)
-      newDismissed.add(dateId)
-      setDismissedDates(newDismissed)
-
-      // Save to IDB
-      const key = `dismissed_special_dates_${user.id}`
-      await idbSet(key, Array.from(newDismissed))
-    } catch (error) {
-      console.error('Error dismissing date:', error)
-    }
-  }
-
-  const loadSpecialDates = async () => {
+  // Memoized load function for realtime subscription
+  const loadSpecialDates = useCallback(async () => {
     try {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
@@ -90,19 +53,39 @@ export function SpecialDatesCard() {
         setLoading(false)
         return
       }
+      setUserId(user.id)
 
-      // Load people
-      const { data: people, error: peopleError } = await supabase
-        .from('relationships')
+      // Load people from domain_entries table (where relationships are actually stored)
+      const { data: domainEntries, error: entriesError } = await supabase
+        .from('domain_entries')
         .select('*')
-        .eq('userId', user.id)
+        .eq('user_id', user.id)
+        .eq('domain', 'relationships')
 
-      if (peopleError) {
-        console.error('Error loading people:', peopleError)
-        throw peopleError
+      if (entriesError) {
+        console.error('Error loading relationships from domain_entries:', entriesError)
+        throw entriesError
       }
 
-      // Load reminders
+      // Transform domain entries to Person format
+      const people: Person[] = (domainEntries || []).map((entry: any) => {
+        // Handle the metadata structure - could be nested
+        let m = entry?.metadata || {}
+        if (m?.metadata && typeof m.metadata === 'object' && Object.keys(m).length === 1) {
+          m = m.metadata
+        }
+        
+        return {
+          id: entry.id,
+          name: m.name || entry.title || 'Unnamed',
+          relationship: m.relationship || 'friend',
+          birthday: m.birthday,
+          anniversaryDate: m.anniversaryDate,
+          importantDates: m.importantDates || []
+        }
+      })
+
+      // Load reminders from relationship_reminders table
       const { data: reminders, error: remindersError } = await supabase
         .from('relationship_reminders')
         .select('*')
@@ -214,8 +197,9 @@ export function SpecialDatesCard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
 
+  // Helper functions defined before useEffect
   const getDaysUntilReminderDate = (dateStr: string): number | null => {
     if (!dateStr) return null
     
@@ -258,6 +242,79 @@ export function SpecialDatesCard() {
     } catch (e) {
       console.error('Error calculating days until date:', e)
       return null
+    }
+  }
+
+  useEffect(() => {
+    loadSpecialDates()
+    loadDismissedDates()
+    
+    // Set up realtime subscription for immediate updates
+    const channel = supabase
+      .channel('special-dates-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'domain_entries',
+          filter: 'domain=eq.relationships'
+        },
+        (payload) => {
+          console.log('📅 Realtime update received for relationships:', payload)
+          // Reload special dates when relationships change
+          loadSpecialDates()
+        }
+      )
+      .subscribe()
+
+    // Also listen for custom events from the app
+    const handleDataUpdate = () => {
+      console.log('📅 Data update event received, reloading special dates')
+      loadSpecialDates()
+    }
+    
+    window.addEventListener('data-updated', handleDataUpdate)
+    window.addEventListener('relationships-data-updated', handleDataUpdate)
+    
+    // Refresh every 60 seconds as a backup (reduced from 30s since we have realtime now)
+    const interval = setInterval(loadSpecialDates, 60000)
+    
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+      window.removeEventListener('data-updated', handleDataUpdate)
+      window.removeEventListener('relationships-data-updated', handleDataUpdate)
+    }
+  }, [supabase, loadSpecialDates])
+
+  const loadDismissedDates = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      const key = `dismissed_special_dates_${user.id}`
+      const dismissed = await idbGet<string[]>(key, [])
+      setDismissedDates(new Set(dismissed))
+    } catch (error) {
+      console.error('Error loading dismissed dates:', error)
+    }
+  }
+
+  const handleDismissDate = async (dateId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const newDismissed = new Set(dismissedDates)
+      newDismissed.add(dateId)
+      setDismissedDates(newDismissed)
+
+      // Save to IDB
+      const key = `dismissed_special_dates_${user.id}`
+      await idbSet(key, Array.from(newDismissed))
+    } catch (error) {
+      console.error('Error dismissing date:', error)
     }
   }
 

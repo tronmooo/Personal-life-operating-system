@@ -15,14 +15,14 @@ describe('CallTaskComposer', () => {
   it('should render the composer form', () => {
     render(<CallTaskComposer />)
     
-    expect(screen.getByText(/Create Call Task/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Create Call Task/i })).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/Example:/i)).toBeInTheDocument()
   })
 
   it('should show error when submitting without instruction', async () => {
     render(<CallTaskComposer />)
     
-    const submitButton = screen.getByText(/Create Call Task/i)
+    const submitButton = screen.getByRole('button', { name: /Create Call Task/i })
     fireEvent.click(submitButton)
 
     // Toast error should be called
@@ -48,7 +48,7 @@ describe('CallTaskComposer', () => {
     const textarea = screen.getByPlaceholderText(/Example:/i)
     fireEvent.change(textarea, { target: { value: 'Call my dentist' } })
 
-    const submitButton = screen.getByText(/Create Call Task/i)
+    const submitButton = screen.getByRole('button', { name: /Create Call Task/i })
     fireEvent.click(submitButton)
 
     await waitFor(() => {
@@ -79,7 +79,7 @@ describe('CallTaskComposer', () => {
     const textarea = screen.getByPlaceholderText(/Example:/i)
     fireEvent.change(textarea, { target: { value: 'Call someone' } })
 
-    const submitButton = screen.getByText(/Create Call Task/i)
+    const submitButton = screen.getByRole('button', { name: /Create Call Task/i })
     fireEvent.click(submitButton)
 
     await waitFor(() => {
@@ -101,7 +101,7 @@ describe('CallTaskList', () => {
     render(<CallTaskList />)
     
     // Should show loader
-    expect(screen.getByTestId('loader') || document.querySelector('.animate-spin')).toBeTruthy()
+    expect(screen.queryByTestId('loader') || document.querySelector('.animate-spin')).toBeTruthy()
   })
 
   it('should render task list', async () => {

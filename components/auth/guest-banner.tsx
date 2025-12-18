@@ -5,6 +5,7 @@ import { X, LogIn, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuthGuard } from '@/lib/hooks/use-auth-guard'
 import Link from 'next/link'
+import { idbGet, idbSet } from '@/lib/utils/idb-cache'
 
 interface GuestBannerProps {
   /** Where to redirect after sign-in */
@@ -18,28 +19,21 @@ interface GuestBannerProps {
 export function GuestBanner({ redirectPath, compact = false, message }: GuestBannerProps) {
   const { isAuthenticated, isLoading } = useAuthGuard()
   const [dismissed, setDismissed] = useState(false)
-  
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'guest-banner.tsx:render',message:'GuestBanner render',data:{isAuthenticated,isLoading,dismissed,willShow:!isLoading&&!isAuthenticated&&!dismissed},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-  }
-  // #endregion
 
   // Check if banner was dismissed in this session
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const wasDismissed = sessionStorage.getItem('guest-banner-dismissed')
-      if (wasDismissed) {
-        setDismissed(true)
-      }
+    let cancelled = false
+    idbGet<boolean>('ui:guest-banner-dismissed', false).then((wasDismissed) => {
+      if (!cancelled && wasDismissed) setDismissed(true)
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 
   const handleDismiss = () => {
     setDismissed(true)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('guest-banner-dismissed', 'true')
-    }
+    idbSet('ui:guest-banner-dismissed', true)
   }
 
   // Don't show if loading, authenticated, or dismissed

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useFinance } from '@/lib/providers/finance-provider-new'
 import { Plus, Trash2, TrendingDown, Target, Clock } from 'lucide-react'
 import { DebtsVisual } from '../visuals/tab-visuals'
-import { DebtComparisonChart, PayoffTimeline, DebtToIncomeGauge } from '../charts/finance-visualizations'
+import { DebtComparisonChart, DebtToIncomeGauge } from '../charts/finance-visualizations'
 
 interface DebtsTabProps {
   onOpenDebtDialog?: () => void
@@ -55,9 +55,11 @@ export function DebtsTab({ onOpenDebtDialog }: DebtsTabProps = {}) {
 
   // Calculate debt-to-income ratio
   const debtToIncomeRatio = useMemo(() => {
-    const monthlyIncome = financialSummary?.monthlyIncome || 1
+    const monthlyIncome = financialSummary?.monthlyIncome || 0
     const monthlyDebtPayments = debtSummary?.totalMinimumPayments || 0
-    return monthlyIncome > 0 ? (monthlyDebtPayments / monthlyIncome) * 100 : 0
+    // Only calculate if we have meaningful income data, otherwise show 0
+    if (monthlyIncome <= 0) return 0
+    return (monthlyDebtPayments / monthlyIncome) * 100
   }, [financialSummary, debtSummary])
 
   // Snowball vs Avalanche comparison
@@ -195,7 +197,23 @@ export function DebtsTab({ onOpenDebtDialog }: DebtsTabProps = {}) {
           </CardHeader>
           <CardContent>
             {payoffTimelineData.length > 0 ? (
-              <PayoffTimeline data={payoffTimelineData} />
+              <div className="relative">
+                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-slate-700" />
+                <div className="space-y-4 pl-8">
+                  {payoffTimelineData.slice(0, 4).map((debt, i) => (
+                    <div key={i} className="relative">
+                      <div className="absolute -left-[22px] w-3 h-3 rounded-full bg-rose-500" />
+                      <p className="text-sm text-white font-medium">{debt.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {debt.projectedPayoffDate} • {debt.monthsRemaining} months
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        ${debt.balance.toLocaleString()} remaining
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="flex items-center justify-center h-[150px] text-slate-500">
                 No debts to display

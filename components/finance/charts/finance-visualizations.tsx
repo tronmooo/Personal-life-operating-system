@@ -741,17 +741,24 @@ export function PayoffTimeline({ debts }: PayoffTimelineProps) {
 // ============ DEBT TO INCOME GAUGE ============
 interface DebtToIncomeGaugeProps {
   ratio: number
+  size?: number
 }
 
-export function DebtToIncomeGauge({ ratio }: DebtToIncomeGaugeProps) {
-  const clampedRatio = Math.min(ratio, 100)
+export function DebtToIncomeGauge({ ratio, size = 160 }: DebtToIncomeGaugeProps) {
+  // Ensure ratio is a valid number, default to 0
+  const safeRatio = isNaN(ratio) || !isFinite(ratio) ? 0 : ratio
+  // Clamp ratio for visual display (gauge max is 100%)
+  const clampedRatio = Math.min(Math.max(safeRatio, 0), 100)
   const angle = (clampedRatio / 100) * 180 - 90
 
   const getColor = () => {
-    if (ratio <= 36) return 'rgb(34, 197, 94)'
-    if (ratio <= 50) return 'rgb(250, 204, 21)'
+    if (safeRatio <= 36) return 'rgb(34, 197, 94)'
+    if (safeRatio <= 50) return 'rgb(250, 204, 21)'
     return 'rgb(239, 68, 68)'
   }
+
+  // Format the display value - cap at 999% for readability
+  const displayValue = safeRatio > 999 ? '999+' : safeRatio.toFixed(0)
 
   return (
     <div className="relative w-32 h-20 mx-auto">
@@ -787,7 +794,7 @@ export function DebtToIncomeGauge({ ratio }: DebtToIncomeGaugeProps) {
         <circle cx="50" cy="55" r="4" fill="white" />
       </svg>
       <div className="text-center -mt-2">
-        <span className="text-lg font-bold text-white">{ratio.toFixed(0)}%</span>
+        <span className="text-lg font-bold text-white">{displayValue}%</span>
         <p className="text-xs text-slate-400">DTI Ratio</p>
       </div>
     </div>

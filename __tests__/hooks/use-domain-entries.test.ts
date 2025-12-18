@@ -118,33 +118,31 @@ describe('Domain Entries CRUD Operations', () => {
     ]
 
     it('should list all domain entries when no domain specified', async () => {
-      const mockQuery = {
+      const mockQuery: any = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockEntries, error: null }),
+        order: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
+        then: (resolve: any) => Promise.resolve({ data: mockEntries, error: null }).then(resolve),
       }
       mockSupabaseClient.from.mockReturnValue(mockQuery)
 
       const result = await listDomainEntries(mockSupabaseClient as any)
 
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('domain_entries_view')
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('domain_entries')
       expect(mockQuery.eq).toHaveBeenCalledWith('user_id', mockUser.id)
+      expect(mockQuery.or).toHaveBeenCalled()
       expect(result).toHaveLength(2)
       expect(result[0].id).toBe('1')
     })
 
     it('should filter by domain when specified', async () => {
-      const finalQuery = Promise.resolve({ data: mockEntries, error: null })
-      const mockQuery = {
+      const mockQuery: any = {
         select: jest.fn().mockReturnThis(),
-        eq: jest.fn(function(this: any) {
-          // First call (user_id) returns this, second call (domain) returns the promise
-          if (this.eqCallCount === undefined) this.eqCallCount = 0
-          this.eqCallCount++
-          return this.eqCallCount === 1 ? this : finalQuery
-        }),
+        eq: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
-        eqCallCount: 0,
+        or: jest.fn().mockReturnThis(),
+        then: (resolve: any) => Promise.resolve({ data: mockEntries, error: null }).then(resolve),
       }
       mockSupabaseClient.from.mockReturnValue(mockQuery)
 
@@ -152,6 +150,7 @@ describe('Domain Entries CRUD Operations', () => {
 
       expect(mockQuery.eq).toHaveBeenCalledWith('user_id', mockUser.id)
       expect(mockQuery.eq).toHaveBeenCalledWith('domain', 'health')
+      expect(mockQuery.or).toHaveBeenCalled()
     })
 
     it('should return empty array when not authenticated', async () => {
@@ -166,10 +165,12 @@ describe('Domain Entries CRUD Operations', () => {
     })
 
     it('should throw error on database error', async () => {
-      const mockQuery = {
+      const mockQuery: any = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error: new Error('DB error') }),
+        order: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
+        then: (resolve: any) => Promise.resolve({ data: null, error: new Error('DB error') }).then(resolve),
       }
       mockSupabaseClient.from.mockReturnValue(mockQuery)
 
@@ -210,6 +211,7 @@ describe('Domain Entries CRUD Operations', () => {
         description: payload.description,
         metadata: payload.metadata,
         user_id: mockUser.id,
+        person_id: 'me',
       })
       expect(result.id).toBe('new-id')
       expect(result.title).toBe('New Health Entry')

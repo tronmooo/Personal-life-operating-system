@@ -38,10 +38,14 @@ describe('🔴 CRITICAL: Row-Level Security (RLS)', () => {
       })
 
       // Mock RLS: User A should NOT see User B's data
-      mockSupabase.from().order.mockResolvedValue({
-        data: [], // Empty - RLS filters out User B's data
-        error: null,
-      })
+      const listQuery: any = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        then: (resolve: any) => Promise.resolve({ data: [], error: null }).then(resolve),
+      }
+      mockSupabase.from.mockReturnValue(listQuery)
 
       const entries = await listDomainEntries(mockSupabase, 'health')
 
@@ -191,22 +195,30 @@ describe('🔴 CRITICAL: Row-Level Security (RLS)', () => {
       const domains: Array<'health' | 'financial' | 'vehicles'> = ['health', 'financial', 'vehicles']
       
       for (const domain of domains) {
-        mockSupabase.from().order.mockResolvedValue({
-          data: [
-            {
-              id: `entry-${domain}`,
-              user_id: 'user-a-id',
-              domain,
-              title: `User A ${domain}`,
-            },
-          ],
-          error: null,
-        })
+        const listQuery: any = {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          or: jest.fn().mockReturnThis(),
+          order: jest.fn().mockReturnThis(),
+          then: (resolve: any) =>
+            Promise.resolve({
+              data: [
+                {
+                  id: `entry-${domain}`,
+                  user_id: 'user-a-id',
+                  domain,
+                  title: `User A ${domain}`,
+                },
+              ],
+              error: null,
+            }).then(resolve),
+        }
+        mockSupabase.from.mockReturnValue(listQuery)
 
-        const entries = await listDomainEntries(mockSupabase, domain)
+        await listDomainEntries(mockSupabase, domain)
 
-        // Each domain should only show user's own data
-        expect(entries.every(e => (e as any).user_id === 'user-a-id')).toBe(true)
+        // Verify RLS-style filtering is applied (query must be scoped to the authenticated user)
+        expect(listQuery.eq).toHaveBeenCalledWith('user_id', 'user-a-id')
       }
     })
   })
@@ -219,10 +231,14 @@ describe('🔴 CRITICAL: Row-Level Security (RLS)', () => {
       })
 
       // User B tries to access User A's entry by guessing ID
-      mockSupabase.from().order.mockResolvedValue({
-        data: [], // RLS returns empty, not "forbidden"
-        error: null,
-      })
+      const listQuery: any = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        then: (resolve: any) => Promise.resolve({ data: [], error: null }).then(resolve),
+      }
+      mockSupabase.from.mockReturnValue(listQuery)
 
       const entries = await listDomainEntries(mockSupabase, 'health')
 

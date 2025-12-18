@@ -1,0 +1,566 @@
+
+> lifehub@1.0.0 dev:server
+> node server.js
+
+🚀 Initializing LifeHub AI Concierge Server...
+🎙️ WebSocket server initialized for Twilio Media Streams
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ LifeHub AI Concierge Server Ready!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌐 Web:       http://localhost:3000
+🔌 WebSocket: ws://localhost:3000/api/voice/stream
+📊 Sessions:  0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 Required Environment Variables:
+   - O   Reload env: .env.local
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+PI_KEY: ✅ Set
+
+ ✓ Compiled /middleware in 231ms (202 modules)
+ ✓ Compiled /api/zillow-scrape in 187ms (103 modules)
+
+🏡 ==================== ZILLOW PRICE SCRAPER ====================
+⏰ 2025-12-15T23:28:30.812Z
+📍 Address: 123 Main St, Tampa, FL 33607
+
+🌐 Scraping Zillow.com for REAL price...
+
+🌐 [BROWSER] Opening Zillow.com to scrape real price...
+📍 Address: 123 Main St, Tampa, FL 33607
+🔗 URL: https://www.zillow.com/homes/123%20Main%20St%2C%20Tampa%2C%20FL%2033607_rb/
+⚠️ [BROWSER] HTTP 403
+
+📊 Using statistical fallback...
+
+📊 [STATISTICAL] Using accurate market estimate...
+📊 [STATISTICAL] Estimate: $389,702
+
+✅ RESULT: $389,702 from 2025 Market-Based Estimate
+⚡ 375ms
+==================== END ====================
+
+ POST /api/zillow-scrape 200 in 796ms
+ ○ Compiling /api/voice/initiate-call ...
+ ✓ Compiled /api/voice/initiate-call in 1509ms (1209 modules)
+🔐 [SUPABASE/SERVER] createServerClient called, cookies available: true
+🔐 [SUPABASE/SERVER] getAll cookies count: 0 names: 
+🔐 [SUPABASE/SERVER] getAll cookies count: 0 names: 
+🔐 [SUPABASE/SERVER] getAll cookies count: 0 names: 
+🔐 [SUPABASE/SERVER] getAll cookies count: 0 names: 
+📞 Initiating Twilio call to: Test Pizza Shop
+Error making call: TypeError: (0 , _lib_supabase_browser_client__WEBPACK_IMPORTED_MODULE_1__.createClientComponentClient) is not a function
+    at new OpenAIVoiceAgent (webpack-internal:///(rsc)/./lib/services/openai-voice-agent.ts:17:114)
+    at TwilioVoiceService.makeCall (webpack-internal:///(rsc)/./lib/services/twilio-voice-service.ts:36:32)
+    at POST (webpack-internal:///(rsc)/./app/api/voice/initiate-call/route.ts:56:42)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/robertsennabaum/new project/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/robertsennabaum/new project/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/robertsennabaum/new project/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/robertsennabaum/new project/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/robertsennabaum/new project/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async NextCustomServer.requestHandlerImpl [as requestHandler] (/ ✓ Compiled in 1310ms (1406 modules)
+ ✓ Compiled in 285ms (202 modules)
+ ✓ Compiled in 1450ms (1608 modules)
+ ✓ Compiled in 859ms (1608 modules)
+ ✓ Compiled in 947ms (1608 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/robertsennabaum/new project/.next/server/app/page.js'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/page' in /Users/robertsennabaum/new project/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/Users/robertsennabaum/new project/.next/server/app/page.js', but to 'Error: Can't resolve '../../../../.next/server/app/page' in '/Users/robertsennabaum/new project/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/page (expected /Users/robertsennabaum/new project/.next/server/app/page.js)
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/server/require.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/server/require.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/server/load-components.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/utils.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-app-loader.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-app-loader.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/compiled/webpack/bundle5.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/compiled/webpack/bundle5.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/compiled/webpack/webpack.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/compiled/webpack/webpack.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/plugins/define-env-plugin.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/plugins/define-env-plugin.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/swc/index.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/swc/index.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w>  at resolve commonjs /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+ ✓ Compiled in 977ms (1406 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/robertsennabaum/new project/.next/server/app/page.js'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/page' in /Users/robertsennabaum/new project/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/Users/robertsennabaum/new project/.next/server/app/page.js', but to 'Error: Can't resolve '../../../../.next/server/app/page' in '/Users/robertsennabaum/new project/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for  ✓ Compiled in 1510ms (1406 modules)
+ ✓ Compiled in 730ms (1406 modules)
+ ✓ Compiled in 862ms (1406 modules)
+ ✓ Compiled in 870ms (1407 modules)
+ ✓ Compiled in 892ms (1407 modules)
+ ✓ Compiled in 696ms (1407 modules)
+ ✓ Compiled in 1074ms (1407 modules)
+ ✓ Compiled in 1039ms (1407 modules)
+ ✓ Compiled in 1034ms (1407 modules)
+ ✓ Compiled in 1088ms (1407 modules)
+ ✓ Compiled in 4.6s (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+   Reload env: .env.local
+ ✓ Compiled in 8.5s (1644 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (129kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/edge-server-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/edge-server-development/0.pack.gz'
+ ✓ Compiled in 1131ms (1407 modules)
+ ✓ Compiled in 784ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 1209ms (1407 modules)
+ ✓ Compiled in 3.3s (1609 modules)
+ ✓ Compiled in 752ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 876ms (1407 modules)
+ ✓ Compiled in 887ms (1407 modules)
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+ms (2507 modules)
+
+🏡 ==================== PROPERTY PRICE API ====================
+⏰ 2025-12-15T23:34:22.475Z
+📍 Address: 742 Evergreen Terrace, Springfield, OR
+
+🔍 Trying multiple real estate sites...
+
+🏠 [REDFIN] Attempting to scrap ✓ Compiled in 850ms (1406 modules)
+ ✓ Compiled in 900ms (1407 modules)
+ ✓ Compiled in 787ms (1407 modules)
+ ✓ Compiled in 674ms (1407 modules)
+ ✓ Compiled in 1161ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/robertsennabaum/new project/.next/server/app/page.js'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/page' in /Users/robertsennabaum/new project/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/Users/robertsennabaum/new project/.next/server/app/page.js', but to 'Error: Can't resolve '../../../../.next/server/app/page' in '/Users/robertsennabaum/new project/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/page (expected /Users/robertsennabaum/new project/.next/server/app/page.js)
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/server/require.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/server/require.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/server/load-components.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/utils.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-app-loader.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/build/webpack/loaders/next-app-loader.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js
+<w>  at file /Users/robertsennabaum/new project/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js
+<w>  at file dependencies /Users/robertsennabaum/new project/node_modules/next/dist/compiled/webpack/bundle5.js
+<w>  at file /Users/robertsennabaum/new projec ○ Compiling / ...
+ ✓ Compiled / in 1290ms (2860 modules)
+💰 Total Expenses (all domains): $0
+💰 Unified Net Worth Calculation: {
+  totalAssets: 0,
+  totalLiabilities: 0,
+  netWorth: 0,
+  breakdown: {
+    homeValue: 0,
+    vehicleValue: 0,
+    collectiblesValue: 0,
+    miscValue: 0,
+    financialAssets: 0,
+    financialLiabilities: 0,
+    cashIncome: 0
+  }
+}
+🔍 [DEBUG-H1] Digital items for monthlyExpenses: 0 []
+🏥 Health Data for Stats - Total entries: 0
+🏥 ✅ No health data found - dashboard will show "No data"
+🏥 [computeHealthStats] Filtered: Total: 0, Vitals: 0, Meds: 0, BP Entries: 0
+🏥 [computeHealthStats] Searching for vitals across entries:
+🏥 [computeHealthStats] ✅ Final extracted values: Weight: 0, HR: 0, Glucose: 0, BP: --/--
+🏥 ✅ FINAL Health Stats: HasData: false, Items: 0, Vitals: 0, Glucose: 0, Weight: 0, HR: 0, BP: --/--, Meds: 0
+🔴🔴🔴 [DEBUG] vehiclesStats computing: {
+  fromDomainEntriesCount: 0,
+  fromDomainEntriesIds: [],
+  fromTableCount: 0,
+  fromTableIds: [],
+  refreshTrigger: 0
+}
+🚗 V ✓ Compiled in 1898ms (1407 modules)
+ ✓ Compiled in 572ms (1407 modules)
+ ✓ Compiled in 921ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 4.1s (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+   Reload env: .env.local
+ ✓ Compiled in 8.5s (1644 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (129kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 1135ms (1407 modules)
+ ✓ Compiled in 718ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 1099ms (1407 modules)
+ ✓ Compiled in 3.3s (1609 modules)
+ ✓ Compiled in 716ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 898ms (1407 modules)
+ ✓ Compiled in 855ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 32.4s (1609 modules)
+ ✓ Compiled in 7.4s (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (129kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 40.5s (1609 modules)
+ ✓ Compiled in 10.3s (1407 modules)
+ ✓ Compiled in 52.4s (1407 modules)
+ ✓ Compiled in 6.2s (1407 modules)
+ ✓ Compiled in 1090ms (1407 modules)
+ ✓ Compiled in 667ms (1407 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+ack-url, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier, next-auth.csrf-token
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier, next-auth.csrf-token
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier, next-auth.csrf-token
+ GET /api/gmail/suggestions 401 in 30ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 1884ms
+ ✓ Compiled in 1643ms (3280 modules)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 1499ms
+ ✓ Compiled in 1277ms (3280 modules)
+ ✓ Compiled in 4s (1407 modules)
+   Reload env: .env.local
+ ✓ Compiled in 8.8s (1644 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (129kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled in 1108ms (1407 modules)
+ ✓ Compiled in 750ms (1407 modules)
+ ○ Compiling /api/zillow-scrape ...
+ ✓ Compiled /api/zillow-scrape in 755ms (103 modules)
+
+🏡 ==================== ZILLOW PRICE SEARCH ====================
+📍 Address: 1600 Pennsylvania Avenue NW, Washington, DC 20500
+🔍 Searching web for real Zillow data...
+🔗 Search URL: https://www.google.com/search?q=1600%20Pennsylvania%20Avenue%20NW%2C%20Washington%2C%20DC%2020500%20Zillow%20Zestimate%20price
+ POST /api/zillow-scrape 404 in 1308ms
+ ✓ Compiled in 1996ms (1510 modules)
+
+🏡 ==================== REAL ZILLOW PRICE SEARCH ====================
+📍 Searching for: 1600 Pennsylvania Avenue NW, Washington, DC 20500
+🔍 Web Search: 1600 Pennsylvania Avenue NW, Washington, DC 20500 Zillow zestimate price
+❌ ERROR: Brave API error: 422
+ POST /api/zillow-scrape 500 in 314ms
+ ✓ Compiled in 3.4s (1712 modules)
+ ✓ Compiled in 824ms (1510 modules)
+ ✓ Compiled in 870ms (1407 modules)
+ ✓ Compiled /api/zillow-scrape in 234ms (103 modules)
+🏠 Searching Zillow for: 2103 Alexis Ct, Tarpon Springs, FL 34689
+🔗 Trying: https://www.zillow.com/homedetails/2103-alexis-ct-tarpon-springs-fl-34689/_zpid/
+❌ Zillow returned: 403
+❌ Error: Zillow returned 403
+ POST /api/zillow-scrape 500 in 712ms
+ ✓ Compiled in 931ms (1510 modules)
+ ✓ Compiled in 32.5s (1609 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (129kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled in 7.4s (1407 modules)
+ ○ Compiling /api/zillow-scrape ...
+ ✓ Compiled /api/zillow-scrape in 1065ms (103 modules)
+
+🏡 ==================== PROPERTY PRICE LOOKUP ====================
+📍 Address: 2103 Alexis Ct, Tarpon Springs, FL 34689
+🔍 Searching web for property price: 2103 Alexis Ct, Tarpon Springs, FL 34689
+❌ Could not find property price
+ POST /api/zillow-scrape 404 in 2586ms
+ ✓ Compiled in 39.2s (1712 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 25s (2847 modules)
+💰 Total Expenses (all domains): $0
+💰 Unified Net Worth Calculation: {
+  totalAssets: 0,
+  totalLiabilities: 0,
+  netWorth: 0,
+  breakdown: {
+    homeValue: 0,
+    vehicleValue: 0,
+    collectiblesValue: 0,
+    miscValue: 0,
+    financialAssets: 0,
+    financialLiabilities: 0,
+    cashIncome: 0
+  }
+}
+🔍 [DEBUG-H1] Digital items for monthlyExpenses: 0 []
+🏥 Health Data for Stats - Total entries: 0
+🏥 ✅ No health data found - dashboard will show "No data"
+🏥 [computeHealthStats] Filtered: Total: 0, Vitals: 0, Meds: 0, BP Entries: 0
+🏥 [computeHealthStats] Searching for vitals across entries:
+🏥 [computeHealthStats] ✅ Final extracted values: Weight: 0, HR: 0, Glucose: 0, BP: --/--
+🏥 ✅ FINAL Health Stats: HasData: false, Items: 0, Vitals: 0, Glucose: 0, Weight: 0, HR: 0, BP: --/--, Meds: 0
+🔴🔴🔴 [DEBUG] vehiclesStats computing: {
+  fromDomainEntriesCount: 0,
+  fromDomainEntriesIds: [],
+  fromTableCount: 0,
+  fromTableIds: [],
+  refreshTrigger: 0
+}
+🚗 Vehicles Stats: {
+  count: 0,
+  totalValue: 0,
+  needsService: 0,
+  totalMileage: 0,
+  fromDomainEntries: 0,
+  fromTable: 0
+}
+💰 [Liabilities] Financial items count: 0
+💰 [Liabilities] All financial items: []
+💰 [Liabilities] Final stats: {
+  total: 0,
+  mortgage: 0,
+  autoLoans: 0,
+  creditCards: 0,
+  otherLoans: 0,
+  accounts: 0
+}
+🥗 [Nutrition] Today is: 2025-12-16
+🥗 [Nutrition] Total entries: 0, Today's entries: 0
+🥗 [Nutrition] Today's totals: { calories: 0, protein: 0, carbs: 0, fats: 0, water: 0, meals: 0 }
+🏋️ Fitness data for stats calculation: 0 entries
+🏋️ Today entries: 0 []
+🏋️ Final stats: {
+  caloriesBurned: 0,
+  todaySteps: 0,
+  todayDistance: 0,
+  activeMinutes: 0,
+  todayWorkouts: 0
+}
+🔍 [DEBUG-H1] data.digital for computeDigitalStats: 0 undefined
+🔔 Checking insurance alerts: {
+  totalInsurance: 0,
+  today: '2025-12-16T00:04:53.804Z',
+  dataType: 'undefined',
+  isArray: false
+}
+📅 GoogleCalendarCard - Render: { eventsCount: 0, loading: false, error: null }
+🏠 [UpcomingBills] Home domain entries: 0
+💰 Total Expenses (all domains): $0
+💰 Unified Net Worth Calculation: {
+  totalAssets: 0,
+  totalLiabilities: 0,
+  netWorth: 0,
+  breakdown: {
+    homeValue: 0,
+    vehicleValue: 0,
+    collectiblesValue: 0,
+    miscValue: 0,
+    financialAssets: 0,
+    financialLiabilities: 0,
+    cashIncome: 0
+  }
+}
+🔍 [DEBUG-H1] Digital items for monthlyExpenses: 0 []
+🏥 Health Data for Stats - Total entries: 0
+🏥 ✅ No health data found - dashboard will show "No data"
+🏥 [computeHealthStats] Filtered: Total: 0, Vitals: 0, Meds: 0, BP Entries: 0
+🏥 [computeHealthStats] Searching for vitals across entries:
+🏥 [computeHealthStats] ✅ Final extracted values: Weight: 0, HR: 0, Glucose: 0, BP: --/--
+🏥 ✅ FINAL Health Stats: HasData: false, Items: 0, Vitals: 0, Glucose: 0, Weight: 0, HR: 0, BP: --/--, Meds: 0
+🔴🔴🔴 [DEBUG] vehiclesStats computing: {
+  fromDomainEntriesCount: 0,
+  fromDomainEntriesIds: [],
+  fromTableCount: 0,
+  fromTableIds: [],
+  refreshTrigger: 0
+}
+🚗 Vehicles Stats: {
+  count: 0,
+  totalValue: 0,
+  needsService: 0,
+  totalMileage: 0,
+  fromDomainEntries: 0,
+  fromTable: 0
+}
+💰 [Liabilities] Financial items count: 0
+💰 [Liabilities] All financial items: []
+💰 [Liabilities] Final stats: {
+  total: 0,
+  mortgage: 0,
+  autoLoans: 0,
+  creditCards: 0,
+  otherLoans: 0,
+  accounts: 0
+}
+🥗 [Nutrition] Today is: 2025-12-16
+🥗 [Nutrition] Total entries: 0, Today's entries: 0
+🥗 [Nutrition] Today's totals: { calories: 0, protein: 0, carbs: 0, fats: 0, water: 0, meals: 0 }
+🏋️ Fitness data for stats calculation: 0 entries
+🏋️ Today entries: 0 []
+🏋️ Final stats: {
+  caloriesBurned: 0,
+  todaySteps: 0,
+  todayDistance: 0,
+  activeMinutes: 0,
+  todayWorkouts: 0
+}
+🔍 [DEBUG-H1] data.digital for computeDigitalStats: 0 undefined
+🔔 Checking insurance alerts: {
+  totalInsurance: 0,
+  today: '2025-12-16T00:05:20.710Z',
+  dataType: 'undefined',
+  isArray: false
+}
+📅 GoogleCalendarCard - Render: { eventsCount: 0, loading: false, error: null }
+🏠 [UpcomingBills] Home domain entries: 0
+ GET / 200 in 77922ms
+💰 Total Expenses (all domains): $0
+💰 Unified Net Worth Calculation: {
+  totalAssets: 0,
+  totalLiabilities: 0,
+  netWorth: 0,
+  breakdown: {
+    homeValue: 0,
+    vehicleValue: 0,
+    collectiblesValue: 0,
+    miscValue: 0,
+    financialAssets: 0,
+    financialLiabilities: 0,
+    cashIncome: 0
+  }
+}
+🔍 [DEBUG-H1] Digital items for monthlyExpenses: 0 []
+🏥 Health Data for Stats - Total entries: 0
+🏥 ✅ No health data found - dashboard will show "No data"
+🏥 [computeHealthStats] Filtered: Total: 0, Vitals: 0, Meds: 0, BP Entries: 0
+🏥 [computeHealthStats] Searching for vitals across entries:
+🏥 [computeHealthStats] ✅ Final extracted values: Weight: 0, HR: 0, Glucose: 0, BP: --/--
+🏥 ✅ FINAL Health Stats: HasData: false, Items: 0, Vitals: 0, Glucose: 0, Weight: 0, HR: 0, BP: --/--, Meds: 0
+🔴🔴🔴 [DEBUG] vehiclesStats computing: {
+  fromDomainEntriesCount: 0,
+  fromDomainEntriesIds: [],
+  fromTableCount: 0,
+  fromTableIds: [],
+  refreshTrigger: 0
+}
+🚗 Vehicles Stats: {
+  count: 0,
+  totalValue: 0,
+  needsService: 0,
+  totalMileage: 0,
+  fromDomainEntries: 0,
+  fromTable: 0
+}
+💰 [Liabilities] Financial items count: 0
+💰 [Liabilities] All financial items: []
+💰 [Liabilities] Final stats: {
+  total: 0,
+  mortgage: 0,
+  autoLoans: 0,
+  creditCards: 0,
+  otherLoans: 0,
+  accounts: 0
+}
+🥗 [Nutrition] Today is: 2025-12-16
+🥗 [Nutrition] Total entries: 0, Today's entries: 0
+🥗 [Nutrition] Today's totals: { calories: 0, protein: 0, carbs: 0, fats: 0, water: 0, meals: 0 }
+🏋️ Fitness data for stats calculation: 0 entries
+🏋️ Today entries: 0 []
+🏋️ Final stats: {
+  caloriesBurned: 0,
+  todaySteps: 0,
+  todayDistance: 0,
+  activeMinutes: 0,
+  todayWorkouts: 0
+}
+🔍 [DEBUG-H1] data.digital for computeDigitalStats: 0 undefined
+🔔 Checking insurance alerts: {
+  totalInsurance: 0,
+  today: '2025-12-16T00:05:23.385Z',
+  dataType: 'undefined',
+  isArray: false
+}
+📅 GoogleCalendarCard - Render: { eventsCount: 0, loading: false, error: null }
+🏠 [UpcomingBills] Home domain entries: 0
+ ○ Compiling /api/zillow-scrape ...
+ GET / 200 in 7557ms
+ ✓ Compiled /api/zillow-scrape in 70.3s (2877 modules)
+
+🏡 ==================== REDFIN PRICE LOOKUP ====================
+📍 Address: 2103 Alexis Ct, Tarpon Springs, FL 34689
+🏠 [REDFIN] Fetching property price for: 2103 Alexis Ct, Tarpon Springs, FL 34689
+🔗 [REDFIN] Search URL: https://www.redfin.com/stingray/do/location-autocomplete?location=2103%20Alexis%20Ct%2C%20Tarpon%20Springs%2C%20FL%2034689&v=2
+⚠️ [REDFIN] Search failed: 403
+⚠️ Redfin lookup failed, using fallback
+📊 [FALLBACK] Using market estimate
+✅ RESULT: $381,845 from Market Estimate (Redfin unavailable)
+⚡ Response time: 907ms
+==================== END ====================
+
+ POST /api/zillow-scrape 200 in 29468ms
+ ○ Compiling /api/pets ...
+ ✓ Compiled /api/pets in 4.1s (1562 modules)
+ ✓ Compiled (1875 modules)
+ GET /api/auth/session 200 in 12859ms
+🔐 [SUPABASE/SERVER] createServerClient called, cookies available: true
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+ GET /api/pets 401 in 13184ms
+🔐 [SUPABASE/SERVER] createServerClient called, cookies available: true
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+ GET /api/gmail/suggestions 401 in 13247ms
+🔐 [SUPABASE/SERVER] createServerClient called, cookies available: true
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+ GET /api/gmail/suggestions 401 in 1185ms
+🔐 [SUPABASE/SERVER] createServerClient called, cookies available: true
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+🔐 [SUPABASE/SERVER] getAll cookies count: 3 names: next-auth.callback-url, next-auth.csrf-token, sb-jphpxqqilrjyypztkswc-auth-token-code-verifier
+ GET /api/pets 401 in 1197ms
+ GET /api/auth/session 200 in 1187ms
+ ✓ Compiled in 7.1s (1919 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/robertsennabaum/new project/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 1101ms (1407 modules)
+ ✓ Compiled /api/zillow-scrape in 274ms (103 modules)
+
+🏡 ==================== PROPERTY PRICE LOOKUP ====================
+📍 Address: 2103 Alexis Ct, Tarpon Springs, FL 34689
+🏠 [REALTOR] Searching for property: 2103 Alexis Ct, Tarpon Springs, FL 34689
+🔗 [REALTOR] URL: https://www.realtor.com/realestateandhomes-search/2103%20Alexis%20Ct%20Tarpon%20Springs%20FL%2034689
+⚠️ [REALTOR] HTTP 429
+⚠️ Realtor.com lookup failed, using market estimate
+📊 [FALLBACK] Using market estimate
+📊 RESULT: $396,107 from Market Estimate
+⚡ 4753ms
+==================== END ====================
+
+ POST /api/zillow-scrape 200 in 5149ms
+ ✓ Compiled in 700ms (1510 modules)
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
+SIGTERM signal received: closing server
+Server closed
