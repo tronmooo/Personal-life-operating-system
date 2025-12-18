@@ -28,6 +28,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#667eea',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 // Force dynamic rendering for all pages to prevent static generation errors
@@ -50,14 +54,14 @@ export default function RootLayout({
   }
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} overflow-x-hidden`}>
         <Providers>
-          <div className="min-h-screen flex flex-col">
+          <div className="min-h-screen flex flex-col overflow-x-hidden max-w-[100vw]">
             <MainNav />
             <div className="px-4 pt-2">
               <BackButtonGuard />
             </div>
-            <main className="flex-1">
+            <main className="flex-1 overflow-x-hidden">
               <GuestAwareLayout>
                 {children}
               </GuestAwareLayout>
