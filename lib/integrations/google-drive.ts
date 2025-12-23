@@ -46,10 +46,18 @@ export class GoogleDriveService {
   }
 
   constructor(accessToken: string, refreshToken?: string) {
+    // Note: redirect_uri is only needed for the initial OAuth flow, not for API calls
+    // We use the Supabase callback URL for consistency, but it's not strictly required here
+    const redirectUri = process.env.NEXT_PUBLIC_APP_URL 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+      : typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : 'http://localhost:3000/auth/callback'
+
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.NEXTAUTH_URL + '/api/auth/callback/google'
+      redirectUri
     )
 
     auth.setCredentials({

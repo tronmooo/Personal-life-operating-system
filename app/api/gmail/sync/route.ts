@@ -175,7 +175,11 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      // Insert new processed email
+      // Check if email has receipt-related attachments
+      const originalEmail = classifiedEmails.find(e => e.emailId === email.emailId)
+      const hasAttachments = !!(originalEmail as any)?.attachments?.length
+
+      // Insert new processed email with attachment info
       const { data: inserted, error: insertError } = await supabase
         .from('processed_emails')
         .insert({
@@ -185,7 +189,10 @@ export async function POST(request: NextRequest) {
           email_from: email.from,
           email_date: email.date.toISOString(),
           classification: email.classification,
-          extracted_data: email.extractedData,
+          extracted_data: {
+            ...email.extractedData,
+            hasAttachments: hasAttachments
+          },
           suggestion_text: email.suggestionText,
           status: 'pending'
         })

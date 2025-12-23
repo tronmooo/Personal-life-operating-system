@@ -3,10 +3,13 @@ import { createServerClient } from '@/lib/supabase/server'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 import { createClient } from '@supabase/supabase-js'
 import { extractStructuredMetadata, ExtractedMetadata } from '@/lib/ocr-processor'
+import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
+import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
 
 /**
  * POST /api/drive/upload
  * Upload a file to Google Drive and save metadata to Supabase
+ * Uses robust token handling with auto-refresh
  */
 export async function POST(request: Request) {
   try {
@@ -17,16 +20,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // Get session for provider token
+    // Get Google tokens using robust retrieval pattern
+    let accessToken: string | null = null
+    let refreshToken: string | null = null
+
+    // First try session tokens
     const { data: { session } } = await supabase.auth.getSession()
-    
-    // Get Google access token from session
-    const accessToken = session?.provider_token
-    const refreshToken = session?.provider_refresh_token
+    if (session?.provider_token) {
+      accessToken = session.provider_token
+      refreshToken = session.provider_refresh_token || null
+      console.log('📤 [DRIVE] Got token from session')
+    }
+
+    // Fallback to user_settings if no session token
+    if (!accessToken) {
+      const storedTokens = await getGoogleTokens()
+      if (storedTokens?.accessToken) {
+        accessToken = storedTokens.accessToken
+        refreshToken = storedTokens.refreshToken || null
+        console.log('📤 [DRIVE] Got token from user_settings')
+      }
+    }
 
     if (!accessToken) {
-      return NextResponse.json({ error: 'No Google access token' }, { status: 401 })
+      return NextResponse.json({ 
+        error: 'No Google access token. Please sign in with Google.',
+        requiresAuth: true 
+      }, { status: 401 })
     }
+
+    // Validate and refresh token if needed
+    const tokenResult = await getValidGoogleToken(user.id, accessToken, refreshToken)
+    if (!tokenResult.success) {
+      console.error('📤 [DRIVE] Token validation failed:', tokenResult.error)
+      return NextResponse.json({ 
+        error: tokenResult.requiresReauth 
+          ? 'Google access expired. Please sign out and sign back in.' 
+          : tokenResult.error,
+        requiresAuth: tokenResult.requiresReauth 
+      }, { status: 401 })
+    }
+
+    accessToken = tokenResult.accessToken
+    console.log('📤 [DRIVE] Token validated, expires in', tokenResult.expiresIn, 'seconds')
 
     // Parse multipart form data
     const formData = await request.formData()
