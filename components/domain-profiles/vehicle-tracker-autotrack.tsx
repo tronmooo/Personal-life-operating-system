@@ -1320,33 +1320,37 @@ export function VehicleTrackerAutoTrack() {
         </div>
 
         {/* Tabs */}
-        <div className="px-6">
-          <div className="flex gap-8 border-b border-gray-800">
+        <div className="px-4 sm:px-6 relative">
+          {/* Fade indicator for more content on right */}
+          <div className="absolute right-4 sm:right-6 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0f1419] to-transparent pointer-events-none sm:hidden z-10" />
+          <div className="flex gap-2 sm:gap-8 border-b border-gray-800 overflow-x-auto scrollbar-hide touch-pan-x pb-px">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 min-w-fit text-sm sm:text-base ${
                 activeTab === 'dashboard'
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
               <Car className="w-4 h-4" />
-              Dashboard
+              <span className="hidden xs:inline">Dashboard</span>
+              <span className="xs:hidden">Home</span>
             </button>
             <button
               onClick={() => setActiveTab('maintenance')}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 min-w-fit text-sm sm:text-base ${
                 activeTab === 'maintenance'
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
               <Wrench className="w-4 h-4" />
-              Maintenance
+              <span className="hidden sm:inline">Maintenance</span>
+              <span className="sm:hidden">Service</span>
             </button>
             <button
               onClick={() => setActiveTab('costs')}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 min-w-fit text-sm sm:text-base ${
                 activeTab === 'costs'
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
@@ -1357,36 +1361,38 @@ export function VehicleTrackerAutoTrack() {
             </button>
             <button
               onClick={() => setActiveTab('warranties')}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 min-w-fit text-sm sm:text-base ${
                 activeTab === 'warranties'
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
               <Shield className="w-4 h-4" />
-              Warranties
+              <span className="hidden sm:inline">Warranties</span>
+              <span className="sm:hidden">Warranty</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6 overflow-x-hidden">
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && selectedVehicle && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Main Vehicle Card */}
-            <Card className="bg-[#1a202c] border-gray-800 rounded-3xl">
-              <CardContent className="p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h2 className="text-3xl font-bold text-white mb-2">{selectedVehicle.vehicleName}</h2>
+            <Card className="bg-[#1a202c] border-gray-800 rounded-2xl sm:rounded-3xl">
+              <CardContent className="p-4 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+                  <div className="min-w-0">
+                    <h2 className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2 truncate">{selectedVehicle.vehicleName}</h2>
                     {selectedVehicle.vin && (
-                      <p className="text-gray-400">VIN: {selectedVehicle.vin}</p>
+                      <p className="text-gray-400 text-xs sm:text-base truncate">VIN: {selectedVehicle.vin}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
+                      size="sm"
                       onClick={() => {
                         setVehicleForm({
                           vehicleName: selectedVehicle.vehicleName,
@@ -1416,6 +1422,7 @@ export function VehicleTrackerAutoTrack() {
                     </Button>
                     <Button
                       variant="destructive"
+                      size="sm"
                       onClick={handleDeleteVehicle}
                       className="bg-red-600 hover:bg-red-700"
                     >
@@ -1425,147 +1432,147 @@ export function VehicleTrackerAutoTrack() {
                 </div>
 
                 {/* Edit / Save Buttons */}
-                <div className="flex justify-end gap-2 mb-4">
+                <div className="flex flex-wrap justify-end gap-2 mb-3 sm:mb-4">
                   {isEditMode ? (
                     <>
-                      <Button onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-700">
-                        <Save className="h-4 w-4 mr-2" /> Save Changes
+                      <Button onClick={handleSaveEdit} size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Save className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Save Changes</span><span className="sm:hidden">Save</span>
                       </Button>
-                      <Button onClick={handleCancelEdit} variant="outline">
-                        <X className="h-4 w-4 mr-2" /> Cancel
+                      <Button onClick={handleCancelEdit} variant="outline" size="sm">
+                        <X className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Cancel</span>
                       </Button>
                     </>
                   ) : (
-                    <Button onClick={handleEditVehicle} className="bg-gradient-to-r from-blue-600 to-purple-600">
-                      <Edit className="h-4 w-4 mr-2" /> Edit Vehicle
+                    <Button onClick={handleEditVehicle} size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600">
+                      <Edit className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Edit Vehicle</span><span className="sm:hidden">Edit</span>
                     </Button>
                   )}
                 </div>
 
                 {/* Stats Grid */}
                 {isEditMode ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label className="text-gray-400 text-sm">Vehicle Name</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Vehicle Name</Label>
                       <Input
                         value={editForm.vehicleName || ''}
                         onChange={(e) => setEditForm({ ...editForm, vehicleName: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Make</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Make</Label>
                       <Input
                         value={editForm.make || ''}
                         onChange={(e) => setEditForm({ ...editForm, make: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Model</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Model</Label>
                       <Input
                         value={editForm.model || ''}
                         onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Year</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Year</Label>
                       <Input
                         type="number"
                         value={editForm.year || ''}
                         onChange={(e) => setEditForm({ ...editForm, year: parseInt(e.target.value) })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
-                    <div>
-                      <Label className="text-gray-400 text-sm">VIN</Label>
+                    <div className="col-span-2">
+                      <Label className="text-gray-400 text-xs sm:text-sm">VIN</Label>
                       <Input
                         value={editForm.vin || ''}
                         onChange={(e) => setEditForm({ ...editForm, vin: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Current Mileage</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Current Mileage</Label>
                       <Input
                         type="number"
                         value={editForm.currentMileage || ''}
                         onChange={(e) => setEditForm({ ...editForm, currentMileage: parseInt(e.target.value) })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Estimated Value ($)</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Est. Value ($)</Label>
                       <Input
                         type="number"
                         value={editForm.estimatedValue || ''}
                         onChange={(e) => setEditForm({ ...editForm, estimatedValue: parseInt(e.target.value) })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Life Expectancy (years)</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Life (years)</Label>
                       <Input
                         type="number"
                         value={editForm.lifeExpectancy || ''}
                         onChange={(e) => setEditForm({ ...editForm, lifeExpectancy: parseInt(e.target.value) })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Monthly Insurance ($)</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Insurance ($/mo)</Label>
                       <Input
                         type="number"
                         value={editForm.monthlyInsurance || ''}
                         onChange={(e) => setEditForm({ ...editForm, monthlyInsurance: parseInt(e.target.value) })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Location</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Location</Label>
                       <Input
                         value={editForm.location || ''}
                         onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Exterior Color</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Exterior Color</Label>
                       <Input
                         value={editForm.exteriorColor || ''}
                         onChange={(e) => setEditForm({ ...editForm, exteriorColor: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-400 text-sm">Interior Color</Label>
+                      <Label className="text-gray-400 text-xs sm:text-sm">Interior Color</Label>
                       <Input
                         value={editForm.interiorColor || ''}
                         onChange={(e) => setEditForm({ ...editForm, interiorColor: e.target.value })}
-                        className="bg-[#0f1419] border-gray-700 text-white mt-2"
+                        className="bg-[#0f1419] border-gray-700 text-white mt-1 sm:mt-2 text-sm"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-[#0f1419] rounded-2xl p-6">
-                      <div className="text-gray-400 text-sm mb-2">Current Mileage</div>
-                      <div className="text-4xl font-bold text-white">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="bg-[#0f1419] rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                      <div className="text-gray-400 text-xs mb-1">Current Mileage</div>
+                      <div className="text-lg sm:text-4xl font-bold text-white">
                         {selectedVehicle.currentMileage.toLocaleString()}
                       </div>
-                      <div className="text-xl text-gray-400 mt-1">mi</div>
+                      <div className="text-xs sm:text-xl text-gray-400">mi</div>
                     </div>
-                    <div className="bg-[#0f1419] rounded-2xl p-6">
-                      <div className="text-gray-400 text-sm mb-2">Estimated Value</div>
-                      <div className="text-4xl font-bold text-white">
+                    <div className="bg-[#0f1419] rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                      <div className="text-gray-400 text-xs mb-1">Est. Value</div>
+                      <div className="text-lg sm:text-4xl font-bold text-white">
                         ${selectedVehicle.estimatedValue.toLocaleString()}
                       </div>
                     </div>
-                    <div className="bg-[#0f1419] rounded-2xl p-6">
-                      <div className="text-gray-400 text-sm mb-2">Life Expectancy</div>
-                      <div className="text-4xl font-bold text-white">{selectedVehicle.lifeExpectancy}</div>
-                      <div className="text-xl text-gray-400 mt-1">years</div>
+                    <div className="bg-[#0f1419] rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                      <div className="text-gray-400 text-xs mb-1">Life</div>
+                      <div className="text-lg sm:text-4xl font-bold text-white">{selectedVehicle.lifeExpectancy}</div>
+                      <div className="text-xs sm:text-xl text-gray-400">yrs</div>
                     </div>
                   </div>
                 )}
@@ -1573,30 +1580,30 @@ export function VehicleTrackerAutoTrack() {
             </Card>
 
             {/* Action Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Next Oil Change */}
-              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 rounded-3xl shadow-xl">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <Droplet className="w-6 h-6 text-white" />
+              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 rounded-2xl sm:rounded-3xl shadow-xl">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
+                      <Droplet className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm text-white/90">Next Oil</div>
-                      <div className="text-sm text-white/90">Change</div>
+                      <div className="text-xs sm:text-sm text-white/90">Next Oil</div>
+                      <div className="text-xs sm:text-sm text-white/90">Change</div>
                     </div>
                   </div>
-                  <div className="text-5xl font-bold text-white">
+                  <div className="text-2xl sm:text-5xl font-bold text-white">
                     {stats?.oil?.milesToNextOil ? stats.oil.milesToNextOil.toLocaleString() : '-'}
                   </div>
-                  {stats?.oil?.milesToNextOil && <div className="text-xl text-white/90 mt-1">mi</div>}
-                  <div className="text-white/90 mt-3 text-sm">
+                  {stats?.oil?.milesToNextOil && <div className="text-sm sm:text-xl text-white/90 mt-1">mi</div>}
+                  <div className="text-white/90 mt-2 sm:mt-3 text-xs sm:text-sm hidden sm:block">
                     {stats?.oil?.predictedNextOilDate ? `~ ${new Date(stats.oil.predictedNextOilDate).toLocaleDateString()} (${stats.oil.daysToNextOil} days)` : 'Add mileage logs to predict date'}
                   </div>
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mt-2 sm:mt-4">
                     <Button
                       size="sm"
-                      className="bg-white/20 hover:bg-white/30"
+                      className="bg-white/20 hover:bg-white/30 text-xs sm:text-sm h-7 sm:h-9"
                       onClick={() => {
                         if (!selectedVehicle) return
                         const current = selectedVehicle.currentMileage || 0
@@ -1621,63 +1628,63 @@ export function VehicleTrackerAutoTrack() {
                         setIsAddMaintenanceOpen(true)
                       }}
                     >
-                      Log Oil Change
+                      Log Oil
                     </Button>
-                    <Button size="sm" variant="outline" className="border-white/30 text-white/90" onClick={() => setIsAddMilesOpen(true)}>Log Miles</Button>
+                    <Button size="sm" variant="outline" className="border-white/30 text-white/90 text-xs sm:text-sm h-7 sm:h-9" onClick={() => setIsAddMilesOpen(true)}>Log Miles</Button>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Pending Alerts */}
-              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 border-0 rounded-3xl shadow-xl">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <AlertCircle className="w-6 h-6 text-white" />
+              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 border-0 rounded-2xl sm:rounded-3xl shadow-xl">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
+                      <AlertCircle className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm text-white/90">Pending</div>
-                      <div className="text-sm text-white/90">Alerts</div>
+                      <div className="text-xs sm:text-sm text-white/90">Pending</div>
+                      <div className="text-xs sm:text-sm text-white/90">Alerts</div>
                     </div>
                   </div>
-                  <div className="text-6xl font-bold text-white">{stats?.pendingAlerts || 0}</div>
+                  <div className="text-3xl sm:text-6xl font-bold text-white">{stats?.pendingAlerts || 0}</div>
                 </CardContent>
               </Card>
 
               {/* Monthly Cost Avg */}
-              <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 rounded-3xl shadow-xl">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <DollarSign className="w-6 h-6 text-white" />
+              <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 rounded-2xl sm:rounded-3xl shadow-xl">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
+                      <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm text-white/90">Monthly Cost</div>
-                      <div className="text-sm text-white/90">Avg</div>
+                      <div className="text-xs sm:text-sm text-white/90">Monthly</div>
+                      <div className="text-xs sm:text-sm text-white/90">Cost Avg</div>
                     </div>
                   </div>
-                  <div className="text-5xl font-bold text-white">
+                  <div className="text-2xl sm:text-5xl font-bold text-white">
                     ${Math.round(stats?.monthlyAvg || 0)}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Next Service */}
-              <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0 rounded-3xl shadow-xl">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <Calendar className="w-6 h-6 text-white" />
+              <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0 rounded-2xl sm:rounded-3xl shadow-xl">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
+                      <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm text-white/90">Next</div>
-                      <div className="text-sm text-white/90">Service</div>
+                      <div className="text-xs sm:text-sm text-white/90">Next</div>
+                      <div className="text-xs sm:text-sm text-white/90">Service</div>
                     </div>
                   </div>
-                  <div className="text-5xl font-bold text-white">
+                  <div className="text-2xl sm:text-5xl font-bold text-white">
                     {stats?.nextServiceDays !== null ? stats?.nextServiceDays : (stats?.oil?.daysToNextOil ?? '-')}
                   </div>
-                  {stats?.nextServiceDays !== null && <div className="text-xl text-white/90 mt-1">days</div>}
+                  {stats?.nextServiceDays !== null && <div className="text-sm sm:text-xl text-white/90 mt-1">days</div>}
                 </CardContent>
               </Card>
             </div>

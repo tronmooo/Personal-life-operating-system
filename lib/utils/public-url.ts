@@ -7,13 +7,21 @@
  */
 
 export function getPublicBaseUrl(request: Request): string {
-  // Prefer explicit configuration when provided
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (envUrl && envUrl.trim().length > 0) return envUrl.replace(/\/$/, '')
-
   const headers = request.headers
   const xfProto = headers.get('x-forwarded-proto')
   const xfHost = headers.get('x-forwarded-host')
+  
+  // For tunnels (ngrok, localtunnel, cloudflare), prefer forwarded headers over env config
+  // This ensures Twilio webhooks get the correct public URL
+  if (xfHost && (xfHost.includes('.loca.lt') || xfHost.includes('ngrok') || xfHost.includes('trycloudflare.com'))) {
+    const proto = xfProto || 'https'
+    return `${proto}://${xfHost}`.replace(/\/$/, '')
+  }
+  
+  // Use explicit configuration for production
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (envUrl && envUrl.trim().length > 0) return envUrl.replace(/\/$/, '')
+
   const host = xfHost || headers.get('host')
   const proto = xfProto || (host?.includes('localhost') ? 'http' : 'https')
 
@@ -27,6 +35,7 @@ export function getPublicWsBaseUrl(request: Request): string {
   const base = getPublicBaseUrl(request)
   return base.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
 }
+
 
 
 

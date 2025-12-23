@@ -56,13 +56,14 @@
   html, body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    /* Prevent horizontal overflow on mobile */
-    overflow-x: hidden;
+    /* Allow horizontal scrolling for tabs/carousels but clip page overflow */
+    overflow-x: clip;
     max-width: 100vw;
   }
-  /* Ensure all containers respect viewport bounds */
+  /* Main container should allow overflow for scrollable children */
   #__next, main {
-    overflow-x: hidden;
+    /* Use clip instead of hidden to allow scrollable children */
+    overflow-x: clip;
     max-width: 100vw;
   }
 }
@@ -516,6 +517,29 @@
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* ======================== */
+/* Scrollbar Hide Utility */
+/* ======================== */
+/* Used for horizontal scrollable tabs on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Mobile-friendly horizontal scroll container */
+.scroll-container-mobile {
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.scroll-container-mobile > * {
+  scroll-snap-align: start;
 }
 
 /* Reduced Motion Support */

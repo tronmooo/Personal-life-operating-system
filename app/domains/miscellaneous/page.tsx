@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import {
   StickyNote,
   ListChecks
 } from 'lucide-react'
+import { QuickNotesCard } from '@/components/dashboard/quick-notes-card'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { format } from 'date-fns'
@@ -70,57 +71,81 @@ const CONDITION_OPTIONS = [
 
 export default function MiscellaneousPage() {
   const router = useRouter()
-  const { getData, addData, deleteData } = useData()
+  const { getData, addData, updateData, deleteData } = useData()
   const [items, setItems] = useState<MiscellaneousItem[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [editingItem, setEditingItem] = useState<MiscellaneousItem | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [notesDialogItem, setNotesDialogItem] = useState<MiscellaneousItem | null>(null)
-  const [generalNotes, setGeneralNotes] = useState<string[]>([])
-  const [showQuickNotes, setShowQuickNotes] = useState(true)
 
-  // Load items from DataProvider
+  // Helper function to normalize domain items
+  const normalizeItems = useCallback((domainItems: unknown[]) => {
+    if (!Array.isArray(domainItems)) return []
+    
+    // Filter out general notes entry from display items
+    const assetItems = domainItems.filter((it: unknown) => {
+      const item = it as Record<string, unknown>
+      const metadata = item.metadata as Record<string, unknown> | undefined
+      return metadata?.itemType !== 'general-notes'
+    })
+    
+    return assetItems.map((it: unknown) => {
+      const item = it as Record<string, unknown>
+      const metadata = item.metadata as Record<string, unknown> | undefined
+      return {
+        id: item.id as string,
+        name: (item.name || item.title || metadata?.name || '') as string,
+        category: (item.category || metadata?.category || 'other') as string,
+        description: (item.description || metadata?.description) as string | undefined,
+        estimatedValue: typeof item.estimatedValue === 'number' ? item.estimatedValue : (typeof metadata?.estimatedValue === 'number' ? metadata.estimatedValue : undefined),
+        purchasePrice: metadata?.purchasePrice as number | undefined,
+        purchaseDate: metadata?.purchaseDate as string | undefined,
+        condition: metadata?.condition as string | undefined,
+        location: metadata?.location as string | undefined,
+        images: metadata?.images as string[] | undefined,
+        notes: metadata?.notes as string | undefined,
+        notesList: Array.isArray(metadata?.notesList) ? metadata.notesList as string[] : [],
+        createdAt: item.createdAt as string,
+        updatedAt: item.updatedAt as string,
+      }
+    })
+  }, [])
+
+  // Load items from DataProvider - runs on mount AND when getData changes
   useEffect(() => {
     const domainItems = getData('miscellaneous') as unknown[]
-    if (Array.isArray(domainItems) && domainItems.length > 0) {
-      const normalized = domainItems.map((it: unknown) => {
-        const item = it as Record<string, unknown>
-        const metadata = item.metadata as Record<string, unknown> | undefined
-        return {
-          id: item.id as string,
-          name: (item.name || item.title || metadata?.name || '') as string,
-          category: (item.category || metadata?.category || 'other') as string,
-          description: (item.description || metadata?.description) as string | undefined,
-          estimatedValue: typeof item.estimatedValue === 'number' ? item.estimatedValue : (typeof metadata?.estimatedValue === 'number' ? metadata.estimatedValue : undefined),
-          purchasePrice: metadata?.purchasePrice as number | undefined,
-          purchaseDate: metadata?.purchaseDate as string | undefined,
-          condition: metadata?.condition as string | undefined,
-          location: metadata?.location as string | undefined,
-          images: metadata?.images as string[] | undefined,
-          notes: metadata?.notes as string | undefined,
-          notesList: Array.isArray(metadata?.notesList) ? metadata.notesList as string[] : [],
-          createdAt: item.createdAt as string,
-          updatedAt: item.updatedAt as string,
-        }
-      })
+    const normalized = normalizeItems(domainItems)
+    setItems(normalized)
+
+  }, [getData, normalizeItems])
+
+  // 🔥 Listen for realtime data updates to refresh the list
+  useEffect(() => {
+    const handleDataUpdate = (event: CustomEvent) => {
+      console.log('🔄 Miscellaneous data updated via realtime:', event.detail?.action)
+      // Re-fetch from getData after a small delay to ensure state is updated
+      setTimeout(() => {
+        const domainItems = getData('miscellaneous') as unknown[]
+        const normalized = normalizeItems(domainItems)
+        setItems(normalized)
+      }, 100)
+    }
+
+    const handleDataProviderLoaded = () => {
+      console.log('🔄 DataProvider loaded, refreshing miscellaneous items')
+      const domainItems = getData('miscellaneous') as unknown[]
+      const normalized = normalizeItems(domainItems)
       setItems(normalized)
     }
 
-    // Load general notes from a special entry
-    const generalNotesEntry = domainItems.find((it: unknown) => {
-      const item = it as Record<string, unknown>
-      const metadata = item.metadata as Record<string, unknown> | undefined
-      return metadata?.itemType === 'general-notes'
-    })
-    if (generalNotesEntry) {
-      const item = generalNotesEntry as Record<string, unknown>
-      const metadata = item.metadata as Record<string, unknown> | undefined
-      const notes = metadata?.notesList
-      if (Array.isArray(notes)) {
-        setGeneralNotes(notes as string[])
-      }
+    window.addEventListener('miscellaneous-data-updated', handleDataUpdate as EventListener)
+    window.addEventListener('data-provider-loaded', handleDataProviderLoaded)
+    
+    return () => {
+      window.removeEventListener('miscellaneous-data-updated', handleDataUpdate as EventListener)
+      window.removeEventListener('data-provider-loaded', handleDataProviderLoaded)
     }
-  }, [getData])
+  }, [getData, normalizeItems])
 
   const saveItems = (newItems: MiscellaneousItem[]) => {
     setItems(newItems)
@@ -135,10 +160,11 @@ export default function MiscellaneousPage() {
         updatedAt: new Date().toISOString()
       }
 
-      const updatedItems = [newItem, ...items]
-      saveItems(updatedItems)
+      // ✅ Optimistically update local state immediately for instant feedback
+      setItems(prev => [newItem, ...prev])
+      setIsAdding(false)
 
-      // Save to DataProvider
+      // Save to DataProvider (this will persist to Supabase)
       await addData('miscellaneous', {
         id: newItem.id,
         title: newItem.name,
@@ -159,10 +185,11 @@ export default function MiscellaneousPage() {
         }
       })
 
-      setIsAdding(false)
       toast.success('Item added successfully!')
     } catch (error) {
       console.error('Failed to add item:', error)
+      // ✅ Rollback on error
+      setItems(prev => prev.filter(item => item.id !== itemData.name))
       toast.error('Failed to add item. Please try again.')
     }
   }
@@ -173,17 +200,21 @@ export default function MiscellaneousPage() {
       await handleAddItem(itemData)
       return
     }
+    
+    // Store previous state for potential rollback
+    const previousItems = [...items]
+    
     try {
-      const updatedItems = items.map(item => 
-        item.id === itemData.id 
-          ? { ...itemData, updatedAt: new Date().toISOString() }
-          : item
-      )
-      saveItems(updatedItems)
+      const updatedItem = { ...itemData, updatedAt: new Date().toISOString() }
+      
+      // ✅ Optimistically update local state immediately
+      setItems(prev => prev.map(item => 
+        item.id === itemData.id ? updatedItem : item
+      ))
+      setEditingItem(null)
 
-      // Update in DataProvider
-      await addData('miscellaneous', {
-        id: itemData.id,
+      // ✅ Use updateData for edits (not addData)
+      await updateData('miscellaneous', itemData.id, {
         title: itemData.name,
         description: itemData.description,
         metadata: {
@@ -202,22 +233,38 @@ export default function MiscellaneousPage() {
         }
       })
 
-      setEditingItem(null)
       toast.success('Item updated successfully!')
     } catch (error) {
       console.error('Failed to update item:', error)
+      // ✅ Rollback on error
+      setItems(previousItems)
       toast.error('Failed to update item. Please try again.')
     }
   }
 
   const handleDeleteItem = async (itemId: string) => {
+    // ✅ Confirm before deleting
+    const confirmed = typeof window !== 'undefined' && 
+      window.confirm('Are you sure you want to delete this item? This action cannot be undone.')
+    
+    if (!confirmed) return
+
+    // ✅ Store the item for potential rollback
+    const itemToDelete = items.find(item => item.id === itemId)
+    
     try {
-      const updatedItems = items.filter(item => item.id !== itemId)
-      saveItems(updatedItems)
+      // ✅ Optimistically remove from local state immediately
+      setItems(prev => prev.filter(item => item.id !== itemId))
+      
+      // Delete from DataProvider (this will persist to Supabase)
       await deleteData('miscellaneous', itemId)
       toast.success('Item deleted successfully!')
     } catch (error) {
       console.error('Failed to delete item:', error)
+      // ✅ Rollback on error
+      if (itemToDelete) {
+        setItems(prev => [...prev, itemToDelete])
+      }
       toast.error('Failed to delete item. Please try again.')
     }
   }
@@ -231,9 +278,8 @@ export default function MiscellaneousPage() {
       const updatedItems = items.map(i => i.id === itemId ? updatedItem : i)
       saveItems(updatedItems)
 
-      // Update in DataProvider
-      await addData('miscellaneous', {
-        id: item.id,
+      // ✅ Use updateData for edits (not addData)
+      await updateData('miscellaneous', item.id, {
         title: item.name,
         description: item.description,
         metadata: {
@@ -256,28 +302,6 @@ export default function MiscellaneousPage() {
       toast.success('Notes saved successfully!')
     } catch (error) {
       console.error('Failed to save notes:', error)
-      toast.error('Failed to save notes. Please try again.')
-    }
-  }
-
-  const handleSaveGeneralNotes = async (notesList: string[]) => {
-    try {
-      setGeneralNotes(notesList)
-      
-      // Save to DataProvider as a special entry
-      await addData('miscellaneous', {
-        id: 'general-notes-misc',
-        title: 'General Notes',
-        description: 'Quick notes and lists',
-        metadata: {
-          itemType: 'general-notes',
-          notesList: notesList,
-        }
-      })
-
-      toast.success('Notes saved successfully!')
-    } catch (error) {
-      console.error('Failed to save general notes:', error)
       toast.error('Failed to save notes. Please try again.')
     }
   }
@@ -314,35 +338,8 @@ export default function MiscellaneousPage() {
           </div>
         </div>
 
-        {/* Quick Notes Section */}
-        <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-white/30 dark:border-slate-700 shadow-lg">
-          <CardHeader className="cursor-pointer" onClick={() => setShowQuickNotes(!showQuickNotes)}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
-                  <StickyNote className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">Quick Notes & Lists</CardTitle>
-                  <CardDescription>
-                    Jot down random notes, ideas, or lists ({generalNotes.length} {generalNotes.length === 1 ? 'note' : 'notes'})
-                  </CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm">
-                {showQuickNotes ? '▼' : '▶'}
-              </Button>
-            </div>
-          </CardHeader>
-          {showQuickNotes && (
-            <CardContent>
-              <QuickNotesEditor 
-                notes={generalNotes}
-                onSave={handleSaveGeneralNotes}
-              />
-            </CardContent>
-          )}
-        </Card>
+        {/* Quick Notes Section - New Card Component */}
+        <QuickNotesCard />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1010,118 +1007,3 @@ function NotesManager({ item, onSave, onCancel }: NotesManagerProps) {
   )
 }
 
-interface QuickNotesEditorProps {
-  notes: string[]
-  onSave: (notes: string[]) => void
-}
-
-function QuickNotesEditor({ notes, onSave }: QuickNotesEditorProps) {
-  const [notesList, setNotesList] = useState<string[]>(notes)
-  const [newNote, setNewNote] = useState('')
-  const [hasChanges, setHasChanges] = useState(false)
-
-  useEffect(() => {
-    setNotesList(notes)
-  }, [notes])
-
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      const updated = [...notesList, newNote.trim()]
-      setNotesList(updated)
-      setNewNote('')
-      setHasChanges(true)
-    }
-  }
-
-  const handleRemoveNote = (index: number) => {
-    const updated = notesList.filter((_, i) => i !== index)
-    setNotesList(updated)
-    setHasChanges(true)
-  }
-
-  const handleEditNote = (index: number, newText: string) => {
-    const updated = [...notesList]
-    updated[index] = newText
-    setNotesList(updated)
-    setHasChanges(true)
-  }
-
-  const handleSave = () => {
-    onSave(notesList)
-    setHasChanges(false)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleAddNote()
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Add new note */}
-      <div className="flex gap-2">
-        <Input
-          value={newNote}
-          onChange={(e) => setNewNote(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type a note, list item, or idea..."
-          className="flex-1"
-        />
-        <Button 
-          onClick={handleAddNote}
-          disabled={!newNote.trim()}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add
-        </Button>
-      </div>
-
-      {/* Notes list */}
-      {notesList.length > 0 ? (
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {notesList.map((note, index) => (
-            <div key={index} className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800 group hover:shadow-md transition-all">
-              <span className="text-amber-600 dark:text-amber-400 font-bold mt-1">•</span>
-              <Textarea
-                value={note}
-                onChange={(e) => handleEditNote(index, e.target.value)}
-                className="flex-1 min-h-[40px] resize-none border-transparent hover:border-amber-300 focus:border-amber-500 bg-transparent transition-colors"
-                rows={1}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemoveNote(index)}
-                className="text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-6 border-2 border-dashed rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border-amber-300 dark:border-amber-800">
-          <StickyNote className="h-10 w-10 mx-auto text-amber-400 mb-2" />
-          <p className="text-sm text-muted-foreground">No notes yet</p>
-          <p className="text-xs text-muted-foreground">Start adding quick notes, reminders, or lists above</p>
-        </div>
-      )}
-
-      {/* Save button (only show if there are changes) */}
-      {hasChanges && (
-        <div className="flex justify-end pt-2 border-t">
-          <Button 
-            onClick={handleSave}
-            className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-          >
-            <StickyNote className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-        </div>
-      )}
-    </div>
-  )
-}

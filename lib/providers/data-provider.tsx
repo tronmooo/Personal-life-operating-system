@@ -887,21 +887,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addData = useCallback(async (domain: Domain, newData: Partial<DomainData>) => {
     const now = new Date().toISOString()
     const entryId = (newData as any)?.id || crypto.randomUUID()
+    
+    // Check if this entry already exists (for upsert behavior)
+    const current = Array.isArray(data[domain]) ? (data[domain] as DomainData[]) : []
+    const existingEntry = current.find(item => item.id === entryId)
+    
     const optimisticEntry: DomainData = {
       id: entryId,
       domain,
       title: newData.title || 'Untitled',
       description: newData.description,
-      createdAt: now,
+      createdAt: existingEntry?.createdAt || now, // Preserve original createdAt for updates
       updatedAt: now,
       metadata: (newData.metadata || {}) as DomainData['metadata'],
     }
 
-    console.log(`➕ Adding ${domain} entry:`, optimisticEntry.title)
+    const isUpdate = !!existingEntry
+    console.log(`${isUpdate ? '✏️ Updating' : '➕ Adding'} ${domain} entry:`, optimisticEntry.title)
 
-    // Optimistically update UI first and update IDB with the same object to avoid stale snapshots
-    const current = Array.isArray(data[domain]) ? (data[domain] as DomainData[]) : []
-    const newDataArray = [...current, optimisticEntry]
+    // Optimistically update UI first - UPSERT behavior: update if exists, add if new
+    let newDataArray: DomainData[]
+    if (isUpdate) {
+      // UPDATE: Replace existing entry with the same ID
+      newDataArray = current.map(item => item.id === entryId ? optimisticEntry : item)
+    } else {
+      // INSERT: Add new entry to the array
+      newDataArray = [...current, optimisticEntry]
+    }
     const updated = { ...data, [domain]: newDataArray }
 
     setData(updated)
@@ -926,16 +938,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // This avoids issues with multiple Supabase client instances
       if (!session?.user) {
         console.error('❌ Not authenticated - cannot save data: No session')
-        // Rollback optimistic update
-  const rollbackData = current.filter(item => item.id !== entryId)
-  setData(prev => ({ ...prev, [domain]: rollbackData }))
-      const snapshotKey = getDomainSnapshotKey()
-      if (snapshotKey) {
-        const rollbackSnapshot = { ...data, [domain]: rollbackData }
-        await idbSet(snapshotKey, rollbackSnapshot)
-      }
-      await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: rollbackData })
-        emitDomainEvents(domain, rollbackData, 'delete')
+        // Rollback optimistic update - restore previous state
+        setData(prev => ({ ...prev, [domain]: current }))
+        const snapshotKey = getDomainSnapshotKey()
+        if (snapshotKey) {
+          const rollbackSnapshot = { ...data, [domain]: current }
+          await idbSet(snapshotKey, rollbackSnapshot)
+        }
+        await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: current })
+        emitDomainEvents(domain, current, isUpdate ? 'update' : 'delete')
 
         // Show error to user
         if (typeof window !== 'undefined') {
@@ -980,23 +991,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
       console.error('❌ Failed to persist domain entry:', error)
-      // Rollback optimistic update
-  const rollbackData = current.filter(item => item.id !== entryId)
-  setData(prev => ({ ...prev, [domain]: rollbackData }))
-  const snapshotKeyRollback = getDomainSnapshotKey()
-  if (snapshotKeyRollback) {
-    const rollbackSnapshot = { ...data, [domain]: rollbackData }
-    await idbSet(snapshotKeyRollback, rollbackSnapshot)
-  }
-  await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: rollbackData })
-      emitDomainEvents(domain, rollbackData, 'delete')
+      // Rollback optimistic update - restore previous state
+      setData(prev => ({ ...prev, [domain]: current }))
+      const snapshotKeyRollback = getDomainSnapshotKey()
+      if (snapshotKeyRollback) {
+        const rollbackSnapshot = { ...data, [domain]: current }
+        await idbSet(snapshotKeyRollback, rollbackSnapshot)
+      }
+      await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: current })
+      emitDomainEvents(domain, current, isUpdate ? 'update' : 'delete')
 
       // Show user-friendly error
       if (typeof window !== 'undefined') {
         toast.error('Failed to Save', `Could not save your data: ${error.message || 'Unknown error'}. Please try again or contact support.`)
       }
     }
-  }, [data, emitDomainEvents, supabase])
+  }, [data, emitDomainEvents, supabase, session, getDomainSnapshotKey, getLastDomainSnapshotKey, activePersonId])
 
   const updateData = useCallback(async (domain: Domain, id: string, updates: Partial<DomainData>) => {
     const previousDomainData = Array.isArray(data[domain]) ? data[domain] as DomainData[] : []

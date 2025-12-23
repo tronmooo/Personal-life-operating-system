@@ -143,10 +143,32 @@ export function validateAndEnrichEntity(entity: ExtractedEntity): {
       break
 
     case 'digital':
-      // Ensure serviceName or category exists
-      if (!enrichedData.serviceName && !enrichedData.category) {
+      // Ensure serviceName or category exists - but allow broader searches
+      // If title contains common membership/subscription keywords, accept it
+      const titleLower = entity.title?.toLowerCase() || ''
+      const hasRelevantTitle = titleLower.includes('membership') || 
+                              titleLower.includes('subscription') ||
+                              titleLower.includes('card') ||
+                              titleLower.includes('account')
+      if (!enrichedData.serviceName && !enrichedData.category && !hasRelevantTitle) {
         errors.push('Digital entry missing service name or category')
       }
+      // Auto-populate category from title if missing
+      if (!enrichedData.category && hasRelevantTitle) {
+        enrichedData.category = 'membership'
+      }
+      break
+    
+    case 'tasks':
+      // Tasks have their own table, just validate title exists
+      if (!entity.title && !enrichedData.title) {
+        errors.push('Task missing title')
+      }
+      break
+    
+    case 'retrieval':
+      // Retrieval is a special case - it's a query, not data to create
+      // Always valid since it will be handled separately
       break
 
     case 'mindfulness':

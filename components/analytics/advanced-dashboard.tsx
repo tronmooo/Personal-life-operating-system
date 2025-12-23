@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,10 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   TrendingUp, TrendingDown, DollarSign, Target, Calendar,
-  Activity, Zap, Award, AlertCircle, Download, Share2
+  Activity, Zap, Award, AlertCircle, Download, Share2,
+  PieChart, Shield, CreditCard, Wrench, MoreHorizontal,
+  Home, Car, Heart, Dumbbell, Brain, Utensils
 } from 'lucide-react'
 import { format, subDays, startOfMonth, endOfMonth, differenceInDays } from 'date-fns'
 import { DomainDataCharts } from './domain-data-charts'
+import { calculateUnifiedNetWorth } from '@/lib/utils/unified-financial-calculator'
 
 interface AnalyticsData {
   financialHealth: number
@@ -23,6 +27,7 @@ interface AnalyticsData {
 }
 
 export function AdvancedDashboard() {
+  const router = useRouter()
   const { data, bills, tasks } = useData()
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     financialHealth: 0,
@@ -33,8 +38,105 @@ export function AdvancedDashboard() {
   })
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
 
+  // Calculate real expense breakdown from domain data (same pattern as command center)
+  const expenseBreakdown = useMemo(() => {
+    const insuranceItems = Array.isArray(data.insurance) ? data.insurance : []
+    const digitalItems = Array.isArray(data.digital) ? data.digital : []
+    const financialItems = Array.isArray(data.financial) ? data.financial : []
+    const homeItems = Array.isArray(data.home) ? data.home : []
+    const vehiclesItems = Array.isArray(data.vehicles) ? data.vehicles : []
+    
+    let insurance = 0
+    let subscriptions = 0
+    let billsTotal = 0
+    let maintenance = 0
+    let other = 0
+
+    // Insurance premiums
+    insuranceItems.forEach((item: any) => {
+      const meta = item?.metadata || {}
+      const premium = parseFloat(String(meta?.monthlyPremium || meta?.premium || 0))
+      if (premium > 0) insurance += premium
+    })
+
+    // Digital subscriptions
+    digitalItems.forEach((item: any) => {
+      const meta = item?.metadata || {}
+      const isSubscription = meta?.type === 'subscription' || meta?.category === 'subscription'
+      if (isSubscription) {
+        const cost = parseFloat(String(meta?.monthlyCost || meta?.cost || 0))
+        if (cost > 0) subscriptions += cost
+      }
+    })
+
+    // Financial bills & expenses
+    financialItems.forEach((item: any) => {
+      const meta = item?.metadata || {}
+      const itemType = String(meta?.itemType || meta?.type || meta?.logType || '').toLowerCase()
+      const amount = parseFloat(String(meta?.amount || meta?.value || 0))
+      
+      if (itemType.includes('bill') || itemType === 'recurring-bill') {
+        billsTotal += Math.abs(amount)
+      } else if (itemType.includes('expense')) {
+        other += Math.abs(amount)
+      }
+    })
+
+    // Home bills and utilities
+    homeItems.forEach((item: any) => {
+      const meta = item?.metadata || {}
+      const itemType = String(meta?.itemType || '').toLowerCase()
+      if (itemType === 'bill') {
+        const amount = parseFloat(String(meta?.amount || 0))
+        if (amount > 0) billsTotal += amount
+      }
+    })
+
+    // Vehicle maintenance costs
+    vehiclesItems.forEach((item: any) => {
+      const meta = item?.metadata || {}
+      const itemType = String(meta?.type || '').toLowerCase()
+      if (itemType === 'cost') {
+        const costType = String(meta?.costType || '').toLowerCase()
+        const amount = parseFloat(String(meta?.amount || 0))
+        if (costType === 'maintenance' || costType === 'repair') {
+          maintenance += amount
+        } else if (amount > 0) {
+          other += amount
+        }
+      }
+    })
+
+    return { insurance, subscriptions, bills: billsTotal, maintenance, other }
+  }, [data])
+
+  // Calculate net worth using unified calculator
+  const netWorthData = useMemo(() => {
+    return calculateUnifiedNetWorth(data, { assets: 0, liabilities: 0 })
+  }, [data])
+
+  // Calculate domain item counts for distribution chart
+  const domainDistribution = useMemo(() => {
+    const domains = [
+      { key: 'financial', label: 'Financial', icon: DollarSign, color: 'bg-green-500' },
+      { key: 'health', label: 'Health', icon: Heart, color: 'bg-red-500' },
+      { key: 'home', label: 'Home', icon: Home, color: 'bg-orange-500' },
+      { key: 'vehicles', label: 'Vehicles', icon: Car, color: 'bg-blue-500' },
+      { key: 'insurance', label: 'Insurance', icon: Shield, color: 'bg-indigo-500' },
+      { key: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'bg-pink-500' },
+      { key: 'nutrition', label: 'Nutrition', icon: Utensils, color: 'bg-yellow-500' },
+      { key: 'mindfulness', label: 'Mindfulness', icon: Brain, color: 'bg-teal-500' },
+    ]
+
+    return domains.map(d => ({
+      ...d,
+      count: Array.isArray((data as any)[d.key]) ? ((data as any)[d.key] as any[]).length : 0
+    })).filter(d => d.count > 0).sort((a, b) => b.count - a.count)
+  }, [data])
+
   useEffect(() => {
     calculateAnalytics()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange, data, bills, tasks])
 
   const calculateAnalytics = () => {
@@ -43,7 +145,7 @@ export function AdvancedDashboard() {
     const financialScore = bills.length > 0 ? (paidBills / bills.length) * 100 : 75
 
     // Life Balance (how many domains are actively used)
-    const allDomains = ['financial', 'health', 'career', 'home', 'social', 'education'] as const
+    const allDomains = ['financial', 'health', 'insurance', 'home', 'vehicles', 'fitness', 'nutrition', 'mindfulness', 'digital', 'pets'] as const
     const activeDomains = allDomains.filter(d => Array.isArray((data as any)[d]) && ((data as any)[d] as any[]).length > 0)
     const balanceScore = (activeDomains.length / allDomains.length) * 100
 
@@ -53,8 +155,10 @@ export function AdvancedDashboard() {
 
     // Wellbeing (health domain activity)
     const healthData = (data.health || []) as any[]
-    const recentActivity = healthData.filter((item: any) => {
-      const date = new Date(item.metadata?.date || item.createdAt)
+    const fitnessData = (data.fitness || []) as any[]
+    const allWellnessData = [...healthData, ...fitnessData]
+    const recentActivity = allWellnessData.filter((item: any) => {
+      const date = new Date(item.metadata?.date || item.createdAt || item.created_at)
       return differenceInDays(new Date(), date) <= 7
     })
     const wellbeingScore = Math.min((recentActivity.length / 7) * 100, 100)
@@ -274,6 +378,169 @@ export function AdvancedDashboard() {
         </Card>
       </div>
 
+      {/* Monthly Expense Breakdown - Real Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PieChart className="h-5 w-5 text-orange-600" />
+            Monthly Expense Breakdown
+          </CardTitle>
+          <CardDescription>
+            Costs aggregated from all domains
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {Object.values(expenseBreakdown).every(v => v === 0) ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No expense data yet</p>
+              <p className="text-sm">Add bills, subscriptions, or insurance to see breakdown</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Total */}
+              <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 rounded-lg">
+                <p className="text-sm text-muted-foreground">Total Monthly Expenses</p>
+                <p className="text-4xl font-bold">
+                  ${(expenseBreakdown.insurance + expenseBreakdown.subscriptions + expenseBreakdown.bills + expenseBreakdown.maintenance + expenseBreakdown.other).toLocaleString()}
+                </p>
+              </div>
+              
+              {/* Breakdown bars */}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                <ExpenseCard label="Insurance" value={expenseBreakdown.insurance} icon={Shield} color="indigo" />
+                <ExpenseCard label="Subscriptions" value={expenseBreakdown.subscriptions} icon={CreditCard} color="purple" />
+                <ExpenseCard label="Bills" value={expenseBreakdown.bills} icon={DollarSign} color="blue" />
+                <ExpenseCard label="Maintenance" value={expenseBreakdown.maintenance} icon={Wrench} color="orange" />
+                <ExpenseCard label="Other" value={expenseBreakdown.other} icon={MoreHorizontal} color="gray" />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Net Worth Summary - Real Data */}
+      <Card className="bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-green-600" />
+            Net Worth Summary
+          </CardTitle>
+          <CardDescription>
+            Calculated from all asset domains
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="p-4 bg-white dark:bg-gray-900 rounded-lg">
+              <p className="text-sm text-muted-foreground">Total Assets</p>
+              <p className="text-2xl font-bold text-green-600">
+                ${netWorthData.totalAssets.toLocaleString()}
+              </p>
+            </div>
+            <div className="p-4 bg-white dark:bg-gray-900 rounded-lg">
+              <p className="text-sm text-muted-foreground">Total Liabilities</p>
+              <p className="text-2xl font-bold text-red-600">
+                ${netWorthData.totalLiabilities.toLocaleString()}
+              </p>
+            </div>
+            <div className="p-4 bg-white dark:bg-gray-900 rounded-lg">
+              <p className="text-sm text-muted-foreground">Net Worth</p>
+              <p className={`text-2xl font-bold ${netWorthData.netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${netWorthData.netWorth.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          
+          {/* Asset breakdown */}
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="text-sm font-semibold mb-3">Asset Breakdown</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {netWorthData.breakdown.homeValue > 0 && (
+                <div className="text-sm p-2 bg-white/50 dark:bg-gray-900/50 rounded">
+                  <span className="text-muted-foreground">Home:</span>{' '}
+                  <span className="font-semibold">${netWorthData.breakdown.homeValue.toLocaleString()}</span>
+                </div>
+              )}
+              {netWorthData.breakdown.vehicleValue > 0 && (
+                <div className="text-sm p-2 bg-white/50 dark:bg-gray-900/50 rounded">
+                  <span className="text-muted-foreground">Vehicles:</span>{' '}
+                  <span className="font-semibold">${netWorthData.breakdown.vehicleValue.toLocaleString()}</span>
+                </div>
+              )}
+              {netWorthData.breakdown.financialAssets > 0 && (
+                <div className="text-sm p-2 bg-white/50 dark:bg-gray-900/50 rounded">
+                  <span className="text-muted-foreground">Financial:</span>{' '}
+                  <span className="font-semibold">${netWorthData.breakdown.financialAssets.toLocaleString()}</span>
+                </div>
+              )}
+              {netWorthData.breakdown.collectiblesValue > 0 && (
+                <div className="text-sm p-2 bg-white/50 dark:bg-gray-900/50 rounded">
+                  <span className="text-muted-foreground">Collectibles:</span>{' '}
+                  <span className="font-semibold">${netWorthData.breakdown.collectiblesValue.toLocaleString()}</span>
+                </div>
+              )}
+              {netWorthData.breakdown.appliancesValue > 0 && (
+                <div className="text-sm p-2 bg-white/50 dark:bg-gray-900/50 rounded">
+                  <span className="text-muted-foreground">Appliances:</span>{' '}
+                  <span className="font-semibold">${netWorthData.breakdown.appliancesValue.toLocaleString()}</span>
+                </div>
+              )}
+              {netWorthData.breakdown.miscValue > 0 && (
+                <div className="text-sm p-2 bg-white/50 dark:bg-gray-900/50 rounded">
+                  <span className="text-muted-foreground">Other:</span>{' '}
+                  <span className="font-semibold">${netWorthData.breakdown.miscValue.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Domain Distribution Chart */}
+      {domainDistribution.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-purple-600" />
+              Domain Activity Distribution
+            </CardTitle>
+            <CardDescription>
+              Items tracked across your life domains
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {domainDistribution.slice(0, 8).map((domain) => {
+                const Icon = domain.icon
+                const maxCount = domainDistribution[0]?.count || 1
+                const percentage = Math.round((domain.count / maxCount) * 100)
+                
+                return (
+                  <div key={domain.key} className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${domain.color}`}>
+                      <Icon className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium">{domain.label}</span>
+                        <span className="text-sm text-muted-foreground">{domain.count} items</span>
+                      </div>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${domain.color} transition-all`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Predictive Insights */}
       <Card>
         <CardHeader>
@@ -302,7 +569,7 @@ export function AdvancedDashboard() {
         </CardContent>
       </Card>
 
-      {/* Recommendations */}
+      {/* Recommendations - With Working Buttons */}
       <Card>
         <CardHeader>
           <CardTitle>🎯 Personalized Recommendations</CardTitle>
@@ -315,6 +582,7 @@ export function AdvancedDashboard() {
                 description="Review and pay pending bills to boost your financial score"
                 action="View Bills"
                 priority="high"
+                onClick={() => router.push('/domains/financial')}
               />
             )}
             {analytics.lifeBalance < 60 && (
@@ -323,6 +591,7 @@ export function AdvancedDashboard() {
                 description="Try tracking more life domains for better overall balance"
                 action="Explore Domains"
                 priority="medium"
+                onClick={() => router.push('/domains')}
               />
             )}
             {analytics.productivity < 50 && (
@@ -331,6 +600,7 @@ export function AdvancedDashboard() {
                 description="Focus on completing pending tasks to improve your productivity score"
                 action="View Tasks"
                 priority="high"
+                onClick={() => router.push('/tasks')}
               />
             )}
             {analytics.wellbeing < 60 && (
@@ -339,7 +609,16 @@ export function AdvancedDashboard() {
                 description="Log more workouts or health activities this week"
                 action="Log Activity"
                 priority="medium"
+                onClick={() => router.push('/domains/fitness')}
               />
+            )}
+            {/* Always show at least one recommendation */}
+            {analytics.financialHealth >= 70 && analytics.lifeBalance >= 60 && analytics.productivity >= 50 && analytics.wellbeing >= 60 && (
+              <div className="text-center py-6 text-green-600">
+                <Award className="h-12 w-12 mx-auto mb-3" />
+                <p className="font-semibold">Great job! You're on track across all areas</p>
+                <p className="text-sm text-muted-foreground mt-1">Keep up the excellent work</p>
+              </div>
             )}
           </div>
         </CardContent>
@@ -437,12 +716,14 @@ function RecommendationItem({
   title, 
   description, 
   action, 
-  priority 
+  priority,
+  onClick 
 }: { 
   title: string
   description: string
   action: string
   priority: 'low' | 'medium' | 'high'
+  onClick?: () => void
 }) {
   return (
     <div className="flex items-start gap-4 p-4 rounded-lg border">
@@ -458,9 +739,39 @@ function RecommendationItem({
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <Button size="sm" variant="outline">
+      <Button size="sm" variant="outline" onClick={onClick}>
         {action}
       </Button>
+    </div>
+  )
+}
+
+function ExpenseCard({ 
+  label, 
+  value, 
+  icon: Icon, 
+  color 
+}: { 
+  label: string
+  value: number
+  icon: any
+  color: string
+}) {
+  const colorClasses: Record<string, string> = {
+    indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600',
+    purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600',
+    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600',
+    orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600',
+    gray: 'bg-gray-100 dark:bg-gray-800 text-gray-600',
+  }
+  
+  return (
+    <div className={`p-3 rounded-lg ${colorClasses[color] || colorClasses.gray}`}>
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className="h-4 w-4" />
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className="text-xl font-bold">${value.toLocaleString()}</p>
     </div>
   )
 }

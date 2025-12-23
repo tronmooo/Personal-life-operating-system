@@ -96,6 +96,9 @@ export class TwilioVoiceService {
           category: options.category
         }))}`
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'twilio-voice-service.ts:99',message:'Twilio makeCall',data:{twimlUrl,webhookUrl:this.config.webhookUrl,to:formattedPhone,business:options.businessName},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.log('🔗 TwiML URL:', twimlUrl)
 
       const call = await this.client.calls.create({

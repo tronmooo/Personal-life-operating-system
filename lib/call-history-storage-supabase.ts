@@ -1,9 +1,11 @@
 /**
  * Call History Storage - Supabase
  * Stores call history in Supabase database
+ * 
+ * NOTE: This is used in server-side API routes, so we use the server client
  */
 
-import { createClientComponentClient } from '@/lib/supabase/browser-client'
+import { createServerClient } from '@/lib/supabase/server'
 
 export interface CallHistoryEntry {
   callId: string
@@ -35,7 +37,7 @@ class CallHistoryStorage {
    */
   async addEntry(entry: CallHistoryEntry): Promise<void> {
     try {
-      const supabase = createClientComponentClient()
+      const supabase = await createServerClient()
       
       // Note: This is a simple stub implementation
       // In production, you'd store this in the concierge_calls table
@@ -56,7 +58,7 @@ class CallHistoryStorage {
    */
   async getHistory(userId: string, limit = 50): Promise<CallHistoryEntry[]> {
     try {
-      const supabase = createClientComponentClient()
+      const supabase = await createServerClient()
       
       // TODO: Implement retrieval from concierge_calls table
       
@@ -72,7 +74,7 @@ class CallHistoryStorage {
    */
   async getCall(callId: string): Promise<CallHistoryEntry | null> {
     try {
-      const supabase = createClientComponentClient()
+      const supabase = await createServerClient()
       
       // TODO: Implement retrieval from concierge_calls table
       

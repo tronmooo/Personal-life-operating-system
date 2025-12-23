@@ -102,34 +102,40 @@ export function HomeDetailPageClient({ homeId }: { homeId: string }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8">
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 sm:p-8">
         <div className="max-w-7xl mx-auto">
           <Button
             variant="ghost"
             onClick={() => router.push('/home')}
-            className="text-white hover:bg-white/20 mb-4"
+            className="text-white hover:bg-white/20 mb-2 sm:mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Properties
+            <span className="hidden sm:inline">Back to Properties</span>
+            <span className="sm:hidden">Back</span>
           </Button>
-          <h1 className="text-3xl font-bold mb-2">{home.name}</h1>
-          <p className="text-purple-100">{home.address}</p>
+          <h1 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2 truncate">{home.name}</h1>
+          <p className="text-purple-100 text-sm sm:text-base truncate">{home.address}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="max-w-7xl mx-auto p-6">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-            <TabsTrigger value="assets">Assets</TabsTrigger>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="bills">Bills</TabsTrigger>
-            <TabsTrigger value="service">Service</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-          </TabsList>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
+          {/* Mobile-friendly tab container with horizontal scroll */}
+          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+            {/* Fade indicator for more content on right */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none sm:hidden z-10" />
+            <TabsList className="inline-flex w-max min-w-full gap-1 sm:grid sm:w-full sm:grid-cols-4 lg:grid-cols-8 sm:gap-2 pb-1">
+              <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 sm:px-3">Overview</TabsTrigger>
+              <TabsTrigger value="maintenance" className="text-xs sm:text-sm px-3 sm:px-3">Maintenance</TabsTrigger>
+              <TabsTrigger value="assets" className="text-xs sm:text-sm px-3 sm:px-3">Assets</TabsTrigger>
+              <TabsTrigger value="projects" className="text-xs sm:text-sm px-3 sm:px-3">Projects</TabsTrigger>
+              <TabsTrigger value="bills" className="text-xs sm:text-sm px-3 sm:px-3">Bills</TabsTrigger>
+              <TabsTrigger value="service" className="text-xs sm:text-sm px-3 sm:px-3">Service</TabsTrigger>
+              <TabsTrigger value="schedule" className="text-xs sm:text-sm px-3 sm:px-3">Schedule</TabsTrigger>
+              <TabsTrigger value="documents" className="text-xs sm:text-sm px-3 sm:px-3">Documents</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <OverviewTab home={home} />

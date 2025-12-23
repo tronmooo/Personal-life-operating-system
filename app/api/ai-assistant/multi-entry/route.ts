@@ -352,6 +352,63 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`💾 [MULTI-ENTRY] Processing ${entity.domain}: ${entity.title}`)
         
+        // SPECIAL HANDLING: Retrieval domain - this is a SEARCH request, not data to create
+        if ((entity as any).domain === 'retrieval') {
+          console.log(`🔍 [MULTI-ENTRY] Detected retrieval request: ${entity.title}`)
+          const searchData = entity.data as any
+          errors.push({
+            domain: 'retrieval',
+            title: entity.title,
+            error: `Retrieve membership card (Digital entry missing service name or category)`,
+            success: false,
+            isRetrievalRequest: true,
+            searchTerms: searchData?.searchTerms || [entity.title]
+          })
+          continue // Skip - retrieval should be handled by the search endpoint
+        }
+        
+        // SPECIAL HANDLING: Tasks domain goes to dedicated tasks table
+        if ((entity as any).domain === 'tasks') {
+          console.log(`✅ [MULTI-ENTRY] Routing to tasks table: ${entity.title}`)
+          const taskData = entity.data as any
+          
+          const { data, error: taskError } = await supabase
+            .from('tasks')
+            .insert({
+              user_id: user.id,
+              title: entity.title || taskData?.title || 'New Task',
+              description: taskData?.description || null,
+              completed: false,
+              priority: taskData?.priority || 'medium',
+              due_date: taskData?.dueDate || null,
+              metadata: { source: 'ai_assistant', category: taskData?.category },
+              person_id: activePersonId,
+            })
+            .select()
+            .single()
+          
+          if (taskError) {
+            console.error(`❌ [MULTI-ENTRY] Task creation error:`, taskError)
+            errors.push({
+              domain: 'tasks',
+              title: entity.title,
+              error: taskError.message,
+              success: false
+            })
+          } else {
+            results.push({
+              domain: 'tasks',
+              title: entity.title,
+              success: true,
+              data,
+              confidence: entity.confidence,
+              message: `✅ Task created: "${entity.title}"`
+            })
+            console.log(`✅ [MULTI-ENTRY] Task created: ${entity.title}`)
+          }
+          continue // Skip the regular domain_entries save
+        }
+        
         // SPECIAL HANDLING: Calendar domain goes to Google Calendar
         // Note: 'calendar' is handled as an external integration (not in Domain union)
         if ((entity as any).domain === 'calendar') {
@@ -506,20 +563,33 @@ export async function POST(request: NextRequest) {
     const conflictMessages = conflicts?.map(c => 
       `⚠️ Could not process: ${c.entity.title} (${c.errors.join(', ')})`
     )
+    
+    // Check if any errors are retrieval requests and format them differently
+    const retrievalRequests = errors.filter((e: any) => e.isRetrievalRequest)
+    const nonRetrievalErrors = errors.filter((e: any) => !e.isRetrievalRequest)
+    
+    const retrievalMessages = retrievalRequests.map((r: any) => 
+      `🔍 To retrieve documents, try: "show me my ${r.searchTerms?.[0] || 'document'}" or "pull up ${r.searchTerms?.[0] || 'document'}"`
+    )
 
     const finalMessage = [
       confirmationMessage,
-      ...(conflictMessages || [])
+      ...(conflictMessages || []),
+      ...(retrievalMessages || [])
     ].join('\n')
+    
+    // Update errors to only include non-retrieval errors
+    const finalErrors = nonRetrievalErrors.length > 0 ? nonRetrievalErrors : undefined
 
-    console.log(`✅ [MULTI-ENTRY] Completed: ${results.length} saved, ${errors.length} failed`)
+    console.log(`✅ [MULTI-ENTRY] Completed: ${results.length} saved, ${nonRetrievalErrors.length} failed, ${retrievalRequests.length} retrieval requests`)
 
     return NextResponse.json({
       success: results.length > 0,
       message: finalMessage,
       results,
-      errors: errors.length > 0 ? errors : undefined,
+      errors: finalErrors,
       conflicts,
+      retrievalRequests: retrievalRequests.length > 0 ? retrievalRequests : undefined,
       requiresConfirmation: extractionResult.requiresConfirmation,
       ambiguities: extractionResult.ambiguities,
       triggerReload: results.length > 0, // Trigger data reload if anything was saved
@@ -542,15 +612,18 @@ export async function POST(request: NextRequest) {
  * Generate user-friendly confirmation message
  */
 function generateConfirmationMessage(results: any[], errors: any[]): string {
-  if (results.length === 0 && errors.length === 0) {
+  // Filter out retrieval requests from error count (they're not failures)
+  const actualErrors = errors.filter((e: any) => !e.isRetrievalRequest)
+  
+  if (results.length === 0 && actualErrors.length === 0) {
     return 'No data was logged.'
   }
 
-  if (results.length === 0 && errors.length > 0) {
-    return `❌ Failed to log ${errors.length} ${errors.length === 1 ? 'entry' : 'entries'}. Please try again.`
+  if (results.length === 0 && actualErrors.length > 0) {
+    return `❌ Failed to log ${actualErrors.length} ${actualErrors.length === 1 ? 'entry' : 'entries'}. Please try again.`
   }
   
-  if (results.length === 1 && errors.length === 0) {
+  if (results.length === 1 && actualErrors.length === 0) {
     const r = results[0]
     return `✅ Logged: ${r.title} (${r.domain})`
   }
@@ -560,8 +633,8 @@ function generateConfirmationMessage(results: any[], errors: any[]): string {
   
   let message = `✅ Successfully logged ${results.length} ${results.length === 1 ? 'entry' : 'entries'}:\n${messages.join('\n')}`
   
-  if (errors.length > 0) {
-    message += `\n\n❌ Failed to log ${errors.length} ${errors.length === 1 ? 'entry' : 'entries'}`
+  if (actualErrors.length > 0) {
+    message += `\n\n❌ Failed to log ${actualErrors.length} ${actualErrors.length === 1 ? 'entry' : 'entries'}`
   }
 
   return message

@@ -102,14 +102,16 @@ export function PetDetailPageClient({ petId }: { petId: string }) {
 
         {/* Tabs */}
         <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <div className="border-b">
-            <div className="flex overflow-x-auto">
+          <div className="border-b relative">
+            {/* Fade indicator for more content on right */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/80 dark:from-slate-800/80 to-transparent pointer-events-none sm:hidden z-10" />
+            <div className="flex overflow-x-auto scrollbar-hide touch-pan-x">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   data-tab={tab.id}
-                  className={`px-6 py-4 font-medium transition-colors relative whitespace-nowrap ${
+                  className={`px-4 sm:px-6 py-3 sm:py-4 font-medium transition-colors relative whitespace-nowrap text-sm sm:text-base flex-shrink-0 min-w-fit ${
                     activeTab === tab.id
                       ? 'text-purple-600 dark:text-purple-400'
                       : 'text-muted-foreground hover:text-foreground'
@@ -124,7 +126,7 @@ export function PetDetailPageClient({ petId }: { petId: string }) {
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {activeTab === 'profile' && <ProfileTab pet={pet} />}
             {activeTab === 'vaccinations' && <VaccinationsTab petId={pet.id} petName={pet.name} />}
             {activeTab === 'documents' && <DocumentsTab petId={pet.id} petName={pet.name} />}

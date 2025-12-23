@@ -79,96 +79,102 @@ export function AddPetDialog({ open, onOpenChange, onPetAdded }: AddPetDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl">Add New Pet</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-              <X className="h-5 w-5" />
+            <DialogTitle className="text-xl sm:text-2xl">Add New Pet</DialogTitle>
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-8 w-8 sm:h-9 sm:w-9">
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </div>
-          <DialogDescription>
-            Fill in your pet's information
+          <DialogDescription className="text-sm">
+            Fill in your pet&apos;s information
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <Label htmlFor="name">Pet Name *</Label>
+              <Label htmlFor="name" className="text-sm">Pet Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter pet name"
                 required
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="species">Species (Dog, Cat, etc.)</Label>
+              <Label htmlFor="species" className="text-sm">Species (Dog, Cat, etc.)</Label>
               <Input
                 id="species"
                 value={formData.species}
                 onChange={(e) => setFormData({ ...formData, species: e.target.value })}
                 placeholder="Dog, Cat, Bird, etc."
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="breed">Breed</Label>
+              <Label htmlFor="breed" className="text-sm">Breed</Label>
               <Input
                 id="breed"
                 value={formData.breed}
                 onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
                 placeholder="Enter breed"
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="age">Age</Label>
+              <Label htmlFor="age" className="text-sm">Age</Label>
               <Input
                 id="age"
                 value={formData.age}
                 onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                 placeholder="e.g., 3 years"
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="weight">Weight</Label>
+              <Label htmlFor="weight" className="text-sm">Weight</Label>
               <Input
                 id="weight"
                 value={formData.weight}
                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                 placeholder="e.g., 25 lbs"
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="color">Color</Label>
+              <Label htmlFor="color" className="text-sm">Color</Label>
               <Input
                 id="color"
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 placeholder="Enter color"
+                className="mt-1"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="microchipId">Microchip ID</Label>
+            <Label htmlFor="microchipId" className="text-sm">Microchip ID</Label>
             <Input
               id="microchipId"
               value={formData.microchipId}
               onChange={(e) => setFormData({ ...formData, microchipId: e.target.value })}
               placeholder="Enter microchip ID"
-              className="w-full"
+              className="w-full mt-1"
             />
           </div>
 
           <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white" size="lg">
-            <Plus className="h-5 w-5 mr-2" />
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Add Pet
           </Button>
         </form>

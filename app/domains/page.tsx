@@ -392,32 +392,63 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
       }
     }
     case 'insurance': {
-      const policies = domainData.filter((item) => {
+      // Document Manager - track documents, expiration status, active/inactive
+      const now = new Date()
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+      
+      // Count all documents (including policies, legal docs, contracts, etc.)
+      const totalDocuments = domainData.length
+      
+      // Categorize documents by expiration status
+      let activeDocuments = 0
+      let expiredDocuments = 0
+      let expiringSoon = 0
+      
+      domainData.forEach((item) => {
         const meta = extractMetadata(item)
-        const itemType = String(meta.itemType || meta.type || '').toLowerCase()
-        if (itemType.includes('policy')) return true
-        return Boolean(meta.policyNumber || meta.policyType || meta.coverageAmount || meta.premium || meta.annualPremium)
+        
+        // Check for expiration date in various fields
+        const expiryDate = toSafeDate(
+          meta.expiryDate || 
+          meta.expirationDate || 
+          meta.expiration_date ||
+          meta.renewalDate ||
+          meta.endDate
+        )
+        
+        // Check status field
+        const status = String(meta.status || '').toLowerCase()
+        
+        // Determine document status
+        if (status === 'expired' || status === 'cancelled') {
+          expiredDocuments++
+        } else if (expiryDate) {
+          if (expiryDate < now) {
+            // Document has expired based on date
+            expiredDocuments++
+          } else if (expiryDate <= thirtyDaysFromNow) {
+            // Document is expiring within 30 days
+            expiringSoon++
+            activeDocuments++ // Still active but expiring soon
+          } else {
+            // Document is active and not expiring soon
+            activeDocuments++
+          }
+        } else {
+          // No expiry date - assume active unless status says otherwise
+          if (status === 'active' || status === 'pending' || status === 'under review' || !status) {
+            activeDocuments++
+          } else {
+            expiredDocuments++
+          }
+        }
       })
-      const claims = domainData.filter((item) => {
-        const meta = extractMetadata(item)
-        const itemType = String(meta.itemType || meta.type || '').toLowerCase()
-        if (itemType.includes('claim')) return true
-        return Boolean(meta.claimNumber || meta.claimStatus)
-      }).length
-      const totalCoverage = policies.reduce((sum: number, item) => {
-        const meta = extractMetadata(item)
-        return sum + parseNumeric(meta.coverageAmount ?? meta.coverage ?? meta.faceValue)
-      }, 0)
-      const totalPremium = policies.reduce((sum: number, item) => {
-        const meta = extractMetadata(item)
-        return sum + parseNumeric(meta.premium ?? meta.annualPremium ?? meta.monthlyPremium ?? meta.cost)
-      }, 0)
       
       return {
-        kpi1: { label: 'Total Coverage', value: totalCoverage > 0 ? `$${(totalCoverage / 1000).toFixed(0)}K` : '$0', icon: Shield },
-        kpi2: { label: 'Annual Premium', value: totalPremium > 0 ? `$${totalPremium.toFixed(0)}` : '$0', icon: DollarSign },
-        kpi3: { label: 'Active Policies', value: policies.length.toString(), icon: FileText },
-        kpi4: { label: 'Claims YTD', value: claims.toString(), icon: AlertCircle }
+        kpi1: { label: 'Total Documents', value: totalDocuments.toString(), icon: FileText },
+        kpi2: { label: 'Active', value: activeDocuments.toString(), icon: CheckCircle },
+        kpi3: { label: 'Expiring Soon', value: expiringSoon.toString(), icon: AlertCircle },
+        kpi4: { label: 'Expired', value: expiredDocuments.toString(), icon: AlertCircle }
       }
     }
     case 'legal': {
@@ -885,6 +916,7 @@ export default function DomainsPage() {
     payments: any[]
     analytics: { active: number; pending: number; monthlyTotal: number }
   }>({ providers: [], payments: [], analytics: { active: 0, pending: 0, monthlyTotal: 0 } })
+  const [documentsFromTable, setDocumentsFromTable] = useState<DomainData[]>([])
   const supabase = createClientComponentClient()
 
   // Load appliances from appliances table (separate from domain_entries)
@@ -1043,7 +1075,76 @@ export default function DomainsPage() {
     loadServiceProviders()
   }, [supabase])
 
-  // Enhanced getData that includes appliances and service providers from separate tables
+  // Load documents from documents table (for Document Manager / insurance domain)
+  useEffect(() => {
+    const loadDocuments = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        const { data: docs, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', user.id)
+        
+        if (error) {
+          console.error('Error loading documents:', error)
+          return
+        }
+        
+        // Convert documents table format to domain_entries format for compatibility
+        const formatted = (docs || []).map((doc: any) => {
+          // Determine status based on expiration_date
+          let status = 'active'
+          if (doc.expiration_date) {
+            const expiryDate = new Date(doc.expiration_date)
+            const now = new Date()
+            if (expiryDate < now) {
+              status = 'expired'
+            } else {
+              const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+              if (expiryDate <= thirtyDays) {
+                status = 'expiring'
+              }
+            }
+          }
+          
+          return {
+            id: doc.id,
+            domain: 'insurance' as Domain, // Maps to Document Manager
+            title: doc.document_name || doc.file_name || 'Untitled Document',
+            description: doc.document_type || doc.category || '',
+            metadata: {
+              category: doc.category || doc.document_type,
+              documentType: doc.document_type,
+              expiryDate: doc.expiration_date,
+              expirationDate: doc.expiration_date,
+              renewalDate: doc.renewal_date,
+              policyNumber: doc.policy_number,
+              accountNumber: doc.account_number,
+              issuer: doc.issuer,
+              fileUrl: doc.file_url || doc.file_data,
+              ocrProcessed: doc.ocr_processed,
+              status: status,
+              tags: doc.tags,
+              notes: doc.notes
+            },
+            createdAt: doc.created_at,
+            updatedAt: doc.updated_at || doc.created_at
+          }
+        }) as DomainData[]
+        
+        setDocumentsFromTable(formatted)
+        console.log(`✅ Loaded ${formatted.length} documents from documents table for Document Manager`)
+      } catch (error) {
+        console.error('Failed to load documents:', error)
+      }
+    }
+    
+    loadDocuments()
+  }, [supabase])
+
+  // Enhanced getData that includes appliances, service providers, and documents from separate tables
   const getDataWithAppliances = (domainKey: Domain): DomainData[] => {
     if (domainKey === 'appliances') {
       // For appliances, combine data from domain_entries and appliances table
@@ -1052,6 +1153,14 @@ export default function DomainsPage() {
       const applianceIds = new Set(appliancesFromTable.map(a => a.id))
       const uniqueFromDomainEntries = fromDomainEntries.filter(item => !applianceIds.has(item.id))
       return [...appliancesFromTable, ...uniqueFromDomainEntries]
+    }
+    if (domainKey === 'insurance') {
+      // For Document Manager (insurance), combine data from domain_entries and documents table
+      const fromDomainEntries = getData(domainKey)
+      // Dedupe by ID, preferring documents table data
+      const documentIds = new Set(documentsFromTable.map(d => d.id))
+      const uniqueFromDomainEntries = fromDomainEntries.filter(item => !documentIds.has(item.id))
+      return [...documentsFromTable, ...uniqueFromDomainEntries]
     }
     if (domainKey === 'services') {
       // For services, use the service_providers table data

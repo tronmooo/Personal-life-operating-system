@@ -20,6 +20,10 @@ async function handleTwiML(request: Request) {
     const url = new URL(request.url)
     const callContextParam = url.searchParams.get('callContext')
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'twiml/route.ts:20',message:'TwiML route called',data:{urlOrigin:url.origin,hasCallContext:!!callContextParam,host:request.headers.get('host')},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
     let callContext = {
       businessName: 'Business',
       businessPhone: '',
@@ -38,10 +42,13 @@ async function handleTwiML(request: Request) {
     }
 
     // Generate TwiML with WebSocket streaming for Realtime API
-    // Prefer the public origin Twilio is calling (or forwarded headers) so the WS URL is reachable.
-    const wsUrl = getPublicWsBaseUrl(request)
+    // Use separate voice server to avoid Next.js conflicts
+    const voiceServerUrl = process.env.VOICE_SERVER_URL || 'wss://volunteer-lender-link-martha.trycloudflare.com'
     
-    console.log('🔗 TwiML WebSocket URL:', `${wsUrl}/api/voice/stream`)
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'twiml/route.ts:45',message:'Generating TwiML',data:{voiceServerUrl,businessName:callContext.businessName,userRequest:callContext.userRequest?.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    console.log('🔗 TwiML WebSocket URL:', voiceServerUrl)
     
     // Build TwiML with Media Streams for bidirectional audio
     // Using Connect > Stream for true bidirectional audio (not Start > Stream)
@@ -49,7 +56,7 @@ async function handleTwiML(request: Request) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${wsUrl}/api/voice/stream">
+    <Stream url="${voiceServerUrl}">
       <Parameter name="userId" value="${callContext.userId}" />
       <Parameter name="businessName" value="${encodeURIComponent(callContext.businessName)}" />
       <Parameter name="businessPhone" value="${callContext.businessPhone || ''}" />

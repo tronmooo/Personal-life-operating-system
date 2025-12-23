@@ -185,6 +185,28 @@ export function LiveAssetTracker() {
       }
     })
 
+    // ✅ Add miscellaneous assets value
+    const miscData = data.miscellaneous || []
+    let miscValue = 0
+    miscData.forEach((item: any) => {
+      const meta = item.metadata || {}
+      // Skip general-notes entries
+      if (meta.itemType === 'general-notes') return
+      
+      const value = parseFloat(
+        meta.estimatedValue || 
+        meta.value || 
+        meta.purchasePrice || 
+        item.estimatedValue ||
+        '0'
+      )
+      if (value > 0) {
+        miscValue += value
+        console.log('📦 Misc asset:', item.title, 'Value:', value)
+      }
+    })
+    totalAssets += miscValue
+
     const netWorth = totalAssets - totalLiabilities
     const savingsRate = totalAssets > 0 ? ((totalAssets - monthlyBills) / totalAssets * 100) : 0
     const emergencyFund = totalAssets - investments - homeValue - vehicleValue

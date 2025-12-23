@@ -152,21 +152,25 @@ export async function createDomainEntry(client: SupabaseClient, payload: CreateD
     insertPayload.id = payload.id
   }
 
-  console.log('🔵 About to insert into domain_entries:', {
+  console.log('🔵 About to upsert into domain_entries:', {
     payload: insertPayload,
     userId: user.id,
     userEmail: user.email,
     personId: activePersonId
   })
 
+  // ✅ Use upsert to handle both insert and update cases (prevents duplicate key errors)
   const { data, error } = await client
     .from('domain_entries')
-    .insert(insertPayload)
+    .upsert(insertPayload, { 
+      onConflict: 'id',
+      ignoreDuplicates: false // Update on conflict
+    })
     .select('*')
     .single()
 
   if (error) {
-    console.error('❌ Supabase insert error:', {
+    console.error('❌ Supabase upsert error:', {
       code: error.code,
       message: error.message,
       details: error.details,

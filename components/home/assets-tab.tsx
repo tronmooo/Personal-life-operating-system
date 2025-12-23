@@ -182,12 +182,12 @@ export function AssetsTab({ homeId }: AssetsTabProps) {
   return (
     <>
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Asset</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Asset Name *</Label>
                 <Input
@@ -208,7 +208,7 @@ export function AssetsTab({ homeId }: AssetsTabProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Category *</Label>
                 <Input
@@ -238,7 +238,7 @@ export function AssetsTab({ homeId }: AssetsTabProps) {
               )}
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Purchase Date *</Label>
                 <Input
@@ -285,36 +285,36 @@ export function AssetsTab({ homeId }: AssetsTabProps) {
 
       <div className="space-y-6">
         {/* Summary Card */}
-        <Card className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-4">
+        <Card className="p-4 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
-              <h3 className="text-2xl font-bold flex items-center gap-2">
-                <Package className="h-6 w-6" />
+              <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6" />
                 Room-by-Room Inventory
               </h3>
-              <p className="text-muted-foreground text-sm">Track all your home contents and warranties</p>
+              <p className="text-muted-foreground text-xs sm:text-sm">Track all your home contents and warranties</p>
             </div>
             <Button 
               onClick={() => setShowDialog(true)}
-              className="bg-gradient-to-r from-purple-600 to-blue-600"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 w-full sm:w-auto"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Asset
             </Button>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-sm text-muted-foreground">Total Assets Value</p>
-              <p className="text-3xl font-bold text-blue-600">${totalAssetValue.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground mt-1">Home contents</p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4">
+            <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Assets Value</p>
+              <p className="text-xl sm:text-3xl font-bold text-blue-600">${totalAssetValue.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Home contents</p>
             </div>
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <p className="text-sm text-muted-foreground">Warranties Active</p>
-              <p className="text-3xl font-bold text-green-600">
+            <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-xs sm:text-sm text-muted-foreground">Warranties Active</p>
+              <p className="text-xl sm:text-3xl font-bold text-green-600">
                 {assets.filter(a => a.warrantyExpiry && typeof a.warrantyExpiry === 'string' && new Date(a.warrantyExpiry) > new Date()).length}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Covered items</p>
+              <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Covered items</p>
             </div>
           </div>
         </Card>
@@ -340,51 +340,53 @@ export function AssetsTab({ homeId }: AssetsTabProps) {
                     return (
                       <div 
                         key={asset.id} 
-                        className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-start justify-between"
+                        className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"
                       >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h5 className="font-semibold text-lg">{asset.name}</h5>
-                            {warrantyActive && (
-                              <span className="px-2 py-1 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
-                                Warranty: {new Date(asset.warrantyExpiry!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Category</p>
-                              <p className="font-medium">{asset.category}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-2">
+                              <h5 className="font-semibold text-base sm:text-lg truncate">{asset.name}</h5>
+                              {warrantyActive && (
+                                <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded w-fit">
+                                  Warranty: {new Date(asset.warrantyExpiry!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              )}
                             </div>
-                            {asset.brand && (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm">
                               <div>
-                                <p className="text-muted-foreground">Brand</p>
-                                <p className="font-medium">{asset.brand}</p>
+                                <p className="text-muted-foreground">Category</p>
+                                <p className="font-medium truncate">{asset.category}</p>
                               </div>
-                            )}
-                            <div>
-                              <p className="text-muted-foreground">Value</p>
-                              <p className="font-bold text-purple-600">${asset.value.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Purchased</p>
-                              <p className="font-medium">{new Date(asset.purchaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                              {asset.brand && (
+                                <div>
+                                  <p className="text-muted-foreground">Brand</p>
+                                  <p className="font-medium truncate">{asset.brand}</p>
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-muted-foreground">Value</p>
+                                <p className="font-bold text-purple-600">${asset.value.toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Purchased</p>
+                                <p className="font-medium">{new Date(asset.purchaseDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
+                              </div>
                             </div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(asset.id)}
+                            disabled={deletingIds.has(asset.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50 flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
+                          >
+                            {deletingIds.has(asset.id) ? (
+                              <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(asset.id)}
-                          disabled={deletingIds.has(asset.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50 ml-4"
-                        >
-                          {deletingIds.has(asset.id) ? (
-                            <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
                       </div>
                     )
                   })}

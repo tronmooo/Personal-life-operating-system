@@ -22,7 +22,14 @@ export async function POST(request: Request) {
       userData
     } = await request.json()
 
+    // #region agent log
+    console.log('🔍 [DEBUG-B] initiate-call API called:', {phoneNumber, businessName, userRequest: userRequest?.substring(0,50)});
+    // #endregion
+
     if (!phoneNumber || !businessName || !userRequest) {
+      // #region agent log
+      console.log('🔍 [DEBUG-B] Missing required fields:', {hasPhone:!!phoneNumber,hasBiz:!!businessName,hasReq:!!userRequest});
+      // #endregion
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -37,7 +44,13 @@ export async function POST(request: Request) {
     const userId = user?.id || 'guest'
 
     // Check Twilio credentials
+    // #region agent log
+    console.log('🔍 [DEBUG-C] Checking Twilio creds:', {hasSid:!!process.env.TWILIO_ACCOUNT_SID,hasToken:!!process.env.TWILIO_AUTH_TOKEN,hasPhone:!!process.env.TWILIO_PHONE_NUMBER});
+    // #endregion
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      // #region agent log
+      console.log('🔍 [DEBUG-C] Missing Twilio creds - returning error');
+      // #endregion
       return NextResponse.json({
         success: false,
         error: 'Voice calling not configured. Add Twilio credentials to environment variables.',
@@ -60,15 +73,33 @@ export async function POST(request: Request) {
     }
 
     // Create Twilio service using a public base URL so Twilio callbacks/WebSocket target the right domain
-    const publicBaseUrl = getPublicBaseUrl(request)
+    // Check for tunnel URL passed from the initiate-calls route first
+    const tunnelUrl = request.headers.get('x-tunnel-url')
+    const publicBaseUrl = tunnelUrl || getPublicBaseUrl(request)
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'initiate-call/route.ts:76',message:'Creating Twilio service',data:{tunnelUrl,publicBaseUrl,hasTunnelHeader:!!tunnelUrl},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    console.log('🔍 [DEBUG-D] Creating Twilio service:', {publicBaseUrl, tunnelUrl, twilioPhone: process.env.TWILIO_PHONE_NUMBER});
     const twilioService = createTwilioService(publicBaseUrl)
-    const call = await twilioService.makeCall({
-      to: phoneNumber,
-      businessName,
-      userRequest,
-      category: category || 'general',
-      context
-    })
+    let call;
+    try {
+      call = await twilioService.makeCall({
+        to: phoneNumber,
+        businessName,
+        userRequest,
+        category: category || 'general',
+        context
+      })
+      // #region agent log
+      console.log('🔍 [DEBUG-C] Twilio call SUCCESS:', {callSid: call?.callSid, status: call?.status});
+      // #endregion
+    } catch (twilioErr: any) {
+      // #region agent log
+      console.log('🔍 [DEBUG-C] Twilio call FAILED:', {error: twilioErr?.message, code: twilioErr?.code});
+      // #endregion
+      throw twilioErr;
+    }
 
     // Make sure we always return a full URL for the websocketEndpoint
     // This is critical for Twilio Media Streams

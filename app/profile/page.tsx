@@ -12,9 +12,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Plus, Eye, Edit, Trash2, Download, Calendar, FileText, Target, Clock, BookOpen, Plane, GraduationCap, User as UserIcon, ArrowLeft, Briefcase } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DocumentUpload } from '@/components/ui/document-upload'
-// import { CareerStatsTab } from '@/components/profile/career-stats-tab' // Removed
+import { CareerStatsTab } from '@/components/profile/career-stats-tab'
 import { LearningProgressionTab } from '@/components/profile/learning-progression-tab'
 import { TimeManagementTab } from '@/components/profile/time-management-tab'
+import { ProfileSettingsTab } from '@/components/profile/profile-settings-tab'
 
 type Goal = { 
   id: string
@@ -240,7 +241,7 @@ export default function ProfilePage() {
 
           {/* Career Stats Tab */}
           <TabsContent value="career" className="mt-6">
-            <div className="text-center p-8 text-muted-foreground">Career stats removed</div>
+            <CareerStatsTab />
           </TabsContent>
 
           {/* Documents Tab */}
@@ -336,14 +337,7 @@ export default function ProfilePage() {
 
           {/* Profile Settings Tab */}
           <TabsContent value="profile" className="mt-6">
-            <Card className="bg-white dark:bg-slate-900">
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Manage your account preferences and settings</p>
-              </CardContent>
-            </Card>
+            <ProfileSettingsTab />
           </TabsContent>
         </Tabs>
       </div>

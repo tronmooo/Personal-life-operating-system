@@ -577,6 +577,10 @@ export function AIConciergeInterface({
     const text = messageText || input
     if (!text.trim()) return
 
+    // #region agent log
+    console.log('🔍 [DEBUG-CHAT] handleSendMessage called:', {text: text.substring(0,50), hasLocation: !!location, manualAddress});
+    // #endregion
+
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -602,6 +606,9 @@ export function AIConciergeInterface({
       })
 
       const data = await response.json()
+      // #region agent log
+      console.log('🔍 [DEBUG-CHAT] Chat API response:', {readyToCall: data.readyToCall, intent: data.intent, hasState: !!data.state, response: data.response?.substring(0,100)});
+      // #endregion
 
       // Add AI response
       const aiMessage: Message = {
@@ -619,6 +626,9 @@ export function AIConciergeInterface({
 
       // If AI is ready to call, SEARCH for businesses first (don't call immediately)
       if (data.readyToCall && data.intent) {
+        // #region agent log
+        console.log('🔍 [DEBUG-CHAT] readyToCall triggered! Searching businesses:', {intent: data.intent, businessCount: data.businessCount});
+        // #endregion
         const request: DetectedRequest = {
           intent: data.intent,
           businessCount: data.businessCount || 3,
@@ -647,7 +657,13 @@ export function AIConciergeInterface({
 
   // NEW: Search for businesses and show picker
   const searchBusinesses = async (request: DetectedRequest) => {
+    // #region agent log
+    console.log('🔍 [DEBUG-SEARCH] searchBusinesses called:', {intent: request.intent, hasLocation: !!location, manualAddress, specificBusiness: request.specificBusiness});
+    // #endregion
     if (!location && !manualAddress) {
+      // #region agent log
+      console.log('🔍 [DEBUG-SEARCH] No location available - showing dialog');
+      // #endregion
       toast.error('Location not available. Please set your location.')
       setIsLocationDialogOpen(true)
       return
@@ -670,6 +686,9 @@ export function AIConciergeInterface({
       })
 
       const data = await response.json()
+      // #region agent log
+      console.log('🔍 [DEBUG-SEARCH] Search API response:', {success: data.success, businessCount: data.businesses?.length, needsGooglePlaces: data.needsGooglePlaces, error: data.error});
+      // #endregion
 
       if (data.success && data.businesses?.length > 0) {
         setBusinessOptions(data.businesses)
@@ -742,6 +761,10 @@ export function AIConciergeInterface({
     setActiveTab('tasks')
     toast.info(`Calling ${selectedBusiness.name}...`)
 
+    // #region agent log
+    console.log('🔍 [DEBUG-B] UI executeCall started:', {business: selectedBusiness?.name, phone: selectedBusiness?.phone, intent: pendingCallRequest?.intent});
+    // #endregion
+
     try {
       const response = await fetch('/api/concierge/initiate-calls', {
         method: 'POST',
@@ -762,6 +785,9 @@ export function AIConciergeInterface({
       })
 
       const data = await response.json()
+      // #region agent log
+      console.log('🔍 [DEBUG-B] API response received:', {success: data.success, callsCount: data.calls?.length, error: data.error});
+      // #endregion
 
       if (data.success && data.calls) {
         // Convert API response to tasks

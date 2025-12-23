@@ -64,55 +64,59 @@ export function OverviewTab({ home }: OverviewTabProps) {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Home Value Insight */}
       {insight && (
-        <Card className="p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <Card className="p-3 sm:p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">{insight.label}</div>
-              <div className="text-2xl font-bold" suppressHydrationWarning>
-                ${Number(home.propertyValue || 0).toLocaleString()} <span className="text-green-600 text-sm ml-2">{insight.change}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs sm:text-sm text-muted-foreground">{insight.label}</div>
+              <div className="text-lg sm:text-2xl font-bold flex flex-wrap items-baseline gap-1" suppressHydrationWarning>
+                <span>${Number(home.propertyValue || 0).toLocaleString()}</span>
+                <span className="text-green-600 text-xs sm:text-sm">{insight.change}</span>
               </div>
             </div>
           </div>
         </Card>
       )}
       {/* Pie Chart at Top */}
-      <Card className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-        <h3 className="text-2xl font-bold mb-4">Activity Distribution</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={pieData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              outerRadius={100}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {pieData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
+      <Card className="p-3 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+        <h3 className="text-base sm:text-2xl font-bold mb-2 sm:mb-4">Activity Distribution</h3>
+        <div className="w-full overflow-hidden">
+          <ResponsiveContainer width="100%" height={180} className="sm:!h-[280px]">
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={55}
+                fill="#8884d8"
+                dataKey="value"
+                fontSize={11}
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
-            <Card key={stat.label} className="p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3`}>
-                <Icon className="h-6 w-6 text-white" />
+            <Card key={stat.label} className="p-2.5 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <div className={`w-7 h-7 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center mb-1.5 sm:mb-3`}>
+                <Icon className="h-3.5 w-3.5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <p className="text-3xl font-bold mb-1">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
+              <p className="text-lg sm:text-3xl font-bold mb-0.5">{stat.value}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-tight">{stat.label}</p>
             </Card>
           )
         })}

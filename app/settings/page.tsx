@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Users, User, Settings as SettingsIcon, LogOut, Camera, Trash2, Check, ArrowLeft, LayoutGrid, Palette, Bell, Database } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DashboardTab } from '@/components/settings/dashboard-tab'
+import { AppearanceTab } from '@/components/settings/appearance-tab'
+import { NotificationsTab } from '@/components/settings/notifications-tab'
+import { DataTab } from '@/components/settings/data-tab'
 import { getUserSettings, updateUserSettings } from '@/lib/supabase/user-settings'
 
 interface Person {
@@ -387,41 +390,17 @@ export default function SettingsPage() {
 
           {/* Appearance Tab */}
           <TabsContent value="appearance">
-            <Card>
-              <CardHeader>
-                <CardTitle>Appearance Settings</CardTitle>
-                <CardDescription>Customize the look and feel of your dashboard</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Theme and appearance settings coming soon...</p>
-              </CardContent>
-            </Card>
+            <AppearanceTab />
           </TabsContent>
 
           {/* Notifications Tab */}
           <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Manage alerts and reminders</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Notification settings coming soon...</p>
-              </CardContent>
-            </Card>
+            <NotificationsTab />
           </TabsContent>
 
           {/* Data Tab */}
           <TabsContent value="data">
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Management</CardTitle>
-                <CardDescription>Backup, export, and privacy settings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Data management options coming soon...</p>
-              </CardContent>
-            </Card>
+            <DataTab />
           </TabsContent>
         </Tabs>
       </div>

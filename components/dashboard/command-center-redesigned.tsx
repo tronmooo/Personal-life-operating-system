@@ -56,6 +56,7 @@ import { useRouter } from 'next/navigation'
 import { GoogleCalendarCard } from './google-calendar-card'
 import { SmartInboxCard } from './smart-inbox-card'
 import { InsightsCardWorking } from './insights-card-working'
+import { AIInsightsCard } from './ai-insights-card'
 import { SpecialDatesCard } from './special-dates-card'
 import { WeatherFreeCard } from './weather-free-card'
 import { NewsFreeCard } from './news-free-card'
@@ -2434,7 +2435,10 @@ export function CommandCenterRedesigned() {
           {/* Special Dates Card - Birthdays & Anniversaries from Relationships */}
           <SpecialDatesCard />
 
-          {/* Weekly Insights (AI) - Real-time insights from your data */}
+          {/* AI-Powered Insights - OpenAI GPT-4 powered personalized insights */}
+          <AIInsightsCard />
+          
+          {/* Weekly Insights (Rule-based) - Real-time insights from your data */}
           <InsightsCardWorking />
 
           {/* Weather Forecast - 7 Day Outlook (FREE API - No Key Needed!) */}

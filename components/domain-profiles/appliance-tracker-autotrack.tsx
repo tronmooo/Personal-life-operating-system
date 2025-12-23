@@ -1256,13 +1256,15 @@ export function ApplianceTrackerAutoTrack() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#1a202c] border-b border-gray-800">
-        <div className="px-6 flex gap-1">
+      <div className="bg-[#1a202c] border-b border-gray-800 relative">
+        {/* Fade indicator for more content on right */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#1a202c] to-transparent pointer-events-none sm:hidden z-10" />
+        <div className="px-4 sm:px-6 flex gap-1 overflow-x-auto scrollbar-hide touch-pan-x">
           {['dashboard', 'maintenance', 'costs', 'warranties'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-medium transition-all ${
+              className={`px-3 sm:px-6 py-3 font-medium transition-all whitespace-nowrap flex-shrink-0 min-w-fit text-sm sm:text-base ${
                 activeTab === tab
                   ? 'text-blue-400 border-b-2 border-blue-400'
                   : 'text-gray-400 hover:text-gray-300'
@@ -1275,9 +1277,9 @@ export function ApplianceTrackerAutoTrack() {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6 overflow-x-hidden">
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Per-Asset Dashboard (when asset selected) or Global Overview */}
             {selectedAppliance ? (
               <>
@@ -1296,20 +1298,20 @@ export function ApplianceTrackerAutoTrack() {
                   const ageInYears = purchaseDate ? (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365) : 0
                   const lifespanProgress = Math.min(100, (ageInYears / lifespan) * 100)
                   const estimatedCurrentValue = Math.max(0, (selectedAppliance.purchase_price || 0) * (1 - (ageInYears / lifespan)))
-                  const nextMaintenance = itemMaintenance.find(m => new Date(m.scheduled_date || m.date) > new Date())
+                  const nextMaintenance = itemMaintenance.find(m => new Date((m as any).scheduled_date || m.date) > new Date())
                   
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                       {/* Asset Value Card */}
                       <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 border-0">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <DollarSign className="w-8 h-8 text-white opacity-80" />
-                            <Badge className="bg-white/20 text-white border-0">Value</Badge>
+                        <CardContent className="p-3 sm:p-6">
+                          <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <DollarSign className="w-5 h-5 sm:w-8 sm:h-8 text-white opacity-80" />
+                            <Badge className="bg-white/20 text-white border-0 text-xs">Value</Badge>
                           </div>
-                          <div className="text-3xl font-bold text-white mb-1">${(selectedAppliance.purchase_price || 0).toLocaleString()}</div>
-                          <div className="text-sm text-emerald-100">Purchase Price</div>
-                          <div className="mt-2 text-xs text-emerald-200">
+                          <div className="text-lg sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">${(selectedAppliance.purchase_price || 0).toLocaleString()}</div>
+                          <div className="text-xs sm:text-sm text-emerald-100">Purchase Price</div>
+                          <div className="mt-1 sm:mt-2 text-xs text-emerald-200">
                             Est. Current: ${estimatedCurrentValue.toFixed(0)}
                           </div>
                         </CardContent>
@@ -1317,16 +1319,16 @@ export function ApplianceTrackerAutoTrack() {
 
                       {/* Lifespan Progress Card */}
                       <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <Clock className="w-8 h-8 text-white opacity-80" />
-                            <Badge className="bg-white/20 text-white border-0">Age</Badge>
+                        <CardContent className="p-3 sm:p-6">
+                          <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-white opacity-80" />
+                            <Badge className="bg-white/20 text-white border-0 text-xs">Age</Badge>
                           </div>
-                          <div className="text-3xl font-bold text-white mb-1">{ageInYears.toFixed(1)} yrs</div>
-                          <div className="text-sm text-blue-100">of {lifespan} year lifespan</div>
-                          <div className="mt-2 w-full bg-white/20 rounded-full h-2">
+                          <div className="text-lg sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">{ageInYears.toFixed(1)} yrs</div>
+                          <div className="text-xs sm:text-sm text-blue-100">of {lifespan} yr lifespan</div>
+                          <div className="mt-1 sm:mt-2 w-full bg-white/20 rounded-full h-1.5 sm:h-2">
                             <div 
-                              className={`h-2 rounded-full ${lifespanProgress > 80 ? 'bg-red-400' : lifespanProgress > 50 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                              className={`h-1.5 sm:h-2 rounded-full ${lifespanProgress > 80 ? 'bg-red-400' : lifespanProgress > 50 ? 'bg-yellow-400' : 'bg-green-400'}`}
                               style={{ width: `${lifespanProgress}%` }}
                             />
                           </div>
@@ -1335,35 +1337,35 @@ export function ApplianceTrackerAutoTrack() {
 
                       {/* Item Total Costs Card */}
                       <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <Receipt className="w-8 h-8 text-white opacity-80" />
-                            <Badge className="bg-white/20 text-white border-0">Spent</Badge>
+                        <CardContent className="p-3 sm:p-6">
+                          <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <Receipt className="w-5 h-5 sm:w-8 sm:h-8 text-white opacity-80" />
+                            <Badge className="bg-white/20 text-white border-0 text-xs">Spent</Badge>
                           </div>
-                          <div className="text-3xl font-bold text-white mb-1">${itemTotalCosts.toLocaleString()}</div>
-                          <div className="text-sm text-orange-100">Total Investment</div>
-                          <div className="mt-2 text-xs text-orange-200">
-                            {itemMaintenance.length} service records • {itemCosts.length} expenses
+                          <div className="text-lg sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">${itemTotalCosts.toLocaleString()}</div>
+                          <div className="text-xs sm:text-sm text-orange-100">Total Investment</div>
+                          <div className="mt-1 sm:mt-2 text-xs text-orange-200 truncate">
+                            {itemMaintenance.length} service • {itemCosts.length} expenses
                           </div>
                         </CardContent>
                       </Card>
 
                       {/* Warranty Status Card */}
                       <Card className={`bg-gradient-to-br ${itemActiveWarranties.length > 0 ? 'from-purple-600 to-purple-700' : 'from-gray-600 to-gray-700'} border-0`}>
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <Shield className="w-8 h-8 text-white opacity-80" />
-                            <Badge className={`${itemActiveWarranties.length > 0 ? 'bg-white/20' : 'bg-red-500/50'} text-white border-0`}>
-                              {itemActiveWarranties.length > 0 ? 'Protected' : 'Expired'}
+                        <CardContent className="p-3 sm:p-6">
+                          <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <Shield className="w-5 h-5 sm:w-8 sm:h-8 text-white opacity-80" />
+                            <Badge className={`${itemActiveWarranties.length > 0 ? 'bg-white/20' : 'bg-red-500/50'} text-white border-0 text-xs`}>
+                              {itemActiveWarranties.length > 0 ? 'Active' : 'None'}
                             </Badge>
                           </div>
-                          <div className="text-3xl font-bold text-white mb-1">
+                          <div className="text-lg sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">
                             {itemActiveWarranties.length}/{itemWarranties.length}
                           </div>
-                          <div className="text-sm text-purple-100">Active Warranties</div>
+                          <div className="text-xs sm:text-sm text-purple-100">Active Warranties</div>
                           {itemActiveWarranties[0] && (
-                            <div className="mt-2 text-xs text-purple-200">
-                              Expires: {new Date(itemActiveWarranties[0].expiry_date).toLocaleDateString()}
+                            <div className="mt-1 sm:mt-2 text-xs text-purple-200 truncate">
+                              Exp: {new Date(itemActiveWarranties[0].expiry_date).toLocaleDateString()}
                             </div>
                           )}
                         </CardContent>
@@ -1424,40 +1426,43 @@ export function ApplianceTrackerAutoTrack() {
             {/* Appliance Details */}
             {selectedAppliance && (
               <Card className="bg-[#1a202c] border-gray-800">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex gap-6 flex-1">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 flex-1">
                       {(selectedAppliance as any).photoUrl && (
                         <div className="flex-shrink-0">
                           <img 
                             src={(selectedAppliance as any).photoUrl} 
                             alt={selectedAppliance.name}
-                            className="w-48 h-48 object-cover rounded-lg border-2 border-gray-700"
+                            className="w-full sm:w-32 md:w-48 h-32 sm:h-32 md:h-48 object-cover rounded-lg border-2 border-gray-700"
                           />
                         </div>
                       )}
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold text-white mb-2">{selectedAppliance.name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-400">
-                          <span>{(selectedAppliance as any).brand} {(selectedAppliance as any).model}</span>
-                          <span>•</span>
-                          <span>Location: {(selectedAppliance as any).location}</span>
-                          <span>•</span>
-                          <Badge variant="outline" className="text-gray-300 border-gray-700">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 truncate">{selectedAppliance.name}</h3>
+                        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-400">
+                          <span className="truncate">{(selectedAppliance as any).brand} {(selectedAppliance as any).model}</span>
+                          {(selectedAppliance as any).location && (
+                            <>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="hidden sm:inline">Location: {(selectedAppliance as any).location}</span>
+                            </>
+                          )}
+                          <Badge variant="outline" className="text-gray-300 border-gray-700 text-xs">
                             {(selectedAppliance as any).condition}
                           </Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleFetchAIRecommendation}
                         disabled={isFetchingValue}
-                        className="border-purple-600 text-purple-400 hover:bg-purple-600/10"
+                        className="border-purple-600 text-purple-400 hover:bg-purple-600/10 text-xs sm:text-sm"
                       >
-                        {isFetchingValue ? 'Analyzing...' : '✨ AI Recommendation'}
+                        {isFetchingValue ? 'Analyzing...' : '✨ AI'}
                       </Button>
                       {isEditMode ? (
                         <>
@@ -1467,8 +1472,8 @@ export function ApplianceTrackerAutoTrack() {
                             onClick={handleSaveEdit}
                             className="border-green-600 text-green-400 hover:bg-green-600/10"
                           >
-                            <Save className="w-4 h-4 mr-1" />
-                            Save
+                            <Save className="w-4 h-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Save</span>
                           </Button>
                           <Button
                             variant="outline"
@@ -1582,23 +1587,24 @@ export function ApplianceTrackerAutoTrack() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
                         <div>
-                          <div className="text-sm text-gray-400 mb-1">Purchase Date</div>
-                          <div className="text-white font-medium">
+                          <div className="text-xs sm:text-sm text-gray-400 mb-1">Purchase Date</div>
+                          <div className="text-white font-medium text-sm sm:text-base">
                             {new Date(selectedAppliance.purchase_date).toLocaleDateString()}
                           </div>
                         </div>
                         <div>
-                          <div className="text-sm text-gray-400 mb-1">Purchase Price</div>
-                          <div className="text-white font-medium">${(selectedAppliance.purchase_price || 0).toLocaleString()}</div>
+                          <div className="text-xs sm:text-sm text-gray-400 mb-1">Purchase Price</div>
+                          <div className="text-white font-medium text-sm sm:text-base">${(selectedAppliance.purchase_price || 0).toLocaleString()}</div>
                         </div>
                         <div>
-                          <div className="text-sm text-gray-400 mb-1 flex items-center gap-1">
+                          <div className="text-xs sm:text-sm text-gray-400 mb-1 flex items-center gap-1">
                             <TrendingDown className="w-3 h-3" />
-                            Est. Current Value
+                            <span className="hidden sm:inline">Est. Current Value</span>
+                            <span className="sm:hidden">Current</span>
                           </div>
-                          <div className="text-emerald-400 font-bold text-lg">
+                          <div className="text-emerald-400 font-bold text-sm sm:text-lg">
                             ${calculateApplianceCurrentValue({
                               purchasePrice: selectedAppliance.purchase_price,
                               purchaseDate: selectedAppliance.purchase_date,
@@ -1615,17 +1621,17 @@ export function ApplianceTrackerAutoTrack() {
                               })
                               const depreciation = purchasePrice - currentValue
                               const depPercent = purchasePrice > 0 ? ((depreciation / purchasePrice) * 100).toFixed(0) : 0
-                              return depreciation > 0 ? `${depPercent}% depreciated` : 'New'
+                              return depreciation > 0 ? `${depPercent}% dep.` : 'New'
                             })()}
                           </div>
                         </div>
                         <div>
-                          <div className="text-sm text-gray-400 mb-1">Est. Lifespan</div>
-                          <div className="text-white font-medium">{(selectedAppliance as any).expected_lifespan || 0} years</div>
+                          <div className="text-xs sm:text-sm text-gray-400 mb-1">Lifespan</div>
+                          <div className="text-white font-medium text-sm sm:text-base">{(selectedAppliance as any).expected_lifespan || 0} yrs</div>
                         </div>
-                        <div>
-                          <div className="text-sm text-gray-400 mb-1">Serial Number</div>
-                          <div className="text-white font-medium">{selectedAppliance.serial_number || 'N/A'}</div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <div className="text-xs sm:text-sm text-gray-400 mb-1">Serial #</div>
+                          <div className="text-white font-medium text-sm sm:text-base truncate">{selectedAppliance.serial_number || 'N/A'}</div>
                         </div>
                       </div>
 

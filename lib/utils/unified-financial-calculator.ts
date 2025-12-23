@@ -101,15 +101,26 @@ export function calculateUnifiedNetWorth(
 
   // Calculate miscellaneous assets
   const miscData = domainData.miscellaneous || []
-  breakdown.miscValue = miscData.reduce((sum, item) => {
-    const meta = item.metadata as any
-    const value = parseFloat(
-      meta?.estimatedValue ||
-      meta?.value ||
-      '0'
-    )
-    return sum + value
-  }, 0)
+  breakdown.miscValue = miscData
+    .filter(item => {
+      const meta = item.metadata as any
+      // ✅ Filter out general-notes entries, only count actual assets
+      return meta?.itemType !== 'general-notes'
+    })
+    .reduce((sum, item) => {
+      const meta = item.metadata as any
+      // ✅ Check multiple value fields including purchasePrice as fallback
+      const value = parseFloat(
+        meta?.estimatedValue ||
+        meta?.value ||
+        meta?.purchasePrice ||  // 🆕 Include purchasePrice as fallback
+        '0'
+      )
+      if (value > 0) {
+        console.log('📦 Misc asset value found:', value, 'from:', item.title)
+      }
+      return sum + value
+    }, 0)
 
   // Calculate appliances value (appliances are physical assets with depreciated value)
   const appliancesData = domainData.appliances || []

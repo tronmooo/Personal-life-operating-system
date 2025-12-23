@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { AIConciergeInterface } from '@/components/ai-concierge-interface'
 
@@ -9,6 +10,14 @@ interface AIConciergePopupProps {
 }
 
 export function AIConciergePopup({ open, onOpenChange }: AIConciergePopupProps) {
+  // #region agent log
+  useEffect(() => {
+    if (open) {
+      console.log('🔍 [DEBUG-POPUP] AI Concierge popup OPENED');
+    }
+  }, [open]);
+  // #endregion
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 

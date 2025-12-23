@@ -155,23 +155,23 @@ export function ProfileTab({ pet }: ProfileTabProps) {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Total Costs Card */}
-      <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-200 dark:border-green-800">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-200 dark:border-green-800">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-1 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 flex-shrink-0" />
               Total Costs
             </p>
-            <p className="text-4xl font-bold text-green-600 dark:text-green-400">
+            <p className="text-2xl sm:text-4xl font-bold text-green-600 dark:text-green-400">
               {loadingCosts ? '...' : `$${totalCosts.toFixed(2)}`}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 truncate">
               Lifetime spending on {pet.name}
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right flex-shrink-0">
             <Button 
               variant="outline" 
               size="sm"
@@ -190,27 +190,27 @@ export function ProfileTab({ pet }: ProfileTabProps) {
 
       {/* Recent Vet Visits */}
       {recentVisits.length > 0 && (
-        <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-2 border-purple-200 dark:border-purple-800">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-2 border-purple-200 dark:border-purple-800">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
             <span>🏥</span> Recent Vet Visits
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {recentVisits.map((visit, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-white/50 dark:bg-slate-900/50 rounded-lg">
-                <div>
-                  <p className="font-medium">{visit.description || 'Vet Visit'}</p>
-                  <p className="text-sm text-muted-foreground">
+              <div key={index} className="flex justify-between items-center gap-3 p-2 sm:p-3 bg-white/50 dark:bg-slate-900/50 rounded-lg">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm sm:text-base truncate">{visit.description || 'Vet Visit'}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {new Date(visit.date).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                <div className="text-base sm:text-lg font-bold text-purple-600 dark:text-purple-400 flex-shrink-0">
                   ${Number(visit.amount).toFixed(2)}
                 </div>
               </div>
             ))}
           </div>
           {recentVisits.length < 3 && (
-            <p className="text-sm text-muted-foreground mt-3 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-3 text-center">
               {recentVisits.length === 1 ? '1 visit recorded' : `${recentVisits.length} visits recorded`}
             </p>
           )}
@@ -239,17 +239,17 @@ export function ProfileTab({ pet }: ProfileTabProps) {
       </div>
 
       {/* Photo Upload */}
-      <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-        <h3 className="text-lg font-semibold mb-4">Pet Photo</h3>
-        <div className="flex items-center gap-4">
+      <Card className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Pet Photo</h3>
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           {photoUrl ? (
-            <img src={photoUrl} alt={pet.name} className="w-32 h-32 rounded-lg object-cover" />
+            <img src={photoUrl} alt={pet.name} className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover" />
           ) : (
-            <div className="w-32 h-32 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-4xl font-bold">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold">
               {(editForm.name || pet.name).charAt(0).toUpperCase()}
             </div>
           )}
-          <Button onClick={handlePhotoUpload} className="bg-gradient-to-r from-blue-600 to-purple-600" disabled={uploading}>
+          <Button onClick={handlePhotoUpload} className="bg-gradient-to-r from-blue-600 to-purple-600 w-full sm:w-auto" disabled={uploading}>
             <Camera className="h-4 w-4 mr-2" />
             {uploading ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Upload Photo'}
           </Button>
@@ -258,63 +258,63 @@ export function ProfileTab({ pet }: ProfileTabProps) {
 
       {/* Info Fields */}
       {isEditing ? (
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-            <Label className="text-sm text-muted-foreground">Name</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+          <Card className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+            <Label className="text-xs sm:text-sm text-muted-foreground">Name</Label>
             <Input
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              className="mt-2"
+              className="mt-1 sm:mt-2"
             />
           </Card>
-          <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-            <Label className="text-sm text-muted-foreground">Species</Label>
+          <Card className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+            <Label className="text-xs sm:text-sm text-muted-foreground">Species</Label>
             <Input
               value={editForm.species}
               onChange={(e) => setEditForm({ ...editForm, species: e.target.value })}
-              className="mt-2"
+              className="mt-1 sm:mt-2"
             />
           </Card>
-          <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-            <Label className="text-sm text-muted-foreground">Breed</Label>
+          <Card className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+            <Label className="text-xs sm:text-sm text-muted-foreground">Breed</Label>
             <Input
               value={editForm.breed || ''}
               onChange={(e) => setEditForm({ ...editForm, breed: e.target.value })}
-              className="mt-2"
+              className="mt-1 sm:mt-2"
             />
           </Card>
-          <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-            <Label className="text-sm text-muted-foreground">Weight (lbs)</Label>
+          <Card className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+            <Label className="text-xs sm:text-sm text-muted-foreground">Weight (lbs)</Label>
             <Input
               type="number"
               value={editForm.weight || ''}
               onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-              className="mt-2"
+              className="mt-1 sm:mt-2"
             />
           </Card>
-          <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-            <Label className="text-sm text-muted-foreground">Color</Label>
+          <Card className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+            <Label className="text-xs sm:text-sm text-muted-foreground">Color</Label>
             <Input
               value={editForm.color || ''}
               onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-              className="mt-2"
+              className="mt-1 sm:mt-2"
             />
           </Card>
-          <Card className="p-6 bg-slate-50 dark:bg-slate-900/50">
-            <Label className="text-sm text-muted-foreground">Microchip</Label>
+          <Card className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+            <Label className="text-xs sm:text-sm text-muted-foreground">Microchip</Label>
             <Input
               value={editForm.microchip_number || ''}
               onChange={(e) => setEditForm({ ...editForm, microchip_number: e.target.value })}
-              className="mt-2"
+              className="mt-1 sm:mt-2"
             />
           </Card>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6">
           {fields.map((field) => (
-            <Card key={field.label} className="p-6 bg-slate-50 dark:bg-slate-900/50">
-              <p className="text-sm text-muted-foreground mb-2">{field.label}</p>
-              <p className="text-2xl font-bold">
+            <Card key={field.label} className="p-3 sm:p-6 bg-slate-50 dark:bg-slate-900/50">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{field.label}</p>
+              <p className="text-lg sm:text-2xl font-bold truncate">
                 {field.value || 'Not specified'}
               </p>
             </Card>

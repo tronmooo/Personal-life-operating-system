@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
+import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
+import { refreshGoogleToken } from '@/lib/auth/refresh-google-token'
 
 // Sanitize filename to be Supabase-storage compatible (no spaces, special chars)
 function sanitizeFileName(name: string): string {
@@ -65,16 +67,34 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ File uploaded to Supabase Storage:', publicUrl)
 
-    // **NEW: Also upload to Google Drive if user has Google OAuth token**
+    // **Also upload to Google Drive if user has Google OAuth token**
     let driveLink: string | null = null
     let driveFileId: string | null = null
     
-    if (session?.provider_token) {
+    // Get Google access token with fallback to stored tokens
+    let googleAccessToken = session?.provider_token || null
+    let googleRefreshToken = session?.provider_refresh_token || null
+    let tokenSource = 'session'
+
+    // If no session token, try to get from user_settings
+    if (!googleAccessToken) {
+      console.log('ℹ️ No session provider token, checking user_settings...')
+      const storedTokens = await getGoogleTokens()
+      if (storedTokens) {
+        googleAccessToken = storedTokens.accessToken
+        googleRefreshToken = storedTokens.refreshToken
+        tokenSource = 'user_settings'
+        console.log('✅ Found Google tokens in user_settings')
+      }
+    }
+
+    if (googleAccessToken) {
       console.log('🔑 Google provider token found - attempting Google Drive upload...')
+      console.log('   Token source:', tokenSource)
       try {
         const driveService = new GoogleDriveService(
-          session.provider_token,
-          session.provider_refresh_token || undefined
+          googleAccessToken,
+          googleRefreshToken || undefined
         )
 
         // Re-read the file for Drive upload
@@ -105,11 +125,60 @@ export async function POST(req: NextRequest) {
         console.log('   Drive File ID:', driveFileId)
         console.log('   Drive Link:', driveLink)
       } catch (driveError: any) {
-        // Don't fail the entire upload if Drive fails
-        console.warn('⚠️ Google Drive upload failed (non-critical):', driveError.message)
+        // Check if error is due to expired token - try to refresh
+        const isTokenError = driveError.message?.includes('invalid_grant') ||
+                            driveError.message?.includes('Invalid Credentials') ||
+                            driveError.message?.includes('401') ||
+                            driveError.code === 401
+
+        if (isTokenError && googleRefreshToken) {
+          console.log('🔄 Token may be expired, attempting refresh...')
+          const refreshResult = await refreshGoogleToken(user.id, googleRefreshToken)
+          
+          if (refreshResult.success && 'accessToken' in refreshResult) {
+            console.log('✅ Token refreshed successfully, retrying upload...')
+            
+            try {
+              const driveService = new GoogleDriveService(
+                refreshResult.accessToken,
+                googleRefreshToken
+              )
+
+              const fileArrayBuffer = await file.arrayBuffer()
+              const fileBuffer = Buffer.from(fileArrayBuffer)
+
+              let domainFolder = 'photos'
+              if (path) {
+                if (path.includes('home-assets')) domainFolder = 'home'
+                else if (path.includes('pets')) domainFolder = 'pets'
+                else if (path.includes('vehicles')) domainFolder = 'vehicles'
+                else if (path.includes('health')) domainFolder = 'health'
+              }
+
+              const driveFile = await driveService.uploadFile({
+                file: fileBuffer,
+                fileName: file.name,
+                mimeType: file.type,
+                domainFolder: domainFolder,
+              })
+
+              driveFileId = driveFile.id
+              driveLink = driveFile.webViewLink || null
+              console.log('✅ File uploaded to Google Drive after token refresh!')
+            } catch (retryError: any) {
+              console.error('⚠️ Google Drive upload failed after refresh:', retryError.message)
+            }
+          } else {
+            console.error('⚠️ Token refresh failed:', refreshResult)
+          }
+        } else {
+          // Don't fail the entire upload if Drive fails
+          console.warn('⚠️ Google Drive upload failed (non-critical):', driveError.message)
+        }
       }
     } else {
-      console.log('ℹ️ No Google provider token - skipping Google Drive upload')
+      console.log('ℹ️ No Google provider token available - skipping Google Drive upload')
+      console.log('   Hint: Sign in with Google to enable automatic Drive backup')
     }
 
     return NextResponse.json({ 

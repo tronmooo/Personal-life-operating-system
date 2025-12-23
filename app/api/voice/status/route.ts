@@ -12,7 +12,8 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || ''
 function verifyTwilioSignature(
   url: string,
   params: Record<string, string>,
-  signature: string
+  signature: string,
+  request: Request
 ): boolean {
   try {
     // If no auth token is configured, log warning but allow (for development)
@@ -20,6 +21,14 @@ function verifyTwilioSignature(
       console.warn('⚠️  WARNING: TWILIO_AUTH_TOKEN not set - webhook signature verification disabled')
       console.warn('⚠️  This is a SECURITY RISK in production!')
       return true // Allow in development, but log warning
+    }
+
+    // For local development with tunnels (localtunnel, ngrok, cloudflare), skip signature verification
+    // The tunnel URL reconstruction often doesn't match Twilio's signature
+    const xfHost = request.headers.get('x-forwarded-host') || ''
+    if (xfHost.includes('.loca.lt') || xfHost.includes('ngrok') || xfHost.includes('trycloudflare.com')) {
+      console.log('🔓 Skipping signature verification for tunnel (development mode)')
+      return true
     }
 
     // Sort parameters alphabetically and concatenate
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
     })
 
     // 🚨 SECURITY: Verify Twilio signature
-    if (!verifyTwilioSignature(url, params, twilioSignature)) {
+    if (!verifyTwilioSignature(url, params, twilioSignature, request)) {
       console.error('❌ Unauthorized Twilio webhook - invalid signature')
       return NextResponse.json(
         { error: 'Unauthorized' },

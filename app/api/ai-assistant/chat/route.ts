@@ -3082,37 +3082,56 @@ Don't force mindfulness references, but use this context when it adds value.`
           searchQuery.eq('domain', functionArgs.category)
         }
         
-        const { data: docs, error: docError } = await searchQuery.limit(5)
+        const { data: docs, error: docError } = await searchQuery.limit(20)
         
-        if (!docError && docs && docs.length > 0) {
-          // Filter by text if query provided
-          let filteredDocs = docs
-          if (functionArgs.query) {
-            const queryLower = functionArgs.query.toLowerCase()
-            filteredDocs = docs.filter(doc =>
-              doc.document_name?.toLowerCase().includes(queryLower) ||
-              doc.document_type?.toLowerCase().includes(queryLower) ||
-              doc.domain?.toLowerCase().includes(queryLower)
-            )
-          }
-          
-          const docList = filteredDocs.map(doc => ({
-            id: doc.id,
-            name: doc.document_name || 'Untitled',
-            type: doc.document_type,
-            category: doc.metadata?.category || doc.domain,
-            expirationDate: doc.expiration_date,
-            url: doc.file_url || doc.file_path
-          }))
-          
-          console.log(`✅ Found ${docList.length} documents`)
-          
+        if (docError) {
+          console.error('❌ Document search error:', docError)
           return NextResponse.json({
-            response: `I found ${docList.length} document(s). Opening them now...`,
-            documents: docList,
-            openDocuments: true // Signal to frontend to open PDFs
+            response: `I had trouble searching your documents. Please try again.`,
           })
         }
+        
+        if (!docs || docs.length === 0) {
+          console.log('📭 No documents found')
+          return NextResponse.json({
+            response: `I couldn't find any documents matching "${functionArgs.query || 'your request'}". You can upload documents in the Documents section or any domain page.`,
+          })
+        }
+        
+        // Filter by text if query provided
+        let filteredDocs = docs
+        if (functionArgs.query) {
+          const queryLower = functionArgs.query.toLowerCase()
+          filteredDocs = docs.filter(doc =>
+            doc.document_name?.toLowerCase().includes(queryLower) ||
+            doc.document_type?.toLowerCase().includes(queryLower) ||
+            doc.domain?.toLowerCase().includes(queryLower)
+          )
+        }
+        
+        if (filteredDocs.length === 0) {
+          console.log(`📭 No documents matched query: ${functionArgs.query}`)
+          return NextResponse.json({
+            response: `I found ${docs.length} document(s) but none matched "${functionArgs.query}". Try a different search term or browse your documents directly.`,
+          })
+        }
+        
+        const docList = filteredDocs.map(doc => ({
+          id: doc.id,
+          name: doc.document_name || 'Untitled',
+          type: doc.document_type,
+          category: doc.metadata?.category || doc.domain,
+          expirationDate: doc.expiration_date,
+          url: doc.file_url || doc.file_path
+        }))
+        
+        console.log(`✅ Found ${docList.length} documents`)
+        
+        return NextResponse.json({
+          response: `I found ${docList.length} document(s). Opening them now...`,
+          documents: docList,
+          openDocuments: true // Signal to frontend to open PDFs
+        })
       }
     }
     

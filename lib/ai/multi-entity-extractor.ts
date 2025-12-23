@@ -46,21 +46,32 @@ export async function extractMultipleEntities(
 - These should NOT go to "relationships" or other domains
 - Include date, time, title, and any relevant details
 
-**ALL 14 DOMAINS:**
+**ALL 15 DOMAINS:**
 1. **calendar** - interviews, meetings, appointments, plans, events, reminders, scheduled activities
-2. **financial** - expenses, income, accounts, budgets, bills, transactions
-3. **health** - medical records, doctor appointments (non-scheduled), medications, symptoms, weight, blood pressure
-4. **insurance** - policies, claims, documents, contracts, legal documents
-5. **home** - maintenance, repairs, projects, properties, service providers
-6. **vehicles** - maintenance, mileage, fuel, repairs, oil changes
-7. **appliances** - assets, warranties, maintenance schedules
-8. **pets** - health records, vet visits, weight, vaccinations, feeding
-9. **relationships** - contacts, birthdays, anniversaries, interactions (NOT interviews or meetings!)
-10. **digital** - subscriptions, accounts, passwords, services
-11. **mindfulness** - meditation, mood, journaling, stress tracking
-12. **fitness** - workouts, exercises, activities, duration, calories
-13. **nutrition** - meals, calories, water intake, macros
-14. **miscellaneous** - boats, jewelry, collectibles, other valuable assets
+2. **tasks** - todo items, tasks to complete, reminders, things to do, action items
+3. **financial** - expenses, income, accounts, budgets, bills, transactions
+4. **health** - medical records, doctor appointments (non-scheduled), medications, symptoms, weight, blood pressure
+5. **insurance** - policies, claims, documents, contracts, legal documents
+6. **home** - maintenance, repairs, projects, properties, service providers
+7. **vehicles** - maintenance, mileage, fuel, repairs, oil changes
+8. **appliances** - assets, warranties, maintenance schedules
+9. **pets** - health records, vet visits, weight, vaccinations, feeding
+10. **relationships** - contacts, birthdays, anniversaries, interactions (NOT interviews or meetings!)
+11. **digital** - subscriptions, accounts, passwords, services
+12. **mindfulness** - meditation, mood, journal entries, stress tracking, emotional venting, feelings
+13. **fitness** - workouts, exercises, activities, duration, calories
+14. **nutrition** - meals, calories, water intake, macros
+15. **miscellaneous** - boats, jewelry, collectibles, other valuable assets
+
+**🚨 RETRIEVAL COMMANDS - DO NOT EXTRACT:**
+- "retrieve", "pull up", "show me", "get my", "find my" → These are QUERIES, not data to create
+- Return entities with domain: "retrieval" and the search terms in data.searchTerms
+- Example: "retrieve my membership card" → { domain: "retrieval", data: { searchTerms: ["membership card"] } }
+
+**IMPORTANT - MINDFULNESS DOMAIN:**
+- Emotional statements like "I'm pissed off", "I feel lonely", "I'm depressed", "I don't know what to do" → mindfulness (journal entry)
+- Any expression of feelings, venting, emotional processing → mindfulness (journal entry)
+- Must use type: "journal" and logType: "journal-entry" (NOT "journaling" or "entry")
 
 **IMPORTANT ROUTING RULES:**
 - "interview at Amazon" → calendar (NOT relationships)
@@ -70,6 +81,13 @@ export async function extractMultipleEntities(
 - "reminder for dentist" → calendar
 - "Mom's birthday is March 5" → relationships (this is storing contact info, not scheduling)
 - "spent $50 at lunch with coworker" → financial (expense, not relationship)
+- "add task to buy groceries" → tasks (NOT miscellaneous)
+- "task: call mom" → tasks
+- "todo: pick up prescription" → tasks
+- "remind me to pay rent" → tasks
+- "retrieve my membership card" → retrieval (this is a SEARCH, not data to create)
+- "pull up my insurance" → retrieval (this is a SEARCH, not data to create)
+- "get my ID" → retrieval (this is a SEARCH, not data to create)
 
 **EXTRACTION RULES:**
 1. Extract EVERY distinct data point (don't skip any!)
@@ -81,6 +99,18 @@ export async function extractMultipleEntities(
 7. Infer missing details intelligently
 
 **METADATA EXTRACTION BY DOMAIN:**
+
+**tasks domain:** (for todo items, tasks, action items)
+- title: the task description (required)
+- priority: "low", "medium", "high" (default: "medium")
+- dueDate: ISO date if mentioned
+- description: additional details
+- category: inferred category if clear
+
+**retrieval domain:** (for document/data searches - NOT actual data creation!)
+- searchTerms: array of search terms extracted from the request
+- domain: optional domain to filter by (if mentioned like "insurance" or "vehicles")
+- type: type of document/data being requested
 
 **calendar domain:** (for interviews, meetings, appointments, plans)
 - type: "interview", "meeting", "appointment", "plan", "event", "reminder"
@@ -144,6 +174,20 @@ export async function extractMultipleEntities(
 - name, relationshipType: "Family", "Partner/Spouse", "Close Friend", "Friend", "Colleague"
 - birthday, anniversaryDate, email, phone
 - lastContact, frequency
+
+**mindfulness domain:** (CRITICAL - use exact field names!)
+- type: MUST be "journal" (NOT "journaling")
+- logType: MUST be "journal-entry" (NOT "entry")
+- entryType: "Journal"
+- fullContent: the FULL journal text/content (NOT "entry" or "content")
+- wordCount: number of words in the journal entry
+- date: ISO timestamp
+- mood: extracted mood keywords if present (e.g., "angry", "sad", "anxious")
+- EXAMPLES of journal-worthy input:
+  - "I'm pissed off" → journal entry
+  - "I don't know what to do" → journal entry
+  - "I'm feeling lonely and depressed" → journal entry
+  - Any emotional venting or feeling expression → journal entry
 
 **EXAMPLES:**
 
@@ -372,6 +416,56 @@ Output:
     }
   ],
   "originalInput": "meeting with John at 2pm, spent $45 on lunch",
+  "timestamp": "${new Date().toISOString()}",
+  "requiresConfirmation": false
+}
+
+Input: "I'm just pissed off I don't know what to do I'm lonely and scared and depressed"
+Output:
+{
+  "entities": [
+    {
+      "domain": "mindfulness",
+      "confidence": 95,
+      "title": "Journal Entry - ${new Date().toLocaleDateString()}",
+      "data": {
+        "type": "journal",
+        "logType": "journal-entry",
+        "entryType": "Journal",
+        "fullContent": "I'm just pissed off I don't know what to do I'm lonely and scared and depressed",
+        "wordCount": 16,
+        "mood": "frustrated, lonely, scared, depressed",
+        "date": "${new Date().toISOString()}"
+      },
+      "rawText": "I'm just pissed off I don't know what to do I'm lonely and scared and depressed"
+    }
+  ],
+  "originalInput": "I'm just pissed off I don't know what to do I'm lonely and scared and depressed",
+  "timestamp": "${new Date().toISOString()}",
+  "requiresConfirmation": false
+}
+
+Input: "feeling anxious about work today, can't focus"
+Output:
+{
+  "entities": [
+    {
+      "domain": "mindfulness",
+      "confidence": 95,
+      "title": "Journal Entry - ${new Date().toLocaleDateString()}",
+      "data": {
+        "type": "journal",
+        "logType": "journal-entry",
+        "entryType": "Journal",
+        "fullContent": "feeling anxious about work today, can't focus",
+        "wordCount": 8,
+        "mood": "anxious",
+        "date": "${new Date().toISOString()}"
+      },
+      "rawText": "feeling anxious about work today, can't focus"
+    }
+  ],
+  "originalInput": "feeling anxious about work today, can't focus",
   "timestamp": "${new Date().toISOString()}",
   "requiresConfirmation": false
 }

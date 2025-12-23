@@ -316,28 +316,39 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
       <Tabs defaultValue={
         domainId === 'financial' ? 'profiles' : 'items'
       } className="w-full">
-        <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-max min-w-full">
+        {/* Mobile-friendly tab container with horizontal scroll */}
+        <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+          {/* Fade indicator for more content on right */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none sm:hidden z-10" />
+          <TabsList className="inline-flex w-max min-w-full gap-1 pb-1">
             {domainId === 'financial' && (
-              <TabsTrigger value="profiles" className="whitespace-nowrap">
-                <Layers className="h-4 w-4 mr-2" />
-                Bills
+              <TabsTrigger value="profiles" className="text-xs sm:text-sm px-3">
+                <Layers className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Bills</span>
+                <span className="xs:hidden">Bills</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="items" className="whitespace-nowrap">Items ({items.length})</TabsTrigger>
-            <TabsTrigger value="documents" className="whitespace-nowrap">
-              <FileText className="h-4 w-4 mr-2" />
-              Documents
+            <TabsTrigger value="items" className="text-xs sm:text-sm px-3">
+              <span className="hidden sm:inline">Items</span>
+              <span className="sm:hidden">Items</span>
+              <span className="ml-1">({items.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs sm:text-sm px-3">
+              <FileText className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Documents</span>
+              <span className="sm:hidden">Docs</span>
             </TabsTrigger>
             {DOMAIN_LOGGING_CONFIGS[domainId]?.enabled && (
-              <TabsTrigger value="log" className="whitespace-nowrap">
-                <Zap className="h-4 w-4 mr-2" />
-                Quick Log
+              <TabsTrigger value="log" className="text-xs sm:text-sm px-3">
+                <Zap className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Quick Log</span>
+                <span className="sm:hidden">Log</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="analytics" className="whitespace-nowrap">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
+            <TabsTrigger value="analytics" className="text-xs sm:text-sm px-3">
+              <BarChart3 className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Analytics</span>
+              <span className="sm:hidden">Stats</span>
             </TabsTrigger>
           </TabsList>
         </div>

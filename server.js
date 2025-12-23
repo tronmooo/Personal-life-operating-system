@@ -110,9 +110,25 @@ app.prepare().then(() => {
   })
 
   // Create WebSocket server for Twilio Media Streams
+  // Using noServer mode to handle upgrades manually before Next.js
   const wss = new WebSocketServer({ 
-    server,
-    path: '/api/voice/stream'
+    noServer: true,
+  })
+
+  // Handle WebSocket upgrade BEFORE Next.js processes it
+  server.on('upgrade', (request, socket, head) => {
+    const { pathname } = parse(request.url, true)
+    
+    if (pathname === '/api/voice/stream') {
+      console.log('🔌 Handling WebSocket upgrade for /api/voice/stream')
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request)
+      })
+    } else {
+      // Let Next.js handle other WebSocket upgrades (like HMR)
+      // Don't destroy the socket - Next.js dev server needs it
+      console.log(`📡 Non-voice WebSocket request: ${pathname}`)
+    }
   })
 
   // Store active sessions (local for this server.js runtime)
@@ -121,8 +137,10 @@ app.prepare().then(() => {
   // (e.g. GET /api/voice/status?callSid=... for live transcript + quote)
   const voiceSessionStore = require('./lib/services/voice-session-store')
 
-  wss.on('connection', async (twilioWs) => {
+  wss.on('connection', async (twilioWs, request) => {
     console.log('📞 New WebSocket connection from Twilio')
+    console.log(`   ReadyState: ${twilioWs.readyState}`)
+    console.log(`   URL: ${request?.url || 'unknown'}`)
     
     let callSid = null
     let streamSid = null
@@ -199,27 +217,29 @@ app.prepare().then(() => {
             {
               type: 'function',
               name: 'extract_quote',
-              description: 'Extract a price quote from the conversation',
+              description: 'Extract price and order details from the conversation. Call this when you hear a price or get order information.',
               parameters: {
                 type: 'object',
                 properties: {
-                  price: { type: 'number', description: 'The quoted price in dollars' },
-                  currency: { type: 'string', default: 'USD' },
-                  details: { type: 'string', description: 'Quote details' },
-                  availability: { type: 'string', description: 'When available' }
+                  price: { type: 'number', description: 'The total price in dollars' },
+                  item: { type: 'string', description: 'What was ordered or quoted (e.g., "large cheese pizza", "oil change")' },
+                  waitTime: { type: 'string', description: 'How long until ready (e.g., "20 minutes", "1 hour")' },
+                  businessName: { type: 'string', description: 'Name of the business' },
+                  notes: { type: 'string', description: 'Any other important details' }
                 },
-                required: ['price']
+                required: ['price', 'item']
               }
             },
             {
               type: 'function',
               name: 'schedule_appointment',
-              description: 'Schedule an appointment',
+              description: 'Record an appointment or reservation',
               parameters: {
                 type: 'object',
                 properties: {
                   date: { type: 'string', description: 'Appointment date' },
                   time: { type: 'string', description: 'Appointment time' },
+                  service: { type: 'string', description: 'What service or appointment type' },
                   confirmationNumber: { type: 'string' }
                 },
                 required: ['date', 'time']
@@ -228,12 +248,13 @@ app.prepare().then(() => {
             {
               type: 'function',
               name: 'end_call',
-              description: 'End the call when conversation is complete',
+              description: 'End the call when you have the information needed',
               parameters: {
                 type: 'object',
                 properties: {
-                  reason: { type: 'string', description: 'Reason for ending' },
-                  success: { type: 'boolean', description: 'Was the call successful' }
+                  reason: { type: 'string', description: 'Brief reason for ending' },
+                  success: { type: 'boolean', description: 'Did we get the information we needed?' },
+                  nextStep: { type: 'string', description: 'What should happen next (e.g., "confirm order", "schedule appointment", "compare quotes")' }
                 },
                 required: ['reason', 'success']
               }
@@ -251,31 +272,51 @@ app.prepare().then(() => {
     function buildSystemPrompt(ctx) {
       const businessName = ctx.businessName || 'the business'
       const userRequest = ctx.userRequest || 'inquiring about services'
-      const userName = ctx.userData?.name || 'a customer'
+      const userName = ctx.userData?.name || 'Robert'
+      const category = ctx.category || 'general'
 
-      return `You are a professional AI assistant calling ${businessName} on behalf of ${userName}.
+      return `You are ${userName}'s personal assistant making a phone call to ${businessName}.
 
-PRIMARY OBJECTIVE: ${userRequest}
+CRITICAL: You are a HUMAN assistant, NOT an AI. Never mention AI, robots, or automation. Act completely natural like a real person calling.
 
-IMPORTANT INSTRUCTIONS:
-1. Start by introducing yourself: "Hi, this is an AI assistant calling on behalf of ${userName}."
-2. Clearly state the purpose: "${userRequest}"
-3. Be polite, professional, and concise
-4. Ask for a price quote if applicable
-5. Ask about availability and timeline
-6. Note any special offers or important details
-7. Use the extract_quote function when you hear a price
-8. Use schedule_appointment if you book something
-9. Use end_call when the conversation is complete
-10. Keep the call under 2-3 minutes
+YOUR TASK: ${userRequest}
 
-CONVERSATION TIPS:
-- Listen carefully for prices, dates, and confirmation numbers
-- If they can't help, politely thank them and end the call
-- If voicemail, leave a brief message
-- Be natural and conversational, not robotic
+HOW TO START THE CALL:
+- When they answer, say something natural like: "Hi! I'd like to ${userRequest.toLowerCase()}"
+- If it's a food order: "Hi, I'd like to place an order for pickup please"
+- If asking for a quote: "Hi, I'm looking to get a price on..."
+- Keep it casual and direct
 
-Begin the call now by introducing yourself.`
+CONVERSATION RULES:
+1. Be friendly, casual, and efficient - like a real person
+2. Get to the point quickly - don't waste their time
+3. Listen carefully for prices, wait times, totals
+4. When you hear a price, use extract_quote to record it
+5. DO NOT confirm orders yet - just get the information
+6. Say "Let me check with ${userName} and call right back to confirm"
+7. Thank them and end the call politely
+
+EXAMPLE PIZZA ORDER:
+You: "Hi, I'd like to order a large cheese pizza for pickup"
+Them: "Sure, that'll be $15.99, ready in 20 minutes"
+You: "Great! Let me confirm with my friend and call right back. Thanks!"
+[Use extract_quote with price: 15.99, details: "large cheese pizza, 20 min pickup"]
+[Use end_call with success: true]
+
+EXAMPLE QUOTE REQUEST:
+You: "Hi, I'm looking to get my oil changed. What's your price?"
+Them: "We charge $39.99 for a basic oil change"
+You: "Perfect, thanks! I'll call back to schedule. Appreciate it!"
+[Use extract_quote]
+[Use end_call]
+
+VOICE STYLE:
+- Casual, warm, friendly
+- Use contractions (I'd, that's, I'll)
+- Brief responses
+- Sound like you're in a slight hurry (busy but polite)
+
+Start the conversation NOW when they answer.`
     }
 
     // Handle messages from OpenAI
@@ -409,26 +450,51 @@ Begin the call now by introducing yourself.`
 
       switch (name) {
         case 'extract_quote':
-          console.log(`💰 Quote extracted: $${argsObj.price}`)
+          console.log('\n' + '═'.repeat(50))
+          console.log('💰 QUOTE/ORDER DETAILS RECEIVED!')
+          console.log('═'.repeat(50))
+          console.log(`   📦 Item: ${argsObj.item || 'N/A'}`)
+          console.log(`   💵 Price: $${argsObj.price}`)
+          if (argsObj.waitTime) console.log(`   ⏱️  Ready in: ${argsObj.waitTime}`)
+          if (argsObj.businessName) console.log(`   🏪 From: ${argsObj.businessName}`)
+          if (argsObj.notes) console.log(`   📝 Notes: ${argsObj.notes}`)
+          console.log('═'.repeat(50))
+          console.log('📱 AWAITING YOUR CONFIRMATION TO PROCEED')
+          console.log('═'.repeat(50) + '\n')
+          
           result = { 
             success: true, 
-            message: `Quote of $${argsObj.price} recorded successfully`,
-            quote: argsObj 
+            message: `Got it! ${argsObj.item} for $${argsObj.price}. Tell the user to confirm.`,
+            quote: argsObj,
+            needsConfirmation: true
           }
-          // Save quote to session
+          // Save quote to session for UI to display
           if (activeSessions.has(callSid)) {
             activeSessions.get(callSid).quote = argsObj
+            activeSessions.get(callSid).needsConfirmation = true
           }
           if (callSid) {
-            voiceSessionStore.upsertSession(callSid, { quote: argsObj })
+            voiceSessionStore.upsertSession(callSid, { 
+              quote: argsObj,
+              needsConfirmation: true,
+              confirmationType: 'order'
+            })
           }
           break
 
         case 'schedule_appointment':
-          console.log(`📅 Appointment: ${argsObj.date} at ${argsObj.time}`)
+          console.log('\n' + '═'.repeat(50))
+          console.log('📅 APPOINTMENT DETAILS RECEIVED!')
+          console.log('═'.repeat(50))
+          console.log(`   📆 Date: ${argsObj.date}`)
+          console.log(`   🕐 Time: ${argsObj.time}`)
+          if (argsObj.service) console.log(`   🔧 Service: ${argsObj.service}`)
+          if (argsObj.confirmationNumber) console.log(`   🔢 Confirmation: ${argsObj.confirmationNumber}`)
+          console.log('═'.repeat(50) + '\n')
+          
           result = { 
             success: true, 
-            message: `Appointment scheduled for ${argsObj.date} at ${argsObj.time}`,
+            message: `Appointment noted for ${argsObj.date} at ${argsObj.time}`,
             appointment: argsObj 
           }
           if (activeSessions.has(callSid)) {
@@ -603,7 +669,8 @@ Begin the call now by introducing yourself.`
       }
     })
 
-    twilioWs.on('close', () => {
+    twilioWs.on('close', (code, reason) => {
+      console.log(`🔌 Twilio WebSocket closed. Code: ${code}, Reason: ${reason || 'none'}`)
       if (callSid) {
         activeSessions.delete(callSid)
         voiceSessionStore.endSession(callSid, { status: 'completed' })

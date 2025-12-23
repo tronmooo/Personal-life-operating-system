@@ -77,13 +77,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Initiate calls to all businesses
+    // #region agent log
+    console.log('🔍 [DEBUG-B] Starting call loop:', {businessCount: businesses.length, businesses: businesses.map(b=>({name:b.name,phone:b.phone}))});
+    // #endregion
     const callPromises = businesses.map(async (business) => {
       try {
-        const baseUrl = getPublicBaseUrl(request)
-        const callResponse = await fetch(`${baseUrl}/api/voice/initiate-call`, {
+        // For internal server-to-server calls, always use localhost
+        // But we need to pass the tunnel URL for Twilio webhooks
+        const internalBaseUrl = 'http://localhost:3000'
+        
+        // Get the original tunnel URL from the incoming request for Twilio webhooks
+        const xfHost = request.headers.get('x-forwarded-host')
+        const xfProto = request.headers.get('x-forwarded-proto') || 'https'
+        const tunnelUrl = xfHost ? `${xfProto}://${xfHost}` : undefined
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'initiate-calls/route.ts:91',message:'Calling voice API',data:{internalBaseUrl,tunnelUrl,xfHost,business:business.name},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        console.log('🔍 [DEBUG-D] Calling voice API:', {baseUrl: internalBaseUrl, tunnelUrl, business: business.name, phone: business.phone});
+        const callResponse = await fetch(`${internalBaseUrl}/api/voice/initiate-call`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            // Forward tunnel info for Twilio webhooks
+            ...(tunnelUrl && { 'x-tunnel-url': tunnelUrl })
           },
           body: JSON.stringify({
             phoneNumber: business.phone,
@@ -97,6 +114,9 @@ export async function POST(request: NextRequest) {
         })
 
         const callData = await callResponse.json()
+        // #region agent log
+        console.log('🔍 [DEBUG-C] Voice API response:', {success: callData.success, callSid: callData.callSid, error: callData.error, simulation: callData.simulation});
+        // #endregion
 
         return {
           business: business.name,
@@ -109,6 +129,9 @@ export async function POST(request: NextRequest) {
           simulation: callData.simulation
         }
       } catch (error: any) {
+        // #region agent log
+        console.log('🔍 [DEBUG-C] Voice API error:', {error: error.message, business: business.name});
+        // #endregion
         return {
           business: business.name,
           phone: business.phone,
