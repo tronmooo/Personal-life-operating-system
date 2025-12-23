@@ -111,121 +111,91 @@ export function SmartInboxCard() {
 
   /**
    * Sync with Gmail to get new emails
+   * Server handles token refresh automatically - no re-auth popups needed!
    */
   const syncWithGmail = async () => {
     try {
       setSyncing(true)
       
-      
-      // Get current session with provider token
-      let { data: { session } } = await supabase.auth.getSession()
+      // Check if user is signed in
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         console.log('👤 Not signed in - skipping Gmail sync')
-        alert('🔑 Gmail Sync Requires Sign-In\n\nPlease sign in with Google to sync your emails.')
+        toast({
+          title: "Sign in required",
+          description: "Please sign in with Google to sync your emails.",
+          variant: "destructive"
+        })
         return
       }
 
-      // If no provider token, try refreshing the session first
-      if (!session.provider_token) {
-        console.log('🔄 No provider token, refreshing session...')
-        const { data: refreshData } = await supabase.auth.refreshSession()
-        if (refreshData.session) {
-          session = refreshData.session
-          console.log('✅ Session refreshed, provider token:', session.provider_token ? 'Present' : 'Still missing')
-        }
-        
-        // If still no token after refresh, user needs to re-authenticate
-        if (!session.provider_token) {
-          console.log('⚠️ No provider token available - Gmail sync requires re-auth')
-          alert('🔄 Gmail Re-authentication Required\n\nTo enable Gmail sync:\n\n1. Click your profile icon (top right)\n2. Sign out\n3. Sign back in with Google\n4. Accept all permissions when prompted\n\nThis will grant the app access to read your emails for smart suggestions.')
-          return
-        }
-      }
-
-      
-      // Send provider token in request body
+      // Call API - server handles token refresh automatically
+      // Send provider_token if available (helps on first login), but server will use stored tokens too
       const response = await fetch('/api/gmail/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          accessToken: session.provider_token
+          accessToken: session.provider_token || undefined
         })
       })
 
-      
-      // Handle non-JSON responses (e.g., timeouts, HTML error pages)
+      // Handle non-JSON responses (timeouts, HTML error pages)
+      const responseText = await response.text()
       let data;
       try {
         data = JSON.parse(responseText);
       } catch (parseErr) {
         console.error('ℹ️ Gmail sync returned non-JSON response:', responseText.substring(0, 200));
         if (response.status === 504) {
-          throw new Error('Request timed out. Gmail sync is taking too long. Try again later.');
+          throw new Error('Request timed out. Try again later.');
         }
-        throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
+        throw new Error(`Server error (${response.status})`);
       }
       
-      // If we get 401/403, try refreshing session once before giving up
-      if (response.status === 401 || response.status === 403) {
-        console.log('⚠️ Got 401/403, attempting to refresh session...')
-        
-        // Try refreshing session one more time
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-        
-        if (refreshData.session?.provider_token && !refreshError) {
-          console.log('✅ Session refreshed successfully, retrying sync...')
-          
-          // Retry the request with new token
-          const retryResponse = await fetch('/api/gmail/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              accessToken: refreshData.session.provider_token
-            })
-          })
-          
-          const retryData = await retryResponse.json()
-          
-          if (retryResponse.ok && retryData.success) {
-            // Success after retry!
-            await loadSuggestions()
-            if (retryData.newSuggestions > 0) {
-              alert(`✨ Found ${retryData.newSuggestions} new suggestions!`)
-            } else {
-              alert('📭 No new suggestions found')
-            }
-            return
-          }
-        }
-        
-        // If refresh failed or retry failed, show re-auth message
-        console.log('ℹ️ Gmail sync unavailable - token refresh failed')
-        alert('🔄 Gmail Re-authentication Required\n\nYour Gmail access token has expired.\n\nPlease sign out and sign back in with Google to refresh your permissions.')
-        return
-      }
-      
+      // Handle success
       if (data.success) {
-        // Reload suggestions
         await loadSuggestions()
         
         if (data.newSuggestions > 0) {
-          alert(`✨ Found ${data.newSuggestions} new suggestions!`)
+          toast({
+            title: "Gmail synced!",
+            description: `Found ${data.newSuggestions} new suggestion${data.newSuggestions > 1 ? 's' : ''}.`,
+          })
         } else {
-          alert('📭 No new suggestions found')
+          toast({
+            title: "Gmail synced",
+            description: "No new suggestions found.",
+          })
         }
-      } else {
-        // Show specific error from API
-        const errorMsg = data.error || 'Unknown error'
-        const hint = data.hint || ''
-        console.error('Gmail sync error:', errorMsg)
-        alert(`⚠️ Gmail Sync Issue\n\n${errorMsg}${hint ? `\n\n${hint}` : ''}`)
+        return
       }
+      
+      // Handle errors - only show re-auth message if refresh token is invalid
+      if (data.requiresReauth) {
+        toast({
+          title: "Gmail access expired",
+          description: "Please sign out and sign back in with Google.",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      // Show other errors as toast
+      const errorMsg = data.error || 'Unknown error'
+      console.error('Gmail sync error:', errorMsg)
+      toast({
+        title: "Gmail sync issue",
+        description: errorMsg,
+        variant: "destructive"
+      })
     } catch (error: any) {
-      // Log errors and show status message
       console.error('ℹ️ Gmail sync error:', error.message)
-      alert(`⚠️ Gmail Sync Failed\n\n${error.message}\n\nTry signing out and back in with Google.`)
+      toast({
+        title: "Gmail sync failed",
+        description: error.message,
+        variant: "destructive"
+      })
     } finally {
       setSyncing(false)
     }

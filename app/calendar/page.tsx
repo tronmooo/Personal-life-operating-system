@@ -56,19 +56,15 @@ export default function CalendarPage() {
         hasSession: !!session,
         hasUser: !!session?.user,
         email: session?.user?.email,
-        hasProviderToken: !!session?.provider_token,
-        provider: session?.user?.app_metadata?.provider
       })
       
       setSession(session)
       setLoading(false)
       
-      if (session?.provider_token) {
-        console.log('📅 Found provider token, fetching events...')
-        fetchEvents(session.provider_token)
-      } else if (session) {
-        console.log('⚠️ Session exists but no provider_token - need to re-authenticate')
-        setError('Calendar access not granted. Please authenticate with Google.')
+      // Always try to fetch events if signed in - API handles token refresh automatically
+      if (session) {
+        console.log('📅 Session found, fetching events via API (handles token refresh)...')
+        fetchEvents()
       }
     })
 
@@ -76,77 +72,49 @@ export default function CalendarPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('📅 Auth state changed:', _event, {
         hasSession: !!session,
-        hasProviderToken: !!session?.provider_token
       })
       setSession(session)
-      if (session?.provider_token) {
-        fetchEvents(session.provider_token)
+      if (session) {
+        fetchEvents()
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchEvents = async (accessToken?: string) => {
-    const token = accessToken || session?.provider_token
+  /**
+   * Fetch calendar events from our API (handles token refresh automatically)
+   */
+  const fetchEvents = async () => {
+    console.log('📅 Fetching events via API route (auto-refresh enabled)...')
     
-    console.log('📅 fetchEvents called:', {
-      hasAccessToken: !!accessToken,
-      hasSessionToken: !!session?.provider_token,
-      usingToken: !!token,
-      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
-    })
-    
-    if (!token) {
-      console.error('❌ No access token available')
-      setError('No Google Calendar access token. Please sign in with Google.')
-      return
-    }
-
     setSyncing(true)
     setError('')
 
     try {
-      // Fetch events directly from Google Calendar API
-      const timeMin = new Date()
-      timeMin.setMonth(timeMin.getMonth() - 1)
-      const timeMax = new Date()
-      timeMax.setMonth(timeMax.getMonth() + 2)
-
-      const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-        `timeMin=${timeMin.toISOString()}&` +
-        `timeMax=${timeMax.toISOString()}&` +
-        `singleEvents=true&` +
-        `orderBy=startTime&` +
-        `maxResults=250`
-
-      console.log('📅 Fetching from Google Calendar API...')
-      console.log('📅 URL:', url)
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      // Use our API route which handles token refresh automatically
+      const response = await fetch('/api/calendar/sync?days=90', {
+        credentials: 'include',
       })
-
-      console.log('📅 Response status:', response.status, response.statusText)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('❌ Google Calendar API error:', errorData)
-        throw new Error(errorData.error?.message || `Failed to fetch calendar events (${response.status})`)
-      }
 
       const data = await response.json()
+      console.log('📅 API Response:', response.status, data)
+
+      if (!response.ok) {
+        // Only show re-auth error if refresh token itself is invalid
+        if (data.needsReauth) {
+          setError('Calendar access expired. Please sign out and sign back in.')
+        } else {
+          throw new Error(data.error || `Failed to fetch events (${response.status})`)
+        }
+        return
+      }
+
       console.log('✅ Successfully fetched events:', {
-        count: data.items?.length || 0,
-        events: data.items?.slice(0, 3).map((e: any) => ({
-          summary: e.summary,
-          start: e.start
-        }))
+        count: data.events?.length || 0,
       })
       
-      setEvents(data.items || [])
+      setEvents(data.events || [])
       setLastSync(new Date())
     } catch (err: any) {
       console.error('❌ Error fetching calendar events:', err)
@@ -157,8 +125,8 @@ export default function CalendarPage() {
   }
 
   const handleRefresh = () => {
-    if (session?.provider_token) {
-      fetchEvents(session.provider_token)
+    if (session) {
+      fetchEvents()
     }
   }
 
@@ -232,55 +200,6 @@ export default function CalendarPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  // Show calendar access prompt if signed in but no provider token
-  if (session && !session.provider_token) {
-    return (
-      <div className="container mx-auto py-12 px-4">
-        <Card className="max-w-2xl mx-auto border-yellow-500 border-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <AlertCircle className="h-8 w-8 text-yellow-500" />
-              Calendar Access Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <p className="text-lg">
-                You're signed in as <strong>{session.user?.email}</strong>, but we need permission to access your Google Calendar.
-              </p>
-              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>Why?</strong> To show your calendar events, we need you to grant Google Calendar permissions through Google's secure OAuth flow.
-                </p>
-              </div>
-            </div>
-            
-            <Button onClick={handleReauth} className="w-full h-12 text-lg" size="lg">
-              <CalendarIcon className="mr-2 h-5 w-5" />
-              Grant Calendar Access
-            </Button>
-
-            <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-              <p className="font-semibold mb-2">What you'll get access to:</p>
-              <ul className="space-y-1 list-disc list-inside ml-2">
-                <li>View all your calendar events and appointments</li>
-                <li>See meetings, reminders, and important dates</li>
-                <li>Monthly calendar view with your schedule</li>
-                <li>Automatic sync with Google Calendar</li>
-              </ul>
-            </div>
-
-            {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
-                {error}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     )
   }

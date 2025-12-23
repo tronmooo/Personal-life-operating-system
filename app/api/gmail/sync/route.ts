@@ -2,11 +2,14 @@
  * Gmail Sync API Endpoint
  * 
  * Fetches and processes recent emails from Gmail
+ * Automatically refreshes expired tokens - no re-auth popups!
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createGmailParser } from '@/lib/integrations/gmail-parser'
+import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,51 +45,79 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ OpenAI API key configured')
 
-    // Try to get access token from request body first, then session, then user_settings
-    let accessToken: string | null = null
+    // Get tokens from user_settings (includes refresh token for auto-refresh)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    try {
-      const body = await request.json()
-      accessToken = body.accessToken
-      console.log('📩 Access token from request body:', accessToken ? 'Present' : 'Missing')
-    } catch (e) {
-      console.log('📩 No request body, checking session...')
-    }
+    let storedAccessToken: string | null = null
+    let storedRefreshToken: string | null = null
     
-    // Fallback to session provider_token (need to get session separately)
-    if (!accessToken) {
-      const { data: { session } } = await supabase.auth.getSession()
-      accessToken = session?.provider_token || null
-      console.log('📩 Access token from session:', accessToken ? 'Present' : 'Missing')
-    }
-
-    // Final fallback: check user_settings table
-    if (!accessToken) {
-      console.log('📩 Checking user_settings table for stored token...')
-      const { data: settings } = await supabase
+    if (supabaseUrl && serviceRoleKey) {
+      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
+      
+      const { data: settings } = await supabaseAdmin
         .from('user_settings')
-        .select('google_access_token')
+        .select('google_access_token, google_refresh_token')
         .eq('user_id', user.id)
         .single()
       
-      accessToken = settings?.google_access_token || null
-      console.log('📩 Access token from user_settings:', accessToken ? 'Present' : 'Missing')
+      storedAccessToken = settings?.google_access_token || null
+      storedRefreshToken = settings?.google_refresh_token || null
+      console.log('📩 Tokens from user_settings:', {
+        accessToken: storedAccessToken ? 'Present' : 'Missing',
+        refreshToken: storedRefreshToken ? 'Present' : 'Missing'
+      })
     }
 
-    if (!accessToken) {
-      console.error('❌ No access token available. User needs to re-authenticate.')
+    // Also check request body for token (client may send fresh one)
+    let bodyAccessToken: string | null = null
+    try {
+      const body = await request.json()
+      bodyAccessToken = body.accessToken
+      console.log('📩 Access token from request body:', bodyAccessToken ? 'Present' : 'Missing')
+    } catch (e) {
+      console.log('📩 No request body')
+    }
+
+    // Use body token or stored token
+    let accessToken = bodyAccessToken || storedAccessToken
+
+    // Get a valid token - automatically refreshes if expired!
+    const tokenResult = await getValidGoogleToken(
+      user.id,
+      accessToken,
+      storedRefreshToken
+    )
+
+    if (!tokenResult.success) {
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('❌ Could not get valid token:', errorResult.error)
+      
+      // Only require re-auth if refresh token is invalid
+      if (errorResult.requiresReauth) {
+        return NextResponse.json(
+          { 
+            error: 'Gmail access expired. Please sign out and sign in again.',
+            hint: 'Your refresh token has expired. Click profile → Sign Out → Sign in with Google',
+            requiresReauth: true
+          },
+          { status: 401 }
+        )
+      }
+      
       return NextResponse.json(
-        { 
-          error: 'Gmail access token required. Please sign out and sign in with Google again.',
-          hint: 'Click profile icon → Sign Out → Sign in with Google → Grant all permissions'
-        },
-        { status: 401 }
+        { error: errorResult.error },
+        { status: 500 }
       )
     }
 
-    console.log('✅ Access token found, proceeding with Gmail sync...')
+    // Use the valid (possibly refreshed) token
+    accessToken = tokenResult.accessToken
+    console.log('✅ Valid access token obtained (expires in', tokenResult.expiresIn, 'seconds)')
 
-    // Validate token has Gmail scopes before attempting sync
+    // Validate token has Gmail scopes
     try {
       const tokenCheckResponse = await fetch(
         `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
@@ -102,7 +133,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: 'Token missing Gmail permissions',
-              hint: 'Your access token does not include Gmail scopes. The session needs to be refreshed.',
+              hint: 'Your Google account needs Gmail permissions. Sign out and sign back in.',
               requiresReauth: true,
               actualScopes: scopes
             },

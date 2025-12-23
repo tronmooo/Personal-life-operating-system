@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
+import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
 import { GoogleCalendarSync } from '@/lib/integrations/google-calendar-sync'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
@@ -32,6 +33,7 @@ const getSupabaseClient = (): SupabaseClient<any, 'public', any> | null => {
 /**
  * POST /api/calendar/sync
  * Sync domain data to Google Calendar
+ * Automatically refreshes expired tokens - no re-auth popups!
  */
 export async function POST(request: Request) {
   try {
@@ -46,12 +48,38 @@ export async function POST(request: Request) {
     // Get Google tokens from Supabase user_settings
     const tokens = await getGoogleTokens()
 
-    if (!tokens || !tokens.accessToken) {
+    if (!tokens) {
       return NextResponse.json({ 
-        error: 'No Google Calendar access. Please sign out and sign in again with Google.',
+        error: 'Not signed in',
         needsReauth: true 
       }, { status: 401 })
     }
+
+    // Auto-refresh token if expired
+    const tokenResult = await getValidGoogleToken(
+      tokens.userId,
+      tokens.accessToken,
+      tokens.refreshToken
+    )
+
+    if (!tokenResult.success) {
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('📅 Could not get valid token:', errorResult.error)
+      
+      if (errorResult.requiresReauth) {
+        return NextResponse.json({ 
+          error: 'Calendar access expired. Please sign out and sign in again.',
+          needsReauth: true 
+        }, { status: 401 })
+      }
+      
+      return NextResponse.json(
+        { error: errorResult.error },
+        { status: 500 }
+      )
+    }
+
+    const validAccessToken = tokenResult.accessToken
 
     const { domain, recordId } = await request.json()
 
@@ -60,7 +88,7 @@ export async function POST(request: Request) {
     }
 
     const calendarSync = new GoogleCalendarSync(
-      tokens.accessToken,
+      validAccessToken,
       tokens.refreshToken || ''
     )
 
@@ -120,9 +148,9 @@ export async function POST(request: Request) {
 /**
  * GET /api/calendar/sync
  * Fetch upcoming events from Google Calendar
+ * Automatically refreshes expired tokens - no re-auth popups!
  */
 export async function GET(request: Request) {
-  const startTime = Date.now();
   try {
     const supabase = getSupabaseClient()
     if (!supabase) {
@@ -147,13 +175,33 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
 
-    if (!tokens.accessToken) {
-      console.error('📅 No access token found')
-      return NextResponse.json({ 
-        error: 'No Google Calendar access. Please sign out and sign in again with Google.', 
-        needsReauth: true 
-      }, { status: 401 })
+    // Auto-refresh token if expired
+    const tokenResult = await getValidGoogleToken(
+      tokens.userId,
+      tokens.accessToken,
+      tokens.refreshToken
+    )
+
+    if (!tokenResult.success) {
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('📅 Could not get valid token:', errorResult.error)
+      
+      // Only require re-auth if refresh token is invalid
+      if (errorResult.requiresReauth) {
+        return NextResponse.json({ 
+          error: 'Calendar access expired. Please sign out and sign in again.', 
+          needsReauth: true 
+        }, { status: 401 })
+      }
+      
+      return NextResponse.json(
+        { error: errorResult.error },
+        { status: 500 }
+      )
     }
+
+    const validAccessToken = tokenResult.accessToken
+    console.log('📅 Valid access token obtained (expires in', tokenResult.expiresIn, 'seconds)')
 
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '30')
@@ -161,12 +209,11 @@ export async function GET(request: Request) {
     console.log(`📅 Fetching events for next ${days} days...`)
 
     const calendarSync = new GoogleCalendarSync(
-      tokens.accessToken,
+      validAccessToken,
       tokens.refreshToken || ''
     )
 
     const events = await calendarSync.fetchUpcomingEvents(days)
-
 
     console.log(`📅 Successfully fetched ${events.length} events`)
 
