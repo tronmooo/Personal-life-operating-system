@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, getAdminClient } from '@/lib/supabase/server'
+import { createServerClient, getSupabaseAdmin } from '@/lib/supabase/server'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
 import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 3: Store in database
-    const adminClient = getAdminClient()
+    const adminClient = getSupabaseAdmin()
 
     // Insert into receipts table
     const { data: receiptRecord, error: receiptError } = await adminClient

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
-import { createServerClient, getAdminClient } from '@/lib/supabase/server'
+import { createServerClient, getSupabaseAdmin } from '@/lib/supabase/server'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
 import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
 
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Uploaded to Google Drive:', driveFile.webViewLink)
 
     // Store document metadata in the database
-    const adminClient = getAdminClient()
+    const adminClient = getSupabaseAdmin()
     const { data: documentRecord, error: dbError } = await adminClient
       .from('documents')
       .insert({
