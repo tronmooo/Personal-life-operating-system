@@ -30,7 +30,9 @@ import {
   Inbox,
   Reply,
   FileImage,
-  ScanLine
+  ScanLine,
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useRouter } from 'next/navigation'
@@ -76,6 +78,11 @@ export function SmartInboxCard() {
   // AI Reply state  
   const [replyDialogOpen, setReplyDialogOpen] = useState(false)
   const [selectedEmail, setSelectedEmail] = useState<EmailSuggestion | null>(null)
+  
+  // Gmail auth state
+  const [needsGmailAuth, setNeedsGmailAuth] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [grantingAccess, setGrantingAccess] = useState(false)
 
   // Load suggestions on mount
   useEffect(() => {
@@ -171,18 +178,25 @@ export function SmartInboxCard() {
         return
       }
       
-      // Handle errors - only show re-auth message if refresh token is invalid
-      if (data.requiresReauth) {
+      // Handle errors - detect scope issues vs other auth issues
+      const errorMsg = data.error || 'Unknown error'
+      const isScopeError = errorMsg.toLowerCase().includes('scope') || 
+                           errorMsg.toLowerCase().includes('permission') ||
+                           data.actualScopes !== undefined
+      
+      if (data.requiresReauth || isScopeError) {
+        // Need to grant Gmail permissions
+        setNeedsGmailAuth(true)
+        setAuthError(errorMsg)
         toast({
-          title: "Gmail access expired",
-          description: "Please sign out and sign back in with Google.",
+          title: "Gmail permissions needed",
+          description: "Click 'Grant Gmail Access' to enable Smart Inbox.",
           variant: "destructive"
         })
         return
       }
       
       // Show other errors as toast
-      const errorMsg = data.error || 'Unknown error'
       console.error('Gmail sync error:', errorMsg)
       toast({
         title: "Gmail sync issue",
@@ -198,6 +212,34 @@ export function SmartInboxCard() {
       })
     } finally {
       setSyncing(false)
+    }
+  }
+
+  /**
+   * Grant Gmail access - redirects to Google OAuth with Gmail scopes
+   */
+  const grantGmailAccess = async () => {
+    try {
+      setGrantingAccess(true)
+      
+      // Get the OAuth URL from our API
+      const response = await fetch('/api/auth/add-gmail-scopes')
+      const data = await response.json()
+      
+      if (data.url) {
+        // Redirect to Google OAuth to grant Gmail permissions
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Failed to get authorization URL')
+      }
+    } catch (error: any) {
+      console.error('Error initiating Gmail auth:', error)
+      toast({
+        title: "Authorization Failed",
+        description: error.message || "Could not start Gmail authorization",
+        variant: "destructive"
+      })
+      setGrantingAccess(false)
     }
   }
 
@@ -400,6 +442,39 @@ export function SmartInboxCard() {
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : needsGmailAuth ? (
+          // Gmail authorization needed UI
+          <div className="text-center py-6 px-4">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500" />
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">
+              Gmail Access Required
+            </p>
+            <p className="text-xs text-gray-500 mb-4">
+              {authError || 'Smart Inbox needs permission to read your emails.'}
+            </p>
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              onClick={grantGmailAccess}
+              disabled={grantingAccess}
+            >
+              {grantingAccess ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  Redirecting...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-3 h-3 mr-2" />
+                  Grant Gmail Access
+                </>
+              )}
+            </Button>
+            <p className="text-[10px] text-gray-400 mt-2">
+              You'll be redirected to Google to approve access
+            </p>
           </div>
         ) : suggestions.length === 0 ? (
           <div className="text-center py-8">
