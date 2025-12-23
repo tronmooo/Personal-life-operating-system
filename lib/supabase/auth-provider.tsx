@@ -1,7 +1,7 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User, SupabaseClient } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
+import { User, SupabaseClient, Session } from '@supabase/supabase-js'
 import { createSafeBrowserClient } from './safe-client'
 
 interface AuthContextType {
@@ -15,10 +15,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/**
+ * Store Google OAuth tokens to user_settings via API
+ * This ensures Calendar, Drive, and Gmail integrations work
+ */
+async function storeGoogleTokens(session: Session | null) {
+  if (!session?.provider_token) {
+    console.log('🔑 No provider_token in session - skipping token storage')
+    return
+  }
+
+  try {
+    console.log('🔑 Storing Google OAuth tokens...')
+    const response = await fetch('/api/auth/store-google-tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider_token: session.provider_token,
+        provider_refresh_token: session.provider_refresh_token || null,
+      }),
+    })
+
+    const result = await response.json()
+    
+    if (response.ok) {
+      console.log('✅ Google tokens stored successfully:', result.user_email)
+    } else {
+      console.error('❌ Failed to store Google tokens:', result.error)
+    }
+  } catch (error) {
+    console.error('❌ Error storing Google tokens:', error)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
+  const tokenStoredRef = useRef(false)
 
   useEffect(() => {
     // Create client on mount (client-side only)
@@ -31,16 +65,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Get initial session
+    // Get initial session and store tokens if needed
     client.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
+      
+      // Store Google tokens if we have them and haven't stored yet
+      if (session?.provider_token && !tokenStoredRef.current) {
+        tokenStoredRef.current = true
+        storeGoogleTokens(session)
+      }
     })
 
     // Listen for auth changes
     const { data: { subscription } } = client.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null)
+        
+        // Store tokens on sign-in (especially important for OAuth)
+        if (event === 'SIGNED_IN' && session?.provider_token && !tokenStoredRef.current) {
+          tokenStoredRef.current = true
+          storeGoogleTokens(session)
+        }
+        
+        // Reset on sign-out
+        if (event === 'SIGNED_OUT') {
+          tokenStoredRef.current = false
+        }
       }
     )
 

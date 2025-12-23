@@ -51,10 +51,35 @@ export default function SignInPage() {
 
   // Listen for auth state changes
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state changed:', event, session?.user?.email)
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('✅ Sign-in detected, redirecting...')
+        console.log('✅ Sign-in detected')
+        
+        // Store Google tokens if present (for OAuth sign-in)
+        if (session.provider_token) {
+          console.log('🔑 Google OAuth tokens detected, storing...')
+          try {
+            const response = await fetch('/api/auth/store-google-tokens', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                provider_token: session.provider_token,
+                provider_refresh_token: session.provider_refresh_token || null,
+              }),
+            })
+            const result = await response.json()
+            if (response.ok) {
+              console.log('✅ Google tokens stored:', result.user_email)
+            } else {
+              console.error('❌ Failed to store tokens:', result.error)
+            }
+          } catch (err) {
+            console.error('❌ Error storing Google tokens:', err)
+          }
+        }
+        
+        console.log('🏠 Redirecting to home...')
         redirectToHome()
       }
     })
