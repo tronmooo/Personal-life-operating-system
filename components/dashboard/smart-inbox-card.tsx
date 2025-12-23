@@ -88,6 +88,14 @@ export function SmartInboxCard() {
   useEffect(() => {
     loadSuggestions()
   }, [])
+  
+  // Auto-sync Gmail when inbox is empty (after initial load completes)
+  useEffect(() => {
+    if (!loading && suggestions.length === 0 && !syncing && !needsGmailAuth) {
+      console.log('📬 Auto-syncing Gmail (inbox is empty)...')
+      syncWithGmail()
+    }
+  }, [loading]) // Only trigger when loading state changes
 
   /**
    * Load pending suggestions from API
@@ -185,14 +193,28 @@ export function SmartInboxCard() {
                            data.actualScopes !== undefined
       
       if (data.requiresReauth || isScopeError) {
-        // Need to grant Gmail permissions
+        // Automatically redirect to get Gmail permissions
+        console.log('🔄 Auto-redirecting to grant Gmail permissions...')
+        toast({
+          title: "Granting Gmail access...",
+          description: "Redirecting to Google to enable Smart Inbox.",
+        })
+        
+        // Auto-redirect to get Gmail permissions
+        try {
+          const response = await fetch('/api/auth/add-gmail-scopes')
+          const authData = await response.json()
+          if (authData.url) {
+            window.location.href = authData.url
+            return
+          }
+        } catch (e) {
+          console.error('Failed to get Gmail auth URL:', e)
+        }
+        
+        // Fallback if auto-redirect fails
         setNeedsGmailAuth(true)
         setAuthError(errorMsg)
-        toast({
-          title: "Gmail permissions needed",
-          description: "Click 'Grant Gmail Access' to enable Smart Inbox.",
-          variant: "destructive"
-        })
         return
       }
       
