@@ -1187,24 +1187,27 @@ export default function DomainsPage() {
             id: doc.id,
             domain: 'insurance' as Domain, // Maps to Document Manager
             title: doc.document_name || doc.file_name || 'Untitled Document',
-            description: doc.document_type || doc.category || '',
+            description: doc.document_type || doc.domain || '',
             metadata: {
-              category: doc.category || doc.document_type,
+              category: doc.domain || doc.document_type,
               documentType: doc.document_type,
+              documentSubtype: doc.document_subtype,
               expiryDate: doc.expiration_date,
               expirationDate: doc.expiration_date,
               renewalDate: doc.renewal_date,
               policyNumber: doc.policy_number,
               accountNumber: doc.account_number,
-              issuer: doc.issuer,
+              issuer: doc.issuing_organization, // Fixed: was 'issuer', DB column is 'issuing_organization'
+              holderName: doc.holder_name,
               fileUrl: doc.file_url || doc.file_data,
               ocrProcessed: doc.ocr_processed,
               status: status,
               tags: doc.tags,
-              notes: doc.notes
+              notes: doc.notes,
+              isDocumentRecord: true // Flag to identify documents from documents table
             },
-            createdAt: doc.created_at,
-            updatedAt: doc.updated_at || doc.created_at
+            createdAt: doc.uploaded_at || doc.created_at,
+            updatedAt: doc.uploaded_at || doc.created_at
           }
         }) as DomainData[]
         
@@ -1280,6 +1283,11 @@ export default function DomainsPage() {
             title: pet.name,
             description: `${pet.species}${pet.breed ? ` - ${pet.breed}` : ''}`,
             metadata: {
+              // 🔥 FIX: Add type and name for isPetProfile() detection
+              type: 'pet-profile',
+              itemType: 'pet-profile',
+              name: pet.name,
+              petName: pet.name,
               species: pet.species,
               breed: pet.breed,
               gender: pet.gender,
@@ -1649,6 +1657,7 @@ export default function DomainsPage() {
     const itemCount = domainData.length
     
     // Build data object for getDomainKPIs
+    // 🔥 CRITICAL FIX: Pass specialized table data to getDomainKPIs for all domains that use separate tables
     const dataForKPIs: any = { ...data }
     if (domainKey === 'appliances') {
       dataForKPIs.appliances = domainData
@@ -1657,6 +1666,22 @@ export default function DomainsPage() {
     if (domainKey === 'services') {
       dataForKPIs._serviceProvidersAnalytics = serviceProvidersFromTable.analytics
       dataForKPIs._serviceProvidersCount = serviceProvidersFromTable.providers.length
+    }
+    // 🔥 FIX: Pass pets data from specialized table
+    if (domainKey === 'pets') {
+      dataForKPIs.pets = domainData
+    }
+    // 🔥 FIX: Pass vehicles data from specialized table
+    if (domainKey === 'vehicles') {
+      dataForKPIs.vehicles = domainData
+    }
+    // 🔥 FIX: Pass relationships data from specialized table
+    if (domainKey === 'relationships') {
+      dataForKPIs.relationships = domainData
+    }
+    // 🔥 FIX: Pass documents data (insurance) from specialized table
+    if (domainKey === 'insurance') {
+      dataForKPIs.insurance = domainData
     }
     const kpis = getDomainKPIs(domainKey, dataForKPIs)
     
