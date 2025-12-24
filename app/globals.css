@@ -554,4 +554,39 @@ html {
   }
 }
 
+/* ======================== */
+/* CSS Containment Utilities */
+/* ======================== */
+/* Prevent layout thrashing on dynamic content */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-strict {
+  contain: strict;
+}
+
+/* Stabilize masonry layouts - prevent shaking on mobile */
+.masonry-stable {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* GPU acceleration for smooth animations */
+.gpu-accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Stable card container for dynamic content */
+.card-stable {
+  contain: layout style;
+  transform: translateZ(0);
+}
+
 

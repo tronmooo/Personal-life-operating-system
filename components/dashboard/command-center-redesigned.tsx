@@ -2377,11 +2377,11 @@ export function CommandCenterRedesigned() {
   // if (isLoading || !isLoaded) { ... }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 overflow-x-hidden">
       <div className="max-w-[1800px] mx-auto">
         
         {/* Content */}
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6 contain-layout">
 
         {/* Quick Add Dialogs */}
         {addTaskOpen && (
@@ -2472,15 +2472,15 @@ export function CommandCenterRedesigned() {
         {/* Top Row - Priority Cards - True Masonry layout */}
         <Masonry
           breakpointCols={{ default: 2, 768: 1 }}
-          className="flex -ml-4 w-auto"
+          className="flex -ml-4 w-auto masonry-stable"
           columnClassName="pl-4 bg-clip-padding"
         >
           {/* Smart Inbox Card - AI Email Parsing */}
-          <div className="mb-4"><SmartInboxCard /></div>
+          <div className="mb-4 min-h-[200px]"><SmartInboxCard /></div>
 
           {/* Critical Alerts Card */}
-          <div className="mb-4">
-            <Card className="border-2 border-red-200 dark:border-red-900 hover:shadow-xl transition-all cursor-pointer" onClick={() => setAlertsDialogOpen(true)}>
+          <div className="mb-4 min-h-[180px]">
+            <Card className="border-2 border-red-200 dark:border-red-900 hover:shadow-xl transition-all cursor-pointer h-full" onClick={() => setAlertsDialogOpen(true)}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2530,8 +2530,8 @@ export function CommandCenterRedesigned() {
           </div>
 
           {/* Tasks Card */}
-          <div className="mb-4">
-            <Card className="border-2 border-orange-200 dark:border-orange-900 hover:shadow-xl transition-all">
+          <div className="mb-4 min-h-[200px]">
+            <Card className="border-2 border-orange-200 dark:border-orange-900 hover:shadow-xl transition-all h-full">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2591,8 +2591,8 @@ export function CommandCenterRedesigned() {
           </div>
 
           {/* Habits Card */}
-          <div className="mb-4">
-            <Card className="border-2 border-teal-200 dark:border-teal-900 hover:shadow-xl transition-all">
+          <div className="mb-4 min-h-[200px]">
+            <Card className="border-2 border-teal-200 dark:border-teal-900 hover:shadow-xl transition-all h-full">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2646,28 +2646,28 @@ export function CommandCenterRedesigned() {
           </div>
 
           {/* Google Calendar Card - Upcoming Events */}
-          <div className="mb-4"><GoogleCalendarCard /></div>
+          <div className="mb-4 min-h-[200px]"><GoogleCalendarCard /></div>
 
           {/* Special Dates Card - Birthdays & Anniversaries from Relationships */}
-          <div className="mb-4"><SpecialDatesCard /></div>
+          <div className="mb-4 min-h-[180px]"><SpecialDatesCard /></div>
 
           {/* AI-Powered Insights - OpenAI GPT-4 powered personalized insights */}
-          <div className="mb-4"><AIInsightsCard /></div>
+          <div className="mb-4 min-h-[200px]"><AIInsightsCard /></div>
           
           {/* Weekly Insights (Rule-based) - Real-time insights from your data */}
-          <div className="mb-4"><InsightsCardWorking /></div>
+          <div className="mb-4 min-h-[200px]"><InsightsCardWorking /></div>
 
           {/* Weather Forecast - 7 Day Outlook (FREE API - No Key Needed!) */}
-          <div className="mb-4"><WeatherFreeCard /></div>
+          <div className="mb-4 min-h-[180px]"><WeatherFreeCard /></div>
 
           {/* Tech News - Hacker News Top Stories (FREE API - No Key Needed!) */}
-          <div className="mb-4"><NewsFreeCard /></div>
+          <div className="mb-4 min-h-[200px]"><NewsFreeCard /></div>
 
           {/* Document Expiration Tracker - Critical Documents Expiring Soon */}
-          <div className="mb-4"><DocumentExpirationCard /></div>
+          <div className="mb-4 min-h-[180px]"><DocumentExpirationCard /></div>
 
           {/* Upcoming Bills - Next 30 Days */}
-          <div className="mb-4"><UpcomingBillsCard /></div>
+          <div className="mb-4 min-h-[200px]"><UpcomingBillsCard /></div>
         </Masonry>
 
         {/* Dialogs - Outside Masonry */}

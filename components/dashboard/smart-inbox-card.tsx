@@ -418,7 +418,7 @@ export function SmartInboxCard() {
   }
 
   return (
-    <Card className="border-2 border-blue-200 dark:border-blue-900 hover:shadow-xl transition-all">
+    <Card className="border-2 border-blue-200 dark:border-blue-900 hover:shadow-xl transition-all h-full">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -443,9 +443,9 @@ export function SmartInboxCard() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-h-[120px]">
         {loading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 min-h-[120px]">
             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
           </div>
         ) : needsGmailAuth ? (
@@ -482,7 +482,7 @@ export function SmartInboxCard() {
             </p>
           </div>
         ) : suggestions.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 min-h-[120px] flex flex-col items-center justify-center">
             <Mail className="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p className="text-sm text-gray-500">No pending suggestions</p>
             <Button
