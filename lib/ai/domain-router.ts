@@ -159,17 +159,8 @@ export function validateAndEnrichEntity(entity: ExtractedEntity): {
       }
       break
     
-    case 'tasks':
-      // Tasks have their own table, just validate title exists
-      if (!entity.title && !enrichedData.title) {
-        errors.push('Task missing title')
-      }
-      break
-    
-    case 'retrieval':
-      // Retrieval is a special case - it's a query, not data to create
-      // Always valid since it will be handled separately
-      break
+    // Note: 'tasks' and 'retrieval' are handled separately as they're not Domain types
+    // They should be caught by the domain config check above
 
     case 'mindfulness':
       // Ensure entryType is set

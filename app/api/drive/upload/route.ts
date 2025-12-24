@@ -52,12 +52,13 @@ export async function POST(request: Request) {
     // Validate and refresh token if needed
     const tokenResult = await getValidGoogleToken(user.id, accessToken, refreshToken)
     if (!tokenResult.success) {
-      console.error('📤 [DRIVE] Token validation failed:', tokenResult.error)
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('📤 [DRIVE] Token validation failed:', errorResult.error)
       return NextResponse.json({ 
-        error: tokenResult.requiresReauth 
+        error: errorResult.requiresReauth 
           ? 'Google access expired. Please sign out and sign back in.' 
-          : tokenResult.error,
-        requiresAuth: tokenResult.requiresReauth 
+          : errorResult.error,
+        requiresAuth: errorResult.requiresReauth 
       }, { status: 401 })
     }
 

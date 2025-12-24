@@ -127,9 +127,10 @@ export async function GET(request: NextRequest) {
     const tokenResult = await getValidGoogleToken(user.id, accessToken, refreshToken)
 
     if (!tokenResult.success) {
-      console.error('📅 [CALENDAR API] Token validation failed:', tokenResult.error)
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('📅 [CALENDAR API] Token validation failed:', errorResult.error)
       
-      if (tokenResult.requiresReauth) {
+      if (errorResult.requiresReauth) {
         return NextResponse.json({
           error: 'Calendar access expired',
           hint: 'Please sign out and sign back in with Google',
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
         }, { status: 401 })
       }
       
-      return NextResponse.json({ error: tokenResult.error }, { status: 500 })
+      return NextResponse.json({ error: errorResult.error }, { status: 500 })
     }
 
     const validToken = tokenResult.accessToken

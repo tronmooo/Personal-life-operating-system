@@ -212,11 +212,11 @@ export function UsageAnalyticsDashboard({ className }: UsageAnalyticsDashboardPr
 
     // Count activities per day
     allEntries.forEach(entry => {
-      const created = entry.createdAt ? parseISO(entry.createdAt) : null
-      const updated = entry.updatedAt ? parseISO(entry.updatedAt) : null
+      const createdDate = entry.createdAt ? parseISO(entry.createdAt) : null
+      const updatedDate = entry.updatedAt ? parseISO(entry.updatedAt) : null
       
-      [created, updated].filter(Boolean).forEach(date => {
-        if (!date) return
+      const dates = [createdDate, updatedDate].filter((d): d is Date => d !== null)
+      dates.forEach(date => {
         const dateKey = format(date, 'yyyy-MM-dd')
         const dayRecord = days.find(d => d.date === dateKey)
         if (dayRecord) {
@@ -758,6 +758,7 @@ export function UsageAnalyticsDashboard({ className }: UsageAnalyticsDashboardPr
     </div>
   )
 }
+
 
 
 

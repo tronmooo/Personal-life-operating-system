@@ -6,7 +6,7 @@
  * Displays AI-parsed email suggestions with one-click approval
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -83,19 +83,30 @@ export function SmartInboxCard() {
   const [needsGmailAuth, setNeedsGmailAuth] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [grantingAccess, setGrantingAccess] = useState(false)
+  
+  // Ref to prevent infinite auto-sync loops
+  const hasAutoSynced = useRef(false)
+  const isMounted = useRef(false)
 
   // Load suggestions on mount
   useEffect(() => {
+    isMounted.current = true
     loadSuggestions()
+    
+    return () => {
+      isMounted.current = false
+    }
   }, [])
   
   // Auto-sync Gmail when inbox is empty (after initial load completes)
+  // Uses ref to ensure it only happens ONCE per component mount
   useEffect(() => {
-    if (!loading && suggestions.length === 0 && !syncing && !needsGmailAuth) {
-      console.log('📬 Auto-syncing Gmail (inbox is empty)...')
+    if (!loading && suggestions.length === 0 && !syncing && !needsGmailAuth && !hasAutoSynced.current) {
+      hasAutoSynced.current = true // Mark as attempted - prevents infinite loop
+      console.log('📬 Auto-syncing Gmail (inbox is empty, first time only)...')
       syncWithGmail()
     }
-  }, [loading]) // Only trigger when loading state changes
+  }, [loading, syncing, needsGmailAuth]) // Still responds to state changes but ref prevents re-runs
 
   /**
    * Load pending suggestions from API

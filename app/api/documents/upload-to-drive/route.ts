@@ -43,20 +43,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate/refresh the token
-    const validToken = await getValidGoogleToken(
+    const tokenResult = await getValidGoogleToken(
+      user.id,
       tokens.accessToken,
-      tokens.refreshToken || undefined,
-      user.id
+      tokens.refreshToken || null
     )
 
-    if (!validToken) {
-      console.error('❌ Drive upload: Failed to get valid Google token')
+    if (!tokenResult.success) {
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('❌ Drive upload: Failed to get valid Google token:', errorResult.error)
       return NextResponse.json({
         success: false,
-        error: 'Google token expired and could not be refreshed. Please re-authenticate with Google.',
-        requiresAuth: true
+        error: errorResult.error || 'Google token expired and could not be refreshed. Please re-authenticate with Google.',
+        requiresAuth: errorResult.requiresReauth ?? true
       })
     }
+    
+    const validToken = tokenResult.accessToken
 
     // Get file and metadata from form data
     const formData = await request.formData()

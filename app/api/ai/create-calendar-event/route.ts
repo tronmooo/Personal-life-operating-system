@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -28,25 +30,51 @@ export async function POST(request: Request) {
     // Get provider token from session OR user_settings
     const { data: { session } } = await supabase.auth.getSession()
     let token = session?.provider_token
+    let refreshToken: string | null = session?.provider_refresh_token || null
 
     // If not in session, try fetching from user_settings
     if (!token) {
       console.log('📅 No session token, checking user_settings...')
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('google_access_token')
-        .eq('user_id', user.id)
-        .single()
       
-      token = settings?.google_access_token || null
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      
+      if (supabaseUrl && serviceRoleKey) {
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+        
+        const { data: settings } = await supabaseAdmin
+          .from('user_settings')
+          .select('google_access_token, google_refresh_token')
+          .eq('user_id', user.id)
+          .single()
+        
+        token = settings?.google_access_token || null
+        refreshToken = settings?.google_refresh_token || refreshToken
+      }
     }
 
     if (!token) {
       return NextResponse.json({
-        error: 'Calendar not connected',
+        error: 'Calendar not connected. Please sign in with Google.',
         requiresAuth: true
       }, { status: 403 })
     }
+    
+    // Validate and refresh token if needed
+    const tokenResult = await getValidGoogleToken(user.id, token, refreshToken)
+    if (!tokenResult.success) {
+      const errorResult = tokenResult as { success: false; error: string; requiresReauth?: boolean }
+      console.error('❌ Could not get valid token:', errorResult.error)
+      return NextResponse.json({
+        error: errorResult.error || 'Google access expired. Please sign out and sign in again.',
+        requiresAuth: errorResult.requiresReauth ?? true
+      }, { status: 401 })
+    }
+    
+    token = tokenResult.accessToken
+    console.log('✅ Valid Google token obtained for calendar')
     
     // Use OpenAI to parse the natural language into structured event data
     const apiKey = process.env.OPENAI_API_KEY
@@ -111,7 +139,17 @@ CRITICAL RULES:
     })
     
     if (!extractionResponse.ok) {
-      throw new Error('Failed to parse event from message')
+      const errorText = await extractionResponse.text()
+      console.error('❌ OpenAI API error:', extractionResponse.status, errorText)
+      
+      // Check for specific error types
+      if (extractionResponse.status === 429) {
+        throw new Error('OpenAI rate limit exceeded. Please try again in a moment.')
+      }
+      if (extractionResponse.status === 401) {
+        throw new Error('OpenAI API key invalid or expired.')
+      }
+      throw new Error(`Failed to parse event: OpenAI error (${extractionResponse.status})`)
     }
     
     const extractionData = await extractionResponse.json()

@@ -6315,7 +6315,13 @@ async function handleMultipleVoiceCommands(
   // If only one segment, use the regular handler
   if (segments.length <= 1) {
     const result = await handleVoiceCommand(message, userId, supabase)
-    return result
+    // Ensure we always return the required fields
+    return {
+      isCommand: result.isCommand,
+      action: result.action || '',
+      message: result.message || '',
+      results: undefined
+    }
   }
 
   // Process each segment

@@ -81,14 +81,14 @@ export async function POST(request: NextRequest) {
         const tokens = await getGoogleTokens()
         
         if (tokens.accessToken) {
-          const validToken = await getValidGoogleToken(
+          const tokenResult = await getValidGoogleToken(
+            user.id,
             tokens.accessToken,
-            tokens.refreshToken || undefined,
-            user.id
+            tokens.refreshToken || null
           )
 
-          if (validToken) {
-            const driveService = new GoogleDriveService(validToken, tokens.refreshToken || undefined)
+          if (tokenResult.success) {
+            const driveService = new GoogleDriveService(tokenResult.accessToken, tokens.refreshToken || undefined)
             
             // Generate filename
             const dateStr = receiptData.date || new Date().toISOString().split('T')[0]
