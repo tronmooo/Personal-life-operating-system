@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import Masonry from 'react-masonry-css'
 import { idbGet, idbSet, idbDel } from '@/lib/utils/idb-cache'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -2468,103 +2469,69 @@ export function CommandCenterRedesigned() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Command Center</h1>
         </div>
 
-        {/* Top Row - Priority Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Top Row - Priority Cards - True Masonry layout */}
+        <Masonry
+          breakpointCols={{ default: 2, 768: 1 }}
+          className="flex -ml-4 w-auto"
+          columnClassName="pl-4 bg-clip-padding"
+        >
           {/* Smart Inbox Card - AI Email Parsing */}
-          <SmartInboxCard />
+          <div className="mb-4"><SmartInboxCard /></div>
 
           {/* Critical Alerts Card */}
-          <Card className="border-2 border-red-200 dark:border-red-900 hover:shadow-xl transition-all cursor-pointer" onClick={() => setAlertsDialogOpen(true)}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                  <span className="text-lg">Critical Alerts</span>
-                </div>
-                <Badge variant="destructive" suppressHydrationWarning>{isClient ? alerts.length : 0}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isExpiringDocsLoading && alerts.length === 0 ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Checking for expiring documents...</span>
-                </div>
-              ) : alerts.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4">All clear! No urgent alerts 🎉</p>
-              ) : (
-                <div className="space-y-2">
-                  {alerts.map((alert, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg group">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                        <span className="text-sm truncate">{alert.title}</span>
+          <div className="mb-4">
+            <Card className="border-2 border-red-200 dark:border-red-900 hover:shadow-xl transition-all cursor-pointer" onClick={() => setAlertsDialogOpen(true)}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                    <span className="text-lg">Critical Alerts</span>
+                  </div>
+                  <Badge variant="destructive" suppressHydrationWarning>{isClient ? alerts.length : 0}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isExpiringDocsLoading && alerts.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Checking for expiring documents...</span>
+                  </div>
+                ) : alerts.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-4">All clear! No urgent alerts 🎉</p>
+                ) : (
+                  <div className="space-y-2">
+                    {alerts.map((alert, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg group">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                          <span className="text-sm truncate">{alert.title}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant="outline" className="text-red-600">
+                            {alert.daysLeft}d
+                          </Badge>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              dismissAlert(alert.id)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                            title="Dismiss alert"
+                          >
+                            <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge variant="outline" className="text-red-600">
-                          {alert.daysLeft}d
-                        </Badge>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            dismissAlert(alert.id)
-                          }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                          title="Dismiss alert"
-                        >
-                          <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          {alertsDialogOpen && (
-            <CategorizedAlertsDialog open={alertsDialogOpen} onClose={() => setAlertsDialogOpen(false)} />
-          )}
-          
-          {/* Financial Breakdown Dialog - Aggregates expenses from ALL domains */}
-          <FinancialBreakdownDialog
-            open={financialBreakdownOpen}
-            onClose={() => setFinancialBreakdownOpen(false)}
-            viewType={financialBreakdownView}
-            netWorthData={{
-              totalAssets: financeNetWorth.assets,
-              totalLiabilities: financeNetWorth.liabilities,
-              netWorth: financeNetWorth.netWorth,
-              breakdown: {
-                homeValue: calculateUnifiedNetWorth(data).breakdown.homeValue,
-                vehicleValue: calculateUnifiedNetWorth(data).breakdown.vehicleValue,
-                collectiblesValue: calculateUnifiedNetWorth(data).breakdown.collectiblesValue,
-                miscValue: calculateUnifiedNetWorth(data).breakdown.miscValue,
-                appliancesValue: calculateUnifiedNetWorth(data).breakdown.appliancesValue,
-                financialAssets: calculateUnifiedNetWorth(data).breakdown.financialAssets,
-                financialLiabilities: calculateUnifiedNetWorth(data).breakdown.financialLiabilities,
-                cashIncome: financeNetWorth.income,
-              }
-            }}
-            monthlyExpenses={{
-              // Use cross-domain aggregated totals for accurate expense tracking
-              housing: crossDomainExpenses.totals.housing,
-              food: crossDomainExpenses.totals.food,
-              insurance: crossDomainExpenses.totals.insurance,
-              transport: crossDomainExpenses.totals.transport,
-              utilities: crossDomainExpenses.totals.utilities,
-              pets: crossDomainExpenses.totals.pets,
-              health: crossDomainExpenses.totals.health,
-              education: crossDomainExpenses.totals.education,
-              subscriptions: crossDomainExpenses.totals.subscriptions,
-              other: crossDomainExpenses.totals.other,
-            }}
-            expenseItems={expenseItems}
-            assetItems={assetItems}
-            liabilityItems={liabilityItems}
-          />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Tasks Card */}
-          <Card className="border-2 border-orange-200 dark:border-orange-900 hover:shadow-xl transition-all">
+          <div className="mb-4">
+            <Card className="border-2 border-orange-200 dark:border-orange-900 hover:shadow-xl transition-all">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2620,85 +2587,130 @@ export function CommandCenterRedesigned() {
                 </div>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </div>
 
           {/* Habits Card */}
-          <Card className="border-2 border-teal-200 dark:border-teal-900 hover:shadow-xl transition-all">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-teal-500" />
-                  <span className="text-lg">Habits</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" suppressHydrationWarning>{isClient ? habits.length : 0}</Badge>
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAddHabitOpen(true)}>
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {habits.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4">No habits tracked yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {habits.slice(0, 3).map((habit) => (
-                    <div key={habit.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group">
-                      <div className="flex items-center gap-2 flex-1">
-                        <input 
-                          type="checkbox" 
-                          checked={!!habit.completed} 
-                          className="w-4 h-4" 
-                          onChange={() => toggleHabit(habit.id)} 
-                        />
-                        <span className={`text-sm ${habit.completed ? 'line-through opacity-60' : ''}`}>{habit.name}</span>
+          <div className="mb-4">
+            <Card className="border-2 border-teal-200 dark:border-teal-900 hover:shadow-xl transition-all">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-teal-500" />
+                    <span className="text-lg">Habits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" suppressHydrationWarning>{isClient ? habits.length : 0}</Badge>
+                    <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAddHabitOpen(true)}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {habits.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-4">No habits tracked yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {habits.slice(0, 3).map((habit) => (
+                      <div key={habit.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group">
+                        <div className="flex items-center gap-2 flex-1">
+                          <input 
+                            type="checkbox" 
+                            checked={!!habit.completed} 
+                            className="w-4 h-4" 
+                            onChange={() => toggleHabit(habit.id)} 
+                          />
+                          <span className={`text-sm ${habit.completed ? 'line-through opacity-60' : ''}`}>{habit.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{habit.streak}d</Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteHabit(habit.id, habit.name)
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{habit.streak}d</Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteHabit(habit.id, habit.name)
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Google Calendar Card - Upcoming Events */}
-          <GoogleCalendarCard />
+          <div className="mb-4"><GoogleCalendarCard /></div>
 
           {/* Special Dates Card - Birthdays & Anniversaries from Relationships */}
-          <SpecialDatesCard />
+          <div className="mb-4"><SpecialDatesCard /></div>
 
           {/* AI-Powered Insights - OpenAI GPT-4 powered personalized insights */}
-          <AIInsightsCard />
+          <div className="mb-4"><AIInsightsCard /></div>
           
           {/* Weekly Insights (Rule-based) - Real-time insights from your data */}
-          <InsightsCardWorking />
+          <div className="mb-4"><InsightsCardWorking /></div>
 
           {/* Weather Forecast - 7 Day Outlook (FREE API - No Key Needed!) */}
-          <WeatherFreeCard />
+          <div className="mb-4"><WeatherFreeCard /></div>
 
           {/* Tech News - Hacker News Top Stories (FREE API - No Key Needed!) */}
-          <NewsFreeCard />
+          <div className="mb-4"><NewsFreeCard /></div>
 
           {/* Document Expiration Tracker - Critical Documents Expiring Soon */}
-          <DocumentExpirationCard />
+          <div className="mb-4"><DocumentExpirationCard /></div>
 
           {/* Upcoming Bills - Next 30 Days */}
-          <UpcomingBillsCard />
-        </div>
+          <div className="mb-4"><UpcomingBillsCard /></div>
+        </Masonry>
+
+        {/* Dialogs - Outside Masonry */}
+        {alertsDialogOpen && (
+          <CategorizedAlertsDialog open={alertsDialogOpen} onClose={() => setAlertsDialogOpen(false)} />
+        )}
+        
+        {/* Financial Breakdown Dialog - Aggregates expenses from ALL domains */}
+        <FinancialBreakdownDialog
+          open={financialBreakdownOpen}
+          onClose={() => setFinancialBreakdownOpen(false)}
+          viewType={financialBreakdownView}
+          netWorthData={{
+            totalAssets: financeNetWorth.assets,
+            totalLiabilities: financeNetWorth.liabilities,
+            netWorth: financeNetWorth.netWorth,
+            breakdown: {
+              homeValue: calculateUnifiedNetWorth(data).breakdown.homeValue,
+              vehicleValue: calculateUnifiedNetWorth(data).breakdown.vehicleValue,
+              collectiblesValue: calculateUnifiedNetWorth(data).breakdown.collectiblesValue,
+              miscValue: calculateUnifiedNetWorth(data).breakdown.miscValue,
+              appliancesValue: calculateUnifiedNetWorth(data).breakdown.appliancesValue,
+              financialAssets: calculateUnifiedNetWorth(data).breakdown.financialAssets,
+              financialLiabilities: calculateUnifiedNetWorth(data).breakdown.financialLiabilities,
+              cashIncome: financeNetWorth.income,
+            }
+          }}
+          monthlyExpenses={{
+            housing: crossDomainExpenses.totals.housing,
+            food: crossDomainExpenses.totals.food,
+            insurance: crossDomainExpenses.totals.insurance,
+            transport: crossDomainExpenses.totals.transport,
+            utilities: crossDomainExpenses.totals.utilities,
+            pets: crossDomainExpenses.totals.pets,
+            health: crossDomainExpenses.totals.health,
+            education: crossDomainExpenses.totals.education,
+            subscriptions: crossDomainExpenses.totals.subscriptions,
+            other: crossDomainExpenses.totals.other,
+          }}
+          expenseItems={expenseItems}
+          assetItems={assetItems}
+          liabilityItems={liabilityItems}
+        />
 
         {/* Financial Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2821,7 +2833,7 @@ export function CommandCenterRedesigned() {
 
         {/* All Domains Grid */}
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
             {/* Health Domain */}
             <Link href="/domains/health">
               <Card className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-red-500">
