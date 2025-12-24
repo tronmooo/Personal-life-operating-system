@@ -5,9 +5,21 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useCallback } from 'react'
 
 export default function NewDocumentPage() {
   const router = useRouter()
+
+  // 🔧 FIX: Safe back navigation with fallback
+  const handleBack = useCallback(() => {
+    // Check if there's history to go back to
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      // Fallback to domains page if no history
+      router.push('/domains')
+    }
+  }, [router])
 
   const handleDocumentSaved = (document: any) => {
     console.log('Document saved:', document)
@@ -15,12 +27,12 @@ export default function NewDocumentPage() {
     if (document.domain) {
       router.push(`/domains/${document.domain}`)
     } else {
-      router.push('/documents')
+      router.push('/domains')
     }
   }
 
   const handleCancel = () => {
-    router.back()
+    handleBack()
   }
 
   return (
@@ -29,8 +41,8 @@ export default function NewDocumentPage() {
       <div className="mb-6">
         <Button 
           variant="ghost" 
-          onClick={() => router.back()}
-          className="mb-4"
+          onClick={handleBack}
+          className="mb-4 min-h-[44px] touch-manipulation"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back

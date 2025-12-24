@@ -345,7 +345,10 @@ export function useDomainEntries(domain?: Domain) {
   }, [fetchEntries])
 
   // 🔄 REALTIME SUBSCRIPTION: Listen for changes to keep all instances in sync
+  // 🚀 PERFORMANCE FIX: Debounce realtime updates to prevent excessive refetches
   useEffect(() => {
+    let debounceTimer: NodeJS.Timeout | null = null
+    
     const channel = supabase
       .channel(`domain_entries:${domain || 'all'}:${currentPersonId}`)
       .on(
@@ -359,14 +362,21 @@ export function useDomainEntries(domain?: Domain) {
         (payload) => {
           console.log('🔄 Realtime change detected:', payload)
           
-          // Refetch all entries to ensure consistency
-          // This is simpler than trying to merge individual changes
-          fetchEntries()
+          // 🚀 DEBOUNCE: Wait 500ms before refetching to batch rapid changes
+          if (debounceTimer) {
+            clearTimeout(debounceTimer)
+          }
+          debounceTimer = setTimeout(() => {
+            fetchEntries()
+          }, 500)
         }
       )
       .subscribe()
 
     return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer)
+      }
       supabase.removeChannel(channel)
     }
   }, [domain, supabase, fetchEntries, currentPersonId])

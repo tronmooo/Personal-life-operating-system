@@ -107,7 +107,7 @@ function DomainDocumentsPageClient({ domain }: { domain: string }) {
           <span className="text-foreground">Documents</span>
         </div>
         <Link href={`/domains/${domain}`}>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="min-h-[44px] touch-manipulation">
             <ChevronLeft className="h-4 w-4 mr-2" />
             Back to {domain.charAt(0).toUpperCase() + domain.slice(1)}
           </Button>

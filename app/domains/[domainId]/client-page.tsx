@@ -508,14 +508,14 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full min-h-[120px] px-4 py-3 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[120px] px-4 py-3 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                     />
                   ) : field.type === 'select' ? (
                     <select
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                     >
                       <option value="">Select {field.label}</option>
                       {field.options && Array.isArray(field.options) && field.options.map((option) => (
@@ -536,9 +536,20 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                       style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                       autoComplete="off"
+                    />
+                  ) : field.type === 'currency' || field.type === 'number' ? (
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      required={field.required}
+                      placeholder={field.placeholder || (field.type === 'currency' ? '0.00' : '')}
+                      value={formData[field.name] || ''}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation appearance-none"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                     />
                   ) : (
                     <input
@@ -547,7 +558,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                     />
                   )}
                 </div>
@@ -590,14 +601,14 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full min-h-[120px] px-4 py-3 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[120px] px-4 py-3 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                     />
                   ) : field.type === 'select' ? (
                     <select
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                     >
                       <option value="">Select {field.label}</option>
                       {field.options?.map((option) => (
@@ -618,9 +629,20 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                       style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                       autoComplete="off"
+                    />
+                  ) : field.type === 'currency' || field.type === 'number' ? (
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      required={field.required}
+                      placeholder={field.placeholder || (field.type === 'currency' ? '0.00' : '')}
+                      value={formData[field.name] || ''}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation appearance-none"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                     />
                   ) : (
                     <input
@@ -629,7 +651,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                      className="w-full min-h-[48px] h-12 sm:h-10 px-4 py-3 sm:py-2 text-[16px] sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background touch-manipulation"
                     />
                   )}
                 </div>

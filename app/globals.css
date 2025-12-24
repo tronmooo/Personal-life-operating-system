@@ -542,6 +542,68 @@ html {
   scroll-snap-align: start;
 }
 
+/* ======================== */
+/* Mobile Input Fixes */
+/* ======================== */
+/* Prevent iOS Safari zoom on input focus (requires 16px font-size) */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  /* Ensure proper touch target sizes (minimum 44px) */
+  input, select, button, textarea {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Remove iOS input shadow */
+  input, textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 8px;
+  }
+  
+  /* Fix number input width issues */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    min-width: 0;
+  }
+  
+  /* Remove spinner buttons on number inputs */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  /* Ensure dialogs don't clip inputs */
+  [role="dialog"] input,
+  [role="dialog"] select,
+  [role="dialog"] textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Touch-friendly input styles */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure inputs are focusable and interactive on mobile */
+input:not([disabled]),
+select:not([disabled]),
+textarea:not([disabled]) {
+  pointer-events: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,

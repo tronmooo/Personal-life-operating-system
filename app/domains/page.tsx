@@ -102,6 +102,20 @@ const pickDate = (meta: GenericMetadata, ...keys: string[]): Date | null => pick
 
 const FILTER_OPTIONS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inactive']
 
+// Hook to detect mobile viewport
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+  
+  return isMobile
+}
+
 // Helper function to get KPIs for each domain
 export function getDomainKPIs(domainKey: string, data: Record<string, DomainData[]>) {
   const domainData = (data[domainKey] ?? []) as DomainData[]
@@ -906,10 +920,47 @@ export function getDomainKPIs(domainKey: string, data: Record<string, DomainData
 }
 
 export default function DomainsPage() {
-  const { data, getData } = useData()
+  const { data, getData, isLoading, isLoaded, reloadDomain } = useData()
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  // Default to mobile-friendly cards; users can switch to table on larger screens.
+  const isMobile = useIsMobile()
+  // Default to mobile-friendly cards; auto-switch based on screen size
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('grid')
+  // Track refresh key to force re-render on data updates
+  const [refreshKey, setRefreshKey] = useState(0)
+  
+  // Auto-switch to grid on mobile when user hasn't explicitly chosen a view
+  const [hasUserChosenView, setHasUserChosenView] = useState(false)
+  useEffect(() => {
+    if (!hasUserChosenView && isMobile && viewMode === 'table') {
+      setViewMode('grid')
+    }
+  }, [isMobile, hasUserChosenView, viewMode])
+  
+  // 🔥 CRITICAL FIX: Listen for data updates across ALL domains
+  useEffect(() => {
+    const handleDataUpdate = (event: CustomEvent) => {
+      console.log('📊 [DomainsPage] Received data-updated event:', event.detail)
+      // Force a refresh by incrementing the key
+      setRefreshKey(prev => prev + 1)
+    }
+    
+    // Listen for the global data-updated event
+    window.addEventListener('data-updated', handleDataUpdate as EventListener)
+    
+    // Also listen for specific domain events
+    const domains = ['digital', 'financial', 'health', 'home', 'vehicles', 'pets', 'insurance', 'appliances', 'fitness', 'nutrition', 'mindfulness', 'relationships', 'education', 'career', 'travel', 'legal', 'miscellaneous', 'services', 'collectibles', 'utilities']
+    domains.forEach(domain => {
+      window.addEventListener(`${domain}-data-updated`, handleDataUpdate as EventListener)
+    })
+    
+    return () => {
+      window.removeEventListener('data-updated', handleDataUpdate as EventListener)
+      domains.forEach(domain => {
+        window.removeEventListener(`${domain}-data-updated`, handleDataUpdate as EventListener)
+      })
+    }
+  }, [])
+  
   const [appliancesFromTable, setAppliancesFromTable] = useState<DomainData[]>([])
   const [serviceProvidersFromTable, setServiceProvidersFromTable] = useState<{
     providers: any[]
@@ -1258,10 +1309,30 @@ export default function DomainsPage() {
 
   const activeDomains = domainMetrics.filter(d => d.itemCount > 0).length
   const avgScore = Math.round(domainMetrics.reduce((sum, d) => sum + d.score, 0) / domainMetrics.length)
+  
+  // Debug log for data loading issues
+  useEffect(() => {
+    console.log('📊 [DomainsPage] Data state:', {
+      isLoading,
+      isLoaded,
+      dataKeys: Object.keys(data),
+      totalItems: Object.values(data).flat().length,
+      activeDomains,
+      refreshKey
+    })
+  }, [isLoading, isLoaded, data, activeDomains, refreshKey])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto p-4 md:p-8 space-y-8">
+        {/* Loading state indicator */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3 text-muted-foreground">Loading your data...</span>
+          </div>
+        )}
+        
         {/* Filter & View Mode */}
         <div className="flex justify-center items-center gap-4 pt-4">
           <div className="flex gap-2">
@@ -1283,7 +1354,7 @@ export default function DomainsPage() {
             <Button
               variant={viewMode === 'table' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setViewMode('table')}
+              onClick={() => { setViewMode('table'); setHasUserChosenView(true) }}
               className="h-8 px-3 text-xs"
             >
               <List className="h-4 w-4 mr-1" />
@@ -1292,7 +1363,7 @@ export default function DomainsPage() {
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setViewMode('grid')}
+              onClick={() => { setViewMode('grid'); setHasUserChosenView(true) }}
               className="h-8 px-3 text-xs"
             >
               <Grid3x3 className="h-4 w-4 mr-1" />
@@ -1303,121 +1374,166 @@ export default function DomainsPage() {
 
         {/* KPI Table View */}
         {viewMode === 'table' && (
-          <Card className="shadow-lg">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-800 border-b">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Domain
-                      </th>
-                      <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Items
-                      </th>
-                      <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+          <>
+            {/* Mobile List View */}
+            <div className="md:hidden space-y-3">
+              {filteredDomains.map(domain => {
+                const Icon = domain.icon
+                const domainHref = domain.id === 'financial' ? '/finance' : domain.id === 'health' ? '/health' : `/domains/${domain.id}`
+                
+                return (
+                  <Link key={domain.id} href={domainHref}>
+                    <Card className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`p-2.5 rounded-lg bg-gradient-to-br ${domain.gradient} shadow-sm`}>
+                            <Icon className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold truncate">{domain.name}</div>
+                            <div className="text-xs text-muted-foreground truncate">{domain.description}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold">{domain.itemCount}</div>
+                            <div className="text-xs text-muted-foreground">items</div>
+                          </div>
+                        </div>
                         
-                      </th>
-                      <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-center">
+                            <div className="text-xs text-muted-foreground truncate">{domain.kpis.kpi1.label}</div>
+                            <div className="font-semibold">{domain.kpis.kpi1.value}</div>
+                          </div>
+                          <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-center">
+                            <div className="text-xs text-muted-foreground truncate">{domain.kpis.kpi2.label}</div>
+                            <div className="font-semibold">{domain.kpis.kpi2.value}</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+            
+            {/* Desktop Table View */}
+            <Card className="shadow-lg hidden md:block">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-800 border-b">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                          Domain
+                        </th>
+                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                          Items
+                        </th>
+                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                          
+                        </th>
+                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                          
+                        </th>
+                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider hidden xl:table-cell">
+                          
+                        </th>
+                        <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider hidden xl:table-cell">
+                          
+                        </th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {filteredDomains.map(domain => {
+                        const Icon = domain.icon
+                        const kpi1Icon = domain.kpis.kpi1.icon
+                        const kpi2Icon = domain.kpis.kpi2.icon
+                        const kpi3Icon = domain.kpis.kpi3.icon
+                        const kpi4Icon = domain.kpis.kpi4.icon
+                        const domainHref = domain.id === 'financial' ? '/finance' : domain.id === 'health' ? '/health' : `/domains/${domain.id}`
                         
-                      </th>
-                      <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        
-                      </th>
-                      <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        
-                      </th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {filteredDomains.map(domain => {
-                      const Icon = domain.icon
-                      const kpi1Icon = domain.kpis.kpi1.icon
-                      const kpi2Icon = domain.kpis.kpi2.icon
-                      const kpi3Icon = domain.kpis.kpi3.icon
-                      const kpi4Icon = domain.kpis.kpi4.icon
-                      
-                      return (
-                        <tr key={domain.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <Link
-                              href={domain.id === 'financial' ? '/finance' : domain.id === 'health' ? '/health' : `/domains/${domain.id}`}
-                              className="flex items-center gap-3 cursor-pointer"
-                              data-testid={`domain-${domain.id}`}
-                            >
-                              <div className={`p-2 rounded-lg bg-gradient-to-br ${domain.gradient} shadow-sm`}>
-                                <Icon className="h-5 w-5 text-white" />
-                              </div>
-                              <div>
-                                <div className="font-semibold hover:text-purple-600 transition-colors">{domain.name}</div>
-                                <div className="text-xs text-muted-foreground line-clamp-1">{domain.description}</div>
-                              </div>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="font-bold text-lg">{domain.itemCount}</div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                                {React.createElement(kpi1Icon, { className: 'h-3 w-3' })}
-                                <span>{domain.kpis.kpi1.label}</span>
-                              </div>
-                              <div className="font-semibold">{domain.kpis.kpi1.value}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                                {React.createElement(kpi2Icon, { className: 'h-3 w-3' })}
-                                <span>{domain.kpis.kpi2.label}</span>
-                              </div>
-                              <div className="font-semibold">{domain.kpis.kpi2.value}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                                {React.createElement(kpi3Icon, { className: 'h-3 w-3' })}
-                                <span>{domain.kpis.kpi3.label}</span>
-                              </div>
-                              <div className="font-semibold">{domain.kpis.kpi3.value}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                                {React.createElement(kpi4Icon, { className: 'h-3 w-3' })}
-                                <span>{domain.kpis.kpi4.label}</span>
-                              </div>
-                              <div className="font-semibold">{domain.kpis.kpi4.value}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center justify-center gap-2">
-                              <Link href={domain.id === 'financial' ? '/finance' : domain.id === 'health' ? '/health' : `/domains/${domain.id}`}>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                        return (
+                          <tr key={domain.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <Link
+                                href={domainHref}
+                                className="flex items-center gap-3 cursor-pointer"
+                                data-testid={`domain-${domain.id}`}
+                              >
+                                <div className={`p-2 rounded-lg bg-gradient-to-br ${domain.gradient} shadow-sm`}>
+                                  <Icon className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                  <div className="font-semibold hover:text-purple-600 transition-colors">{domain.name}</div>
+                                  <div className="text-xs text-muted-foreground line-clamp-1">{domain.description}</div>
+                                </div>
                               </Link>
-                              <Link href={domain.id === 'financial' ? '/finance' : domain.id === 'health' ? '/health' : `/domains/${domain.id}`}>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <div className="font-bold text-lg">{domain.itemCount}</div>
+                            </td>
+                            <td className="px-4 py-4 hidden lg:table-cell">
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                                  {React.createElement(kpi1Icon, { className: 'h-3 w-3' })}
+                                  <span>{domain.kpis.kpi1.label}</span>
+                                </div>
+                                <div className="font-semibold">{domain.kpis.kpi1.value}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 hidden lg:table-cell">
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                                  {React.createElement(kpi2Icon, { className: 'h-3 w-3' })}
+                                  <span>{domain.kpis.kpi2.label}</span>
+                                </div>
+                                <div className="font-semibold">{domain.kpis.kpi2.value}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 hidden xl:table-cell">
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                                  {React.createElement(kpi3Icon, { className: 'h-3 w-3' })}
+                                  <span>{domain.kpis.kpi3.label}</span>
+                                </div>
+                                <div className="font-semibold">{domain.kpis.kpi3.value}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 hidden xl:table-cell">
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                                  {React.createElement(kpi4Icon, { className: 'h-3 w-3' })}
+                                  <span>{domain.kpis.kpi4.label}</span>
+                                </div>
+                                <div className="font-semibold">{domain.kpis.kpi4.value}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center justify-center gap-2">
+                                <Link href={domainHref}>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                                <Link href={domainHref}>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {/* Grid View (existing) */}

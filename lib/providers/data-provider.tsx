@@ -557,16 +557,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [session, supabase])
 
   // Listen for domain-data-updated events from useDomainEntries hook for INSTANT updates
+  // 🔥 CRITICAL FIX: Always listen for events, even when not authenticated yet
+  // This ensures data updates propagate across the app after sign-in
   useEffect(() => {
-    if (!session?.user || !supabase) return
-
-    const handleDomainUpdate = async (event: CustomEvent) => {
+    const handleDomainUpdate = (event: CustomEvent) => {
       const { domain, data: eventData, action } = event.detail || {}
       if (!domain) return
       
-      console.log(`🔥 [DataProvider] Received ${domain}-data-updated event:`, action)
+      console.log(`🔥 [DataProvider] Received ${domain}-data-updated event:`, action, 'Items:', eventData?.length)
       
       // ✅ NO LOCAL STORAGE - Update state directly
+      if (Array.isArray(eventData)) {
+        setData(prev => {
+          const newData = {
+            ...prev,
+            [domain]: eventData,
+          }
+          console.log(`📊 [DataProvider] Updated ${domain} data:`, eventData.length, 'items')
+          return newData
+        })
+      }
+    }
+    
+    // Also listen for the global data-updated event
+    const handleGlobalUpdate = (event: CustomEvent) => {
+      const { domain, data: eventData, action } = event.detail || {}
+      if (!domain) return
+      
+      console.log(`🔥 [DataProvider] Received global data-updated event for ${domain}:`, action)
+      
       if (Array.isArray(eventData)) {
         setData(prev => ({
           ...prev,
@@ -583,12 +602,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       window.addEventListener(`${d}-data-updated`, handleDomainUpdate as EventListener)
     })
     
+    // Also listen for global event
+    window.addEventListener('data-updated', handleGlobalUpdate as EventListener)
+    
     return () => {
       domains.forEach(d => {
         window.removeEventListener(`${d}-data-updated`, handleDomainUpdate as EventListener)
       })
+      window.removeEventListener('data-updated', handleGlobalUpdate as EventListener)
     }
-  }, [session, supabase])
+  }, [])
 
   // Realtime subscriptions for core tables (debounced domain reload)
   useEffect(() => {
