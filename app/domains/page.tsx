@@ -979,12 +979,19 @@ export default function DomainsPage() {
     analytics: { active: number; pending: number; monthlyTotal: number }
   }>({ providers: [], payments: [], analytics: { active: 0, pending: 0, monthlyTotal: 0 } })
   const [documentsFromTable, setDocumentsFromTable] = useState<DomainData[]>([])
+  // 🔥 NEW: State for Pets, Vehicles, Relationships from specialized tables
+  const [petsFromTable, setPetsFromTable] = useState<DomainData[]>([])
+  const [vehiclesFromTable, setVehiclesFromTable] = useState<DomainData[]>([])
+  const [relationshipsFromTable, setRelationshipsFromTable] = useState<DomainData[]>([])
   const supabase = createClientComponentClient()
   
   // 🔥 CRITICAL: Track reload triggers for specialized tables
   const [documentsReloadTrigger, setDocumentsReloadTrigger] = useState(0)
   const [appliancesReloadTrigger, setAppliancesReloadTrigger] = useState(0)
   const [serviceProvidersReloadTrigger, setServiceProvidersReloadTrigger] = useState(0)
+  const [petsReloadTrigger, setPetsReloadTrigger] = useState(0)
+  const [vehiclesReloadTrigger, setVehiclesReloadTrigger] = useState(0)
+  const [relationshipsReloadTrigger, setRelationshipsReloadTrigger] = useState(0)
 
   // Load appliances from appliances table (separate from domain_entries)
   useEffect(() => {
@@ -1210,12 +1217,266 @@ export default function DomainsPage() {
     
     loadDocuments()
   }, [supabase, documentsReloadTrigger])
+
+  // 🔥 Load pets from pets table (for Pets domain)
+  useEffect(() => {
+    const loadPets = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        // Load pets
+        const { data: pets, error: petsError } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('user_id', user.id)
+        
+        if (petsError) {
+          console.error('Error loading pets:', petsError)
+          return
+        }
+        
+        // Load vaccinations for vaccine due count
+        const petIds = (pets || []).map((p: any) => p.id)
+        const { data: vaccinations } = await supabase
+          .from('pet_vaccinations')
+          .select('*')
+          .in('pet_id', petIds.length > 0 ? petIds : ['00000000-0000-0000-0000-000000000000'])
+        
+        // Load costs for monthly cost calculation
+        const { data: costs } = await supabase
+          .from('pet_costs')
+          .select('*')
+          .in('pet_id', petIds.length > 0 ? petIds : ['00000000-0000-0000-0000-000000000000'])
+        
+        // Convert pets table format to domain_entries format
+        const formatted = (pets || []).map((pet: any) => {
+          // Calculate vaccines due (next_due_date in the past or within 30 days)
+          const now = new Date()
+          const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+          const petVaccinations = (vaccinations || []).filter((v: any) => v.pet_id === pet.id)
+          const vaccinesDue = petVaccinations.filter((v: any) => {
+            if (!v.next_due_date) return false
+            const dueDate = new Date(v.next_due_date)
+            return dueDate <= thirtyDays
+          }).length
+          
+          // Calculate monthly cost from costs table
+          const petCosts = (costs || []).filter((c: any) => c.pet_id === pet.id)
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          const recentCosts = petCosts.filter((c: any) => new Date(c.date) >= thirtyDaysAgo)
+          const monthlyCost = recentCosts.reduce((sum: number, c: any) => sum + (parseFloat(c.amount) || 0), 0)
+          
+          // Count vet visits this year
+          const yearStart = new Date(now.getFullYear(), 0, 1)
+          const vetVisitsYTD = petVaccinations.filter((v: any) => {
+            if (!v.administered_date) return false
+            return new Date(v.administered_date) >= yearStart
+          }).length
+          
+          return {
+            id: pet.id,
+            domain: 'pets' as Domain,
+            title: pet.name,
+            description: `${pet.species}${pet.breed ? ` - ${pet.breed}` : ''}`,
+            metadata: {
+              species: pet.species,
+              breed: pet.breed,
+              gender: pet.gender,
+              birthDate: pet.birth_date,
+              weight: pet.weight,
+              microchipNumber: pet.microchip_number,
+              photoUrl: pet.photo_url,
+              status: pet.status,
+              notes: pet.notes,
+              // Computed fields for KPIs
+              vaccinesDue,
+              monthlyCost,
+              vetVisitsYTD,
+              isPetProfile: true
+            },
+            createdAt: pet.created_at,
+            updatedAt: pet.updated_at || pet.created_at
+          }
+        }) as DomainData[]
+        
+        setPetsFromTable(formatted)
+        console.log(`✅ Loaded ${formatted.length} pets from pets table`)
+      } catch (error) {
+        console.error('Failed to load pets:', error)
+      }
+    }
+    
+    loadPets()
+  }, [supabase, petsReloadTrigger])
+
+  // 🔥 Load vehicles from vehicles table (for Vehicles domain)
+  useEffect(() => {
+    const loadVehicles = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        // Load vehicles
+        const { data: vehicles, error: vehiclesError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('user_id', user.id)
+        
+        if (vehiclesError) {
+          console.error('Error loading vehicles:', vehiclesError)
+          return
+        }
+        
+        // Load maintenance records for service due count
+        const vehicleIds = (vehicles || []).map((v: any) => v.id)
+        const { data: maintenance } = await supabase
+          .from('vehicle_maintenance')
+          .select('*')
+          .in('vehicleId', vehicleIds.length > 0 ? vehicleIds : ['00000000-0000-0000-0000-000000000000'])
+        
+        // Load costs for fuel tracking
+        const { data: costs } = await supabase
+          .from('vehicle_costs')
+          .select('*')
+          .in('vehicleId', vehicleIds.length > 0 ? vehicleIds : ['00000000-0000-0000-0000-000000000000'])
+        
+        // Convert vehicles table format to domain_entries format
+        const formatted = (vehicles || []).map((vehicle: any) => {
+          // Calculate service due (maintenance records with status 'due_soon' or 'overdue')
+          const vehicleMaintenance = (maintenance || []).filter((m: any) => m.vehicleId === vehicle.id)
+          const serviceDue = vehicleMaintenance.filter((m: any) => 
+            m.status === 'due_soon' || m.status === 'overdue'
+          ).length
+          
+          // Calculate MPG from fuel costs
+          const vehicleCosts = (costs || []).filter((c: any) => c.vehicleId === vehicle.id && c.costType === 'fuel')
+          // Simple MPG calculation: would need more data for accurate calc
+          const mpgAvg = 0 // Placeholder - would need gallons and distance data
+          
+          return {
+            id: vehicle.id,
+            domain: 'vehicles' as Domain,
+            title: vehicle.vehicleName || `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+            description: `${vehicle.make} ${vehicle.model}`,
+            metadata: {
+              make: vehicle.make,
+              model: vehicle.model,
+              year: vehicle.year,
+              vin: vehicle.vin,
+              currentMileage: vehicle.currentMileage,
+              estimatedValue: vehicle.estimatedValue,
+              purchasePrice: vehicle.purchasePrice,
+              purchaseDate: vehicle.purchaseDate,
+              monthlyInsurance: vehicle.monthlyInsurance,
+              color: vehicle.color,
+              licensePlate: vehicle.licensePlate,
+              status: vehicle.status,
+              notes: vehicle.notes,
+              imageUrl: vehicle.imageUrl,
+              // Computed fields for KPIs
+              serviceDue,
+              mpgAvg,
+              isVehicleProfile: true
+            },
+            createdAt: vehicle.createdAt,
+            updatedAt: vehicle.updatedAt || vehicle.createdAt
+          }
+        }) as DomainData[]
+        
+        setVehiclesFromTable(formatted)
+        console.log(`✅ Loaded ${formatted.length} vehicles from vehicles table`)
+      } catch (error) {
+        console.error('Failed to load vehicles:', error)
+      }
+    }
+    
+    loadVehicles()
+  }, [supabase, vehiclesReloadTrigger])
+
+  // 🔥 Load relationships from relationships table (for Relationships domain)
+  useEffect(() => {
+    const loadRelationships = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        // Load relationships
+        const { data: relationships, error: relationshipsError } = await supabase
+          .from('relationships')
+          .select('*')
+          .eq('userId', user.id)
+        
+        if (relationshipsError) {
+          console.error('Error loading relationships:', relationshipsError)
+          return
+        }
+        
+        // Load reminders for upcoming events count
+        const relationshipIds = (relationships || []).map((r: any) => r.id)
+        const { data: reminders } = await supabase
+          .from('relationship_reminders')
+          .select('*')
+          .in('personId', relationshipIds.length > 0 ? relationshipIds : ['00000000-0000-0000-0000-000000000000'])
+        
+        const now = new Date()
+        const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+        
+        // Convert relationships table format to domain_entries format
+        const formatted = (relationships || []).map((rel: any) => {
+          // Count upcoming reminders
+          const relReminders = (reminders || []).filter((r: any) => r.personId === rel.id)
+          const upcomingEvents = relReminders.filter((r: any) => {
+            if (!r.reminderDate) return false
+            const reminderDate = new Date(r.reminderDate)
+            return reminderDate >= now && reminderDate <= thirtyDays && !r.isCompleted
+          }).length
+          
+          return {
+            id: rel.id,
+            domain: 'relationships' as Domain,
+            title: rel.name,
+            description: rel.relationship,
+            metadata: {
+              relationshipType: rel.relationship,
+              birthday: rel.birthday,
+              email: rel.email,
+              phone: rel.phone,
+              notes: rel.notes,
+              lastContact: rel.lastContact,
+              isFavorite: rel.isFavorite,
+              hobbies: rel.hobbies,
+              favoriteThings: rel.favoriteThings,
+              anniversaryDate: rel.anniversaryDate,
+              howWeMet: rel.howWeMet,
+              importantDates: rel.importantDates,
+              // Computed fields for KPIs
+              upcomingEvents,
+              isRelationshipProfile: true
+            },
+            createdAt: rel.createdAt,
+            updatedAt: rel.updatedAt || rel.createdAt
+          }
+        }) as DomainData[]
+        
+        setRelationshipsFromTable(formatted)
+        console.log(`✅ Loaded ${formatted.length} relationships from relationships table`)
+      } catch (error) {
+        console.error('Failed to load relationships:', error)
+      }
+    }
+    
+    loadRelationships()
+  }, [supabase, relationshipsReloadTrigger])
   
-  // 🔥 CRITICAL: Realtime subscriptions for specialized tables (documents, appliances, service_providers)
+  // 🔥 CRITICAL: Realtime subscriptions for ALL specialized tables
   useEffect(() => {
     let documentsChannel: ReturnType<typeof supabase.channel> | null = null
     let appliancesChannel: ReturnType<typeof supabase.channel> | null = null
     let serviceProvidersChannel: ReturnType<typeof supabase.channel> | null = null
+    let petsChannel: ReturnType<typeof supabase.channel> | null = null
+    let vehiclesChannel: ReturnType<typeof supabase.channel> | null = null
+    let relationshipsChannel: ReturnType<typeof supabase.channel> | null = null
     
     const setupRealtimeSubscriptions = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -1261,6 +1522,45 @@ export default function DomainsPage() {
           }
         )
         .subscribe()
+      
+      // 🔥 NEW: Subscribe to pets table changes
+      petsChannel = supabase
+        .channel('realtime-pets-domains')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'pets' },
+          (payload) => {
+            console.log('🐾 [DomainsPage] Pets table changed:', payload.eventType)
+            setPetsReloadTrigger(prev => prev + 1)
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
+      
+      // 🔥 NEW: Subscribe to vehicles table changes
+      vehiclesChannel = supabase
+        .channel('realtime-vehicles-domains')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'vehicles' },
+          (payload) => {
+            console.log('🚗 [DomainsPage] Vehicles table changed:', payload.eventType)
+            setVehiclesReloadTrigger(prev => prev + 1)
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
+      
+      // 🔥 NEW: Subscribe to relationships table changes
+      relationshipsChannel = supabase
+        .channel('realtime-relationships-domains')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'relationships' },
+          (payload) => {
+            console.log('👥 [DomainsPage] Relationships table changed:', payload.eventType)
+            setRelationshipsReloadTrigger(prev => prev + 1)
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
     }
     
     setupRealtimeSubscriptions()
@@ -1269,11 +1569,14 @@ export default function DomainsPage() {
       if (documentsChannel) supabase.removeChannel(documentsChannel)
       if (appliancesChannel) supabase.removeChannel(appliancesChannel)
       if (serviceProvidersChannel) supabase.removeChannel(serviceProvidersChannel)
+      if (petsChannel) supabase.removeChannel(petsChannel)
+      if (vehiclesChannel) supabase.removeChannel(vehiclesChannel)
+      if (relationshipsChannel) supabase.removeChannel(relationshipsChannel)
     }
   }, [supabase])
 
-  // Enhanced getData that includes appliances, service providers, and documents from separate tables
-  const getDataWithAppliances = (domainKey: Domain): DomainData[] => {
+  // Enhanced getData that includes appliances, service providers, documents, pets, vehicles, relationships from separate tables
+  const getDataWithSpecializedTables = (domainKey: Domain): DomainData[] => {
     if (domainKey === 'appliances') {
       // For appliances, combine data from domain_entries and appliances table
       const fromDomainEntries = getData(domainKey)
@@ -1289,6 +1592,27 @@ export default function DomainsPage() {
       const documentIds = new Set(documentsFromTable.map(d => d.id))
       const uniqueFromDomainEntries = fromDomainEntries.filter(item => !documentIds.has(item.id))
       return [...documentsFromTable, ...uniqueFromDomainEntries]
+    }
+    // 🔥 NEW: Pets domain - use pets table data
+    if (domainKey === 'pets') {
+      const fromDomainEntries = getData(domainKey)
+      const petIds = new Set(petsFromTable.map(p => p.id))
+      const uniqueFromDomainEntries = fromDomainEntries.filter(item => !petIds.has(item.id))
+      return [...petsFromTable, ...uniqueFromDomainEntries]
+    }
+    // 🔥 NEW: Vehicles domain - use vehicles table data
+    if (domainKey === 'vehicles') {
+      const fromDomainEntries = getData(domainKey)
+      const vehicleIds = new Set(vehiclesFromTable.map(v => v.id))
+      const uniqueFromDomainEntries = fromDomainEntries.filter(item => !vehicleIds.has(item.id))
+      return [...vehiclesFromTable, ...uniqueFromDomainEntries]
+    }
+    // 🔥 NEW: Relationships domain - use relationships table data
+    if (domainKey === 'relationships') {
+      const fromDomainEntries = getData(domainKey)
+      const relationshipIds = new Set(relationshipsFromTable.map(r => r.id))
+      const uniqueFromDomainEntries = fromDomainEntries.filter(item => !relationshipIds.has(item.id))
+      return [...relationshipsFromTable, ...uniqueFromDomainEntries]
     }
     if (domainKey === 'services') {
       // For services, use the service_providers table data
@@ -1321,7 +1645,7 @@ export default function DomainsPage() {
   // Calculate domain metrics
   const domainMetrics = (Object.keys(DOMAIN_CONFIGS) as Domain[]).map((domainKey) => {
     const domain = DOMAIN_CONFIGS[domainKey]
-    const domainData = getDataWithAppliances(domainKey)
+    const domainData = getDataWithSpecializedTables(domainKey)
     const itemCount = domainData.length
     
     // Build data object for getDomainKPIs
