@@ -1,6 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { toast } from 'sonner'
 import { createSafeBrowserClient } from '@/lib/supabase/safe-client'
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
+
+// Billing type determines if subscription is recurring or one-time
+export type BillingType = 'recurring' | 'one_time' | 'lifetime'
+
+// Renewal type determines what happens when the subscription period ends
+export type RenewalType = 'auto' | 'manual' | 'expires'
 
 export interface Subscription {
   id: string
@@ -28,6 +35,12 @@ export interface Subscription {
   tags?: string[]
   created_at: string
   updated_at: string
+  // NEW: Billing terms fields for proper expiration tracking
+  billing_type: BillingType
+  contract_end_date?: string  // When the subscription contract/access actually ends
+  renewal_type: RenewalType   // What happens at renewal: auto, manual, or expires
+  price_locked?: boolean      // Whether price is guaranteed for contract duration
+  original_term_months?: number  // Original subscription term (e.g., 12 for annual)
 }
 
 export interface SubscriptionAnalytics {
@@ -87,6 +100,9 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const hasFetched = useRef(false)
+  
+  // Create a stable Supabase client for realtime subscriptions
+  const supabase = useMemo(() => createClientComponentClient(), [])
 
   // Check authentication state first
   useEffect(() => {
@@ -358,6 +374,40 @@ export function useSubscriptions(options: UseSubscriptionsOptions = {}) {
       setAnalyticsLoading(false)
     }
   }, [authChecked, isAuthenticated, fetchSubscriptions, fetchAnalytics])
+
+  // 🔄 REALTIME SUBSCRIPTION: Listen for changes to sync all hook instances
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const channel = supabase
+      .channel('subscriptions-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'subscriptions',
+        },
+        (payload) => {
+          // #region agent log
+          console.log('🔄 [USE-SUBSCRIPTIONS] Realtime change detected:', payload.eventType)
+          // #endregion
+          
+          // Refetch data to ensure all components stay in sync
+          fetchSubscriptions()
+          fetchAnalytics()
+        }
+      )
+      .subscribe((status) => {
+        // #region agent log
+        console.log('📋 [USE-SUBSCRIPTIONS] Realtime subscription status:', status)
+        // #endregion
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [isAuthenticated, supabase, fetchSubscriptions, fetchAnalytics])
 
   return {
     subscriptions,

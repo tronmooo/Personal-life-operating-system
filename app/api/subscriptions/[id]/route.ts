@@ -76,6 +76,12 @@ export async function PATCH(
     if (body.icon_letter !== undefined) updateData.icon_letter = body.icon_letter
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.tags !== undefined) updateData.tags = body.tags
+    // NEW: Billing terms fields
+    if (body.billing_type !== undefined) updateData.billing_type = body.billing_type
+    if (body.renewal_type !== undefined) updateData.renewal_type = body.renewal_type
+    if (body.contract_end_date !== undefined) updateData.contract_end_date = body.contract_end_date
+    if (body.price_locked !== undefined) updateData.price_locked = body.price_locked
+    if (body.original_term_months !== undefined) updateData.original_term_months = body.original_term_months
 
     const { data: subscription, error } = await supabase
       .from('subscriptions')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { toast } from 'sonner'
 
@@ -522,6 +522,45 @@ export function useServiceProviders() {
     }
     loadAll()
   }, [fetchProviders, fetchPayments, fetchDocuments, fetchAnalytics])
+
+  // 🔄 REALTIME SUBSCRIPTION: Listen for changes to sync all hook instances
+  useEffect(() => {
+    // Subscribe to all related tables
+    const providersChannel = supabase
+      .channel('service-providers-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'service_providers' },
+        (payload) => {
+          console.log('🔄 [USE-SERVICE-PROVIDERS] Provider change detected:', payload.eventType)
+          fetchProviders()
+          fetchAnalytics()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'service_payments' },
+        (payload) => {
+          console.log('🔄 [USE-SERVICE-PROVIDERS] Payment change detected:', payload.eventType)
+          fetchPayments()
+          fetchAnalytics()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'service_documents' },
+        (payload) => {
+          console.log('🔄 [USE-SERVICE-PROVIDERS] Document change detected:', payload.eventType)
+          fetchDocuments()
+          fetchAnalytics()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(providersChannel)
+    }
+  }, [supabase, fetchProviders, fetchPayments, fetchDocuments, fetchAnalytics])
 
   return {
     // Data

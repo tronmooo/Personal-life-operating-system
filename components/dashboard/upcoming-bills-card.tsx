@@ -1,13 +1,14 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CreditCard, AlertCircle, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CreditCard, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { useServiceProviders } from '@/lib/hooks/use-service-providers'
 import { useMemo, useEffect, useState } from 'react'
 import { differenceInDays, parseISO, format } from 'date-fns'
+import { CollapsibleDashboardCard } from './collapsible-dashboard-card'
 
 interface BillItem {
   title: string
@@ -15,46 +16,20 @@ interface BillItem {
   dueDate: string
   category: string
   isRecurring: boolean
-  source: 'bills' | 'finance' | 'subscriptions' | 'housing'
+  source: 'bills' | 'finance' | 'subscriptions' | 'housing' | 'insurance' | 'vehicles' | 'pets' | 'education' | 'health'
+  domain: string
   daysUntilDue?: number
   isUrgent?: boolean
 }
 
 export function UpcomingBillsCard() {
-  const { bills, data, isLoaded } = useData() // Get both bills AND domain data
+  const { bills, data, isLoaded } = useData()
   const { payments: servicePayments, providers: serviceProviders } = useServiceProviders()
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [showAllBills, setShowAllBills] = useState(false)
 
-  // 🔧 FIX: Use data.home directly from DataProvider (same source as command center which works)
   const homeEntries = Array.isArray(data.home) ? data.home : []
   const homeEntriesLength = homeEntries.length
-  
-  // 🔧 DEBUG: Log what we're getting from DataProvider
-  useEffect(() => {
-    console.log('🏠 [UpcomingBills] === HOME ENTRIES DEBUG ===')
-    console.log('🏠 data.home count:', homeEntries.length)
-    console.log('🏠 isLoaded:', isLoaded)
-    
-    // Log each home entry
-    homeEntries.forEach((entry: any, i: number) => {
-      console.log(`🏠 Home entry ${i}:`, {
-        id: entry.id,
-        title: entry.title,
-        itemType: entry.metadata?.itemType,
-        dueDate: entry.metadata?.dueDate,
-        amount: entry.metadata?.amount,
-        category: entry.metadata?.category
-      })
-    })
-    
-    // Check specifically for bills
-    const bills = homeEntries.filter((e: any) => e.metadata?.itemType === 'bill')
-    console.log('🏠 Bills in home domain:', bills.length)
-    bills.forEach((b: any) => {
-      console.log('🏠 Bill:', b.title, 'dueDate:', b.metadata?.dueDate, 'amount:', b.metadata?.amount)
-    })
-    console.log('🏠 === END DEBUG ===')
-  }, [homeEntries, isLoaded])
 
   // Listen for data update events to refresh the card
   useEffect(() => {
@@ -97,7 +72,8 @@ export function UpcomingBillsCard() {
             dueDate: coerceDueDateString(bill.dueDate),
             category: bill.category,
             isRecurring: bill.recurring,
-            source: 'bills'
+            source: 'bills',
+            domain: 'bills'
           })
         }
       })
@@ -110,7 +86,6 @@ export function UpcomingBillsCard() {
       const itemType = meta.itemType || ''
       const type = meta.type || ''
       
-      // Check if it's a bill type (prioritize itemType === 'bill')
       if (itemType === 'bill' || type === 'bill' || type === 'expense' || meta.category === 'Bills' || meta.category === 'bill') {
         const dueDate = meta.dueDate || meta.nextDueDate || meta.date
         if (dueDate) {
@@ -120,37 +95,22 @@ export function UpcomingBillsCard() {
             dueDate: coerceDueDateString(dueDate),
             category: meta.category || 'Expense',
             isRecurring: Boolean(meta.recurring || meta.frequency),
-            source: 'finance'
+            source: 'finance',
+            domain: 'financial'
           })
         }
       }
     })
 
-    // 5. Get bills from housing domain (property-related bills)
-    // 🔧 FIX: Use homeEntries from outer scope for better dependency tracking
-    console.log('🏠 [UpcomingBills] Home domain entries:', homeEntries.length, 'items:', homeEntries.map((e: any) => e.title))
+    // 3. Get bills from housing domain (property-related bills)
     homeEntries.forEach((entry: any) => {
       const meta = entry.metadata || {}
       const itemType = (meta.itemType || '').toLowerCase()
       
-      console.log('🏠 [UpcomingBills] Checking home entry:', {
-        title: entry.title,
-        itemType: meta.itemType,
-        homeId: meta.homeId,
-        dueDate: meta.dueDate,
-        amount: meta.amount,
-        category: meta.category
-      })
-      
-      // Include ALL bills from home domain - check itemType is 'bill' (homeId is optional for legacy entries)
       if (itemType === 'bill') {
-        // Get due date - could be ISO date, day-of-month string (e.g., "14", "15th"), or other formats
         const dueDate = meta.dueDate || meta.nextDueDate || meta.paymentDate || meta.date
-        console.log('🏠 [UpcomingBills] Found home bill:', entry.title, 'dueDate:', dueDate, 'amount:', meta.amount)
         
-        // Accept bills with due date or recurring bills (they have a frequency)
         if (dueDate || meta.frequency) {
-          // Map home bill categories to display labels
           const categoryLabel = (meta.category || '').toLowerCase()
           const displayCategory = 
             categoryLabel === 'mortgage' ? 'Mortgage' :
@@ -163,43 +123,41 @@ export function UpcomingBillsCard() {
           billsList.push({
             title: meta.billName || entry.title || meta.name || 'Housing Bill',
             amount: parseFloat(String(meta.amount || entry.amount || meta.value || 0)),
-            // Coerce to string because some UIs store day-of-month as number (e.g. 20) which breaks parsing
-            dueDate: coerceDueDateString(dueDate || new Date().toISOString().split('T')[0]), // Default to today if no due date
+            dueDate: coerceDueDateString(dueDate || new Date().toISOString().split('T')[0]),
             category: displayCategory,
             isRecurring: Boolean(meta.recurring || meta.frequency === 'monthly' || meta.frequency === 'quarterly' || meta.frequency === 'annually'),
-            source: 'housing'
+            source: 'housing',
+            domain: 'home'
           })
-          console.log('✅ [UpcomingBills] Added home bill:', meta.billName || entry.title, 'category:', displayCategory)
         }
       }
     })
 
-    // 3. Get subscriptions from digital domain
+    // 4. Get subscriptions from digital domain
     const digitalEntries = data.digital || []
     digitalEntries.forEach((entry: any) => {
       const meta = entry.metadata || {}
       if (meta.type === 'subscription' || meta.itemType === 'subscription') {
-        // Calculate next billing date
         const billingDate = meta.nextBilling || meta.renewalDate || meta.billingDate || meta.nextDueDate
         if (billingDate) {
           billsList.push({
             title: entry.title || meta.name || meta.service || 'Subscription',
-            // 🔧 FIX: Prioritize monthlyCost (used by SubscriptionsTab) first
             amount: parseFloat(String(meta.monthlyCost || meta.cost || meta.price || meta.amount || meta.monthlyFee || 0)),
             dueDate: coerceDueDateString(billingDate),
             category: 'Subscription',
             isRecurring: true,
-            source: 'subscriptions'
+            source: 'subscriptions',
+            domain: 'digital'
           })
         }
       }
     })
 
-    // 4. Get insurance from insurance domain
+    // 5. Get insurance from insurance domain (premiums)
     const insuranceEntries = data.insurance || []
     insuranceEntries.forEach((entry: any) => {
       const meta = entry.metadata || {}
-      const renewalDate = meta.renewalDate || meta.nextPayment || meta.paymentDate
+      const renewalDate = meta.renewalDate || meta.nextPayment || meta.paymentDate || meta.premiumDueDate
       if (renewalDate) {
         billsList.push({
           title: entry.title || meta.policyName || 'Insurance Policy',
@@ -207,16 +165,192 @@ export function UpcomingBillsCard() {
           dueDate: coerceDueDateString(renewalDate),
           category: 'Insurance',
           isRecurring: true,
-          source: 'bills'
+          source: 'insurance',
+          domain: 'insurance'
         })
       }
     })
 
-    // 6. Get service provider payments from dedicated service_payments table
+    // 6. Get vehicle-related bills (registration, maintenance schedules)
+    const vehicleEntries = data.vehicles || []
+    vehicleEntries.forEach((entry: any) => {
+      const meta = entry.metadata || {}
+      
+      // Registration renewal
+      if (meta.registrationExpiry || meta.registrationDue) {
+        const regDate = meta.registrationExpiry || meta.registrationDue
+        billsList.push({
+          title: `${entry.title || meta.make + ' ' + meta.model || 'Vehicle'} - Registration`,
+          amount: parseFloat(String(meta.registrationFee || meta.registrationCost || 0)),
+          dueDate: coerceDueDateString(regDate),
+          category: 'Vehicle Registration',
+          isRecurring: true,
+          source: 'vehicles',
+          domain: 'vehicles'
+        })
+      }
+      
+      // Insurance payment
+      if (meta.insuranceDue || meta.insuranceRenewal) {
+        const insDate = meta.insuranceDue || meta.insuranceRenewal
+        billsList.push({
+          title: `${entry.title || meta.make + ' ' + meta.model || 'Vehicle'} - Insurance`,
+          amount: parseFloat(String(meta.insurancePremium || meta.insuranceCost || 0)),
+          dueDate: coerceDueDateString(insDate),
+          category: 'Vehicle Insurance',
+          isRecurring: true,
+          source: 'vehicles',
+          domain: 'vehicles'
+        })
+      }
+
+      // Scheduled maintenance
+      if (meta.nextServiceDate || meta.maintenanceDue) {
+        const maintDate = meta.nextServiceDate || meta.maintenanceDue
+        billsList.push({
+          title: `${entry.title || meta.make + ' ' + meta.model || 'Vehicle'} - Maintenance`,
+          amount: parseFloat(String(meta.estimatedServiceCost || meta.maintenanceCost || 0)),
+          dueDate: coerceDueDateString(maintDate),
+          category: 'Vehicle Maintenance',
+          isRecurring: false,
+          source: 'vehicles',
+          domain: 'vehicles'
+        })
+      }
+    })
+
+    // 7. Get pet-related bills (vet visits, medications, insurance)
+    const petEntries = data.pets || []
+    petEntries.forEach((entry: any) => {
+      const meta = entry.metadata || {}
+      
+      // Vet appointments
+      if (meta.nextVetVisit || meta.vetAppointment) {
+        const vetDate = meta.nextVetVisit || meta.vetAppointment
+        billsList.push({
+          title: `${entry.title || meta.name || 'Pet'} - Vet Visit`,
+          amount: parseFloat(String(meta.vetCost || meta.estimatedVetCost || 0)),
+          dueDate: coerceDueDateString(vetDate),
+          category: 'Pet Care',
+          isRecurring: false,
+          source: 'pets',
+          domain: 'pets'
+        })
+      }
+
+      // Pet insurance
+      if (meta.insuranceDue || meta.petInsuranceDue) {
+        const insDate = meta.insuranceDue || meta.petInsuranceDue
+        billsList.push({
+          title: `${entry.title || meta.name || 'Pet'} - Insurance`,
+          amount: parseFloat(String(meta.insurancePremium || meta.petInsuranceCost || 0)),
+          dueDate: coerceDueDateString(insDate),
+          category: 'Pet Insurance',
+          isRecurring: true,
+          source: 'pets',
+          domain: 'pets'
+        })
+      }
+
+      // Medication refills
+      if (meta.medicationRefillDate || meta.nextMedication) {
+        const medDate = meta.medicationRefillDate || meta.nextMedication
+        billsList.push({
+          title: `${entry.title || meta.name || 'Pet'} - Medication`,
+          amount: parseFloat(String(meta.medicationCost || 0)),
+          dueDate: coerceDueDateString(medDate),
+          category: 'Pet Medication',
+          isRecurring: true,
+          source: 'pets',
+          domain: 'pets'
+        })
+      }
+    })
+
+    // 8. Get education-related bills (tuition, loans, fees)
+    const educationEntries = data.education || []
+    educationEntries.forEach((entry: any) => {
+      const meta = entry.metadata || {}
+      
+      // Tuition payments
+      if (meta.tuitionDue || meta.paymentDue) {
+        const tuitionDate = meta.tuitionDue || meta.paymentDue
+        billsList.push({
+          title: entry.title || meta.institution || 'Education - Tuition',
+          amount: parseFloat(String(meta.tuitionAmount || meta.amount || 0)),
+          dueDate: coerceDueDateString(tuitionDate),
+          category: 'Education',
+          isRecurring: Boolean(meta.recurring),
+          source: 'education',
+          domain: 'education'
+        })
+      }
+
+      // Student loan payments
+      if (meta.loanPaymentDue || meta.nextLoanPayment) {
+        const loanDate = meta.loanPaymentDue || meta.nextLoanPayment
+        billsList.push({
+          title: `${entry.title || 'Student Loan'} - Payment`,
+          amount: parseFloat(String(meta.loanPayment || meta.monthlyPayment || 0)),
+          dueDate: coerceDueDateString(loanDate),
+          category: 'Student Loan',
+          isRecurring: true,
+          source: 'education',
+          domain: 'education'
+        })
+      }
+    })
+
+    // 9. Get health-related bills (insurance, prescriptions, appointments)
+    const healthEntries = data.health || []
+    healthEntries.forEach((entry: any) => {
+      const meta = entry.metadata || {}
+      
+      // Prescription refills with cost
+      if (meta.refillDate && (meta.cost || meta.prescriptionCost)) {
+        billsList.push({
+          title: `${meta.medicationName || entry.title || 'Prescription'} - Refill`,
+          amount: parseFloat(String(meta.cost || meta.prescriptionCost || 0)),
+          dueDate: coerceDueDateString(meta.refillDate),
+          category: 'Health',
+          isRecurring: true,
+          source: 'health',
+          domain: 'health'
+        })
+      }
+
+      // Health insurance premiums
+      if (meta.premiumDue || meta.insuranceDue) {
+        const premDate = meta.premiumDue || meta.insuranceDue
+        billsList.push({
+          title: entry.title || 'Health Insurance',
+          amount: parseFloat(String(meta.premium || meta.monthlyPremium || 0)),
+          dueDate: coerceDueDateString(premDate),
+          category: 'Health Insurance',
+          isRecurring: true,
+          source: 'health',
+          domain: 'health'
+        })
+      }
+
+      // Appointment costs
+      if (meta.appointmentDate && meta.estimatedCost) {
+        billsList.push({
+          title: `${meta.doctorName || meta.provider || 'Medical'} - Appointment`,
+          amount: parseFloat(String(meta.estimatedCost || 0)),
+          dueDate: coerceDueDateString(meta.appointmentDate),
+          category: 'Medical',
+          isRecurring: false,
+          source: 'health',
+          domain: 'health'
+        })
+      }
+    })
+
+    // 10. Get service provider payments from dedicated service_payments table
     if (servicePayments && servicePayments.length > 0) {
       servicePayments.forEach(payment => {
         if (payment.due_date && payment.status === 'pending') {
-          // Find the provider to get category info
           const provider = serviceProviders?.find(p => p.id === payment.provider_id)
           const categoryLabel = provider?.category === 'insurance' ? 'Insurance' :
                                provider?.category === 'utilities' ? 'Utilities' :
@@ -229,7 +363,8 @@ export function UpcomingBillsCard() {
             dueDate: coerceDueDateString(payment.due_date),
             category: categoryLabel,
             isRecurring: true,
-            source: 'bills'
+            source: 'bills',
+            domain: 'services'
           })
         }
       })
@@ -238,31 +373,27 @@ export function UpcomingBillsCard() {
     return billsList
   }, [bills, data, homeEntries, homeEntriesLength, servicePayments, serviceProviders, refreshTrigger])
 
-  const upcomingBills = useMemo(() => {
+  const processedBills = useMemo(() => {
     if (allBills.length === 0) return []
 
     const now = new Date()
     
-    // Helper function to parse due date (handles both ISO dates and day-of-month)
     const parseDueDate = (dueDateValue: unknown): Date | null => {
       try {
         if (dueDateValue == null) return null
         const dueDateStr = dueDateValue instanceof Date ? dueDateValue.toISOString() : String(dueDateValue)
 
-        // First try parsing as ISO date
         let dueDate = parseISO(dueDateStr)
         if (!isNaN(dueDate.getTime())) {
           return dueDate
         }
         
-        // If not ISO, try parsing as day-of-month (e.g., "15" or "15th")
         const dayNum = parseInt(dueDateStr.replace(/\D/g, ''))
         if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
           const currentMonth = now.getMonth()
           const currentYear = now.getFullYear()
           dueDate = new Date(currentYear, currentMonth, dayNum)
           
-          // If the due date has already passed this month, use next month
           if (dueDate < now) {
             dueDate = new Date(currentYear, currentMonth + 1, dayNum)
           }
@@ -281,7 +412,6 @@ export function UpcomingBillsCard() {
         const dueDate = parseDueDate(bill.dueDate)
         if (!dueDate) return false
         const daysUntilDue = differenceInDays(dueDate, now)
-        // Show the next upcoming bills regardless of date range (still exclude past-due)
         return daysUntilDue >= 0
       })
       .map(bill => {
@@ -289,103 +419,129 @@ export function UpcomingBillsCard() {
         const daysUntilDue = differenceInDays(dueDate, now)
         return {
           ...bill,
-          dueDate: dueDate.toISOString(), // Normalize to ISO date
+          dueDate: dueDate.toISOString(),
           daysUntilDue,
           isUrgent: daysUntilDue <= 7
         }
       })
       .sort((a, b) => a.daysUntilDue! - b.daysUntilDue!)
-      .slice(0, 6) // Show top 6
   }, [allBills])
 
+  // Show limited bills when collapsed, all when expanded
+  const displayBills = showAllBills ? processedBills : processedBills.slice(0, 4)
+
   const totalAmount = useMemo(() => {
-    return upcomingBills.reduce((sum, bill) => sum + (bill.amount || 0), 0)
-  }, [upcomingBills])
+    return processedBills.reduce((sum, bill) => sum + (bill.amount || 0), 0)
+  }, [processedBills])
 
   const getSourceIcon = (source: string) => {
-    if (source === 'subscriptions') return '🔄'
-    if (source === 'finance') return '💰'
-    if (source === 'housing') return '🏠'
-    return '💳'
+    switch (source) {
+      case 'subscriptions': return '🔄'
+      case 'finance': return '💰'
+      case 'housing': return '🏠'
+      case 'insurance': return '🛡️'
+      case 'vehicles': return '🚗'
+      case 'pets': return '🐾'
+      case 'education': return '🎓'
+      case 'health': return '🏥'
+      default: return '💳'
+    }
   }
 
-  const getSourceLabel = (source: string) => {
-    if (source === 'subscriptions') return 'Sub'
-    if (source === 'finance') return 'Exp'
-    if (source === 'housing') return 'Home'
-    return 'Bill'
+  const getDomainLabel = (domain: string) => {
+    return domain.charAt(0).toUpperCase() + domain.slice(1)
   }
 
   return (
-    <Card className="border-2 border-emerald-200 dark:border-emerald-900 hover:shadow-xl transition-all">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-emerald-500" />
-            <span className="text-lg">All Bills & Expenses</span>
-          </div>
-          <Badge variant="secondary" className="text-lg font-bold">
-            ${totalAmount.toFixed(0)}
-          </Badge>
-        </CardTitle>
-        <p className="text-xs text-gray-500 mt-1">
-          {allBills.length} total • Next {upcomingBills.length} upcoming
-        </p>
-      </CardHeader>
-      <CardContent>
-        {upcomingBills.length === 0 ? (
-          <div className="text-center py-6">
-            <CreditCard className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-sm text-gray-500 mb-1">No upcoming bills</p>
-            <p className="text-xs text-gray-400">
-              Add bills, subscriptions, or expenses to track
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {upcomingBills.map((bill, idx) => (
-              <div
-                key={idx}
-                className={`flex items-center justify-between p-3 rounded-lg transition-all ${
-                  bill.isUrgent
-                    ? 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
-                    : 'bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950'
-                }`}
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {bill.isUrgent && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
-                  <span className="text-lg flex-shrink-0">{getSourceIcon(bill.source)}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold truncate">{bill.title}</div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-500">
-                        Due {format(parseISO(bill.dueDate), 'MMM d')}
+    <CollapsibleDashboardCard
+      id="upcoming-bills"
+      title="All Bills & Expenses"
+      icon={<CreditCard className="w-5 h-5 text-emerald-500" />}
+      badge={
+        <Badge variant="secondary" className="text-lg font-bold">
+          ${totalAmount.toFixed(0)}
+        </Badge>
+      }
+      subtitle={`${allBills.length} total • ${processedBills.length} upcoming`}
+      borderColor="border-emerald-200 dark:border-emerald-900"
+      defaultOpen={true}
+    >
+      {processedBills.length === 0 ? (
+        <div className="text-center py-6">
+          <CreditCard className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+          <p className="text-sm text-gray-500 mb-1">No upcoming bills</p>
+          <p className="text-xs text-gray-400">
+            Add bills, subscriptions, or expenses to track
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {displayBills.map((bill, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                bill.isUrgent
+                  ? 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+                  : 'bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950'
+              }`}
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {bill.isUrgent && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
+                <span className="text-lg flex-shrink-0">{getSourceIcon(bill.source)}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold truncate">{bill.title}</div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="text-xs text-gray-500">
+                      Due {format(parseISO(bill.dueDate), 'MMM d')}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {bill.category}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs opacity-70">
+                      {getDomainLabel(bill.domain)}
+                    </Badge>
+                    {bill.isRecurring && (
+                      <span title="Recurring">
+                        <RefreshCw className="w-3 h-3 text-blue-500" />
                       </span>
-                      <Badge variant="outline" className="text-xs">
-                        {bill.category}
-                      </Badge>
-                      {bill.isRecurring && (
-                        <span title="Recurring">
-                          <RefreshCw className="w-3 h-3 text-blue-500" />
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                  <div className="text-sm font-bold">${bill.amount.toFixed(0)}</div>
-                  <Badge
-                    variant={bill.isUrgent ? 'destructive' : 'outline'}
-                    className="text-xs"
-                  >
-                    {bill.daysUntilDue}d
-                  </Badge>
-                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                <div className="text-sm font-bold">${bill.amount.toFixed(0)}</div>
+                <Badge
+                  variant={bill.isUrgent ? 'destructive' : 'outline'}
+                  className="text-xs"
+                >
+                  {bill.daysUntilDue}d
+                </Badge>
+              </div>
+            </div>
+          ))}
+          
+          {/* Show More/Less Button */}
+          {processedBills.length > 4 && (
+            <Button
+              variant="ghost"
+              className="w-full mt-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
+              onClick={() => setShowAllBills(!showAllBills)}
+            >
+              {showAllBills ? (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-1" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-1" />
+                  Show All {processedBills.length} Bills
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+    </CollapsibleDashboardCard>
   )
 }

@@ -1,10 +1,11 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { idbGet, idbSet } from '@/lib/utils/idb-cache'
 import { EnhancedDomainData } from '@/types/enhanced-domains'
 import { UploadedDocument } from '@/components/document-uploader'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
+
+// ✅ NO LOCAL STORAGE - All data comes exclusively from Supabase
 
 interface EnhancedDataContextType {
   enhancedData: EnhancedDomainData[]
@@ -24,7 +25,7 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
   const [enhancedData, setEnhancedData] = useState<EnhancedDomainData[]>([])
   const [userId, setUserId] = useState<string | null>(null)
 
-  // Load from Supabase
+  // ✅ Load from Supabase ONLY - No local storage fallback
   useEffect(() => {
     let active = true
     ;(async () => {
@@ -33,10 +34,10 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
       
       if (!active) return
       
+      // ✅ NO LOCAL STORAGE: If not authenticated, show empty state
       if (!user) {
-        // Fallback to IndexedDB for unauthenticated users
-        const stored = (await idbGet<EnhancedDomainData[]>('enhanced-data', [])) || []
-        setEnhancedData(Array.isArray(stored) ? stored : [])
+        console.log('👀 EnhancedDataProvider: Not authenticated - showing empty state')
+        setEnhancedData([])
         return
       }
 
@@ -79,6 +80,12 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     
+    // ✅ NO LOCAL STORAGE: Require authentication
+    if (!user) {
+      console.error('❌ Not authenticated - cannot add enhanced item')
+      return
+    }
+
     const newItem: EnhancedDomainData = {
       ...item,
       id: `enhanced-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -87,38 +94,30 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
       documents: [],
     }
     
-    if (user) {
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('domain_entries')
-        .insert({
-          user_id: user.id,
-          domain: 'enhanced_domain_items',
-          title: item.title,
-          description: item.description,
-          metadata: {
-            originalDomain: item.domain,
-            subCategory: item.subCategory,
-            data: (item as any).data || {},
-            documents: []
-          }
-        })
-        .select()
-        .single()
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('domain_entries')
+      .insert({
+        user_id: user.id,
+        domain: 'enhanced_domain_items',
+        title: item.title,
+        description: item.description,
+        metadata: {
+          originalDomain: item.domain,
+          subCategory: item.subCategory,
+          data: (item as any).data || {},
+          documents: []
+        }
+      })
+      .select()
+      .single()
 
-      if (error) {
-        console.error('Error adding enhanced item:', error)
-        return
-      }
-
-      newItem.id = data.id
-    } else {
-      // Fallback to IndexedDB
-      const stored = (await idbGet<EnhancedDomainData[]>('enhanced-data', [])) || []
-      stored.push(newItem)
-      await idbSet('enhanced-data', stored)
+    if (error) {
+      console.error('Error adding enhanced item:', error)
+      return
     }
-    
+
+    newItem.id = data.id
     setEnhancedData((prev) => [...prev, newItem])
   }
 
@@ -126,38 +125,35 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     
+    // ✅ NO LOCAL STORAGE: Require authentication
+    if (!user) {
+      console.error('❌ Not authenticated - cannot update enhanced item')
+      return
+    }
+
     const updatedItem = enhancedData.find(item => item.id === id)
     if (!updatedItem) return
     
-    if (user) {
-      // Update in Supabase
-      const { error } = await supabase
-        .from('domain_entries')
-        .update({
-          title: updates.title ?? updatedItem.title,
-          description: updates.description ?? updatedItem.description,
-          metadata: {
-            originalDomain: updates.domain ?? updatedItem.domain,
-            subCategory: updates.subCategory ?? updatedItem.subCategory,
-            data: (updates as any).data ?? (updatedItem as any).data ?? {},
-            documents: updates.documents ?? updatedItem.documents
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('user_id', user.id)
+    // Update in Supabase
+    const { error } = await supabase
+      .from('domain_entries')
+      .update({
+        title: updates.title ?? updatedItem.title,
+        description: updates.description ?? updatedItem.description,
+        metadata: {
+          originalDomain: updates.domain ?? updatedItem.domain,
+          subCategory: updates.subCategory ?? updatedItem.subCategory,
+          data: (updates as any).data ?? (updatedItem as any).data ?? {},
+          documents: updates.documents ?? updatedItem.documents
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
 
-      if (error) {
-        console.error('Error updating enhanced item:', error)
-        return
-      }
-    } else {
-      // Fallback to IndexedDB
-      const stored = (await idbGet<EnhancedDomainData[]>('enhanced-data', [])) || []
-      const updated = stored.map(item => 
-        item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
-      )
-      await idbSet('enhanced-data', updated)
+    if (error) {
+      console.error('Error updating enhanced item:', error)
+      return
     }
     
     setEnhancedData((prev) =>
@@ -170,27 +166,25 @@ export function EnhancedDataProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteEnhancedItem = async (id: string) => {
-    
     const supabase = createClientComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     
-    if (user) {
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('domain_entries')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id)
+    // ✅ NO LOCAL STORAGE: Require authentication
+    if (!user) {
+      console.error('❌ Not authenticated - cannot delete enhanced item')
+      return
+    }
 
-      if (error) {
-        console.error('Error deleting enhanced item:', error)
-        return
-      }
-    } else {
-      // Fallback to IndexedDB
-      const stored = (await idbGet<EnhancedDomainData[]>('enhanced-data', [])) || []
-      const filtered = stored.filter(item => item.id !== id)
-      await idbSet('enhanced-data', filtered)
+    // Delete from Supabase
+    const { error } = await supabase
+      .from('domain_entries')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      console.error('Error deleting enhanced item:', error)
+      return
     }
     
     setEnhancedData((prev) => prev.filter((item) => item.id !== id))

@@ -10,7 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useFinance } from '@/lib/providers/finance-provider'
-import { BillFormData, BillFrequency, TransactionCategory, FREQUENCY_LABELS, TRANSACTION_CATEGORY_LABELS } from '@/types/finance'
+import { BillFormData, BillFrequency, TransactionCategory, FREQUENCY_LABELS, TRANSACTION_CATEGORY_LABELS, BillBillingType } from '@/types/finance'
+import { HelpCircle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface BillDialogProps {
   open: boolean
@@ -25,17 +32,24 @@ export function BillDialog({ open, onOpenChange }: BillDialogProps) {
     name: '',
     provider: '',
     amount: 0,
-    due_date: '1',
+    dueDate: '1',
     frequency: 'monthly',
     category: 'housing',
-    is_autopay: false
+    isAutoPay: false,
+    recurring: true,
+    billingType: 'recurring',
+    endDate: '',
   })
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     
-    const result = await createBill(formData)
+    const result = await createBill({
+      ...formData,
+      // Ensure recurring field matches billingType
+      recurring: formData.billingType === 'recurring',
+    })
     
     setLoading(false)
     
@@ -46,10 +60,13 @@ export function BillDialog({ open, onOpenChange }: BillDialogProps) {
         name: '',
         provider: '',
         amount: 0,
-        due_date: '1',
+        dueDate: '1',
         frequency: 'monthly',
         category: 'housing',
-        is_autopay: false
+        isAutoPay: false,
+        recurring: true,
+        billingType: 'recurring',
+        endDate: '',
       })
     }
   }
@@ -118,29 +135,87 @@ export function BillDialog({ open, onOpenChange }: BillDialogProps) {
             <Input
               id="due_date"
               placeholder="e.g., 15th, 1st"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              value={formData.dueDate}
+              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
               required
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="frequency">Frequency</Label>
-            <Select 
-              value={formData.frequency} 
-              onValueChange={(value: BillFrequency) => setFormData({ ...formData, frequency: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Billing Type Section */}
+          <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium">Bill Type</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Recurring bills repeat on a schedule. One-time bills are single payments (like annual fees or final payments).</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="billingType">Type</Label>
+                <Select 
+                  value={formData.billingType} 
+                  onValueChange={(value: BillBillingType) => setFormData({ 
+                    ...formData, 
+                    billingType: value,
+                    recurring: value === 'recurring',
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                    <SelectItem value="one_time">One-Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {formData.billingType === 'recurring' && (
+                <div className="space-y-2">
+                  <Label htmlFor="frequency">Frequency</Label>
+                  <Select 
+                    value={formData.frequency} 
+                    onValueChange={(value: BillFrequency) => setFormData({ ...formData, frequency: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="endDate">
+                {formData.billingType === 'recurring' ? 'End Date (Optional)' : 'Payment Due By'}
+              </Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                {formData.billingType === 'recurring' 
+                  ? 'When this recurring bill ends (leave blank for ongoing)'
+                  : 'Specific date when this one-time payment is due'}
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center justify-between p-4 rounded-lg border">
@@ -150,8 +225,8 @@ export function BillDialog({ open, onOpenChange }: BillDialogProps) {
             </div>
             <Switch
               id="autopay"
-              checked={formData.is_autopay}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_autopay: checked })}
+              checked={formData.isAutoPay}
+              onCheckedChange={(checked) => setFormData({ ...formData, isAutoPay: checked })}
             />
           </div>
           

@@ -166,6 +166,7 @@ export function AIConciergeInterface({
   const [showBusinessPicker, setShowBusinessPicker] = useState(false)
   const [showCallConfirmation, setShowCallConfirmation] = useState(false)
   const [pendingCallRequest, setPendingCallRequest] = useState<DetectedRequest | null>(null)
+  const [manualPhoneNumber, setManualPhoneNumber] = useState('')
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const transcriptEndRef = useRef<HTMLDivElement>(null)
@@ -746,6 +747,22 @@ export function AIConciergeInterface({
       toast.error('Please select a business first')
       return
     }
+    
+    // If business has no phone, check for manual entry
+    const phoneToUse = selectedBusiness.phone || manualPhoneNumber.trim()
+    if (!phoneToUse) {
+      toast.error('Please enter a phone number for this business')
+      return
+    }
+    
+    // Update the selected business with manual phone if needed
+    if (!selectedBusiness.phone && manualPhoneNumber.trim()) {
+      setSelectedBusiness({
+        ...selectedBusiness,
+        phone: manualPhoneNumber.trim()
+      })
+    }
+    
     setShowCallConfirmation(true)
   }
 
@@ -857,6 +874,7 @@ export function AIConciergeInterface({
     setPendingCallRequest(null)
     setSelectedBusiness(null)
     setBusinessOptions([])
+    setManualPhoneNumber('')
   }
 
   // Legacy: Direct call initiation (for backward compatibility)
@@ -1108,10 +1126,15 @@ export function AIConciergeInterface({
                           <MapPin className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{business.address}</span>
                         </p>
-                        {business.phone && (
-                          <p className="text-gray-400 flex items-center gap-1">
+                        {business.phone ? (
+                          <p className="text-green-400 flex items-center gap-1">
                             <Phone className="h-3 w-3 flex-shrink-0" />
                             <span>{business.phone}</span>
+                          </p>
+                        ) : (
+                          <p className="text-yellow-400 flex items-center gap-1 text-xs">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                            <span>No phone available</span>
                           </p>
                         )}
                         {business.rating && (
@@ -1142,6 +1165,23 @@ export function AIConciergeInterface({
             )}
           </div>
           
+          {/* Manual phone input when selected business has no phone */}
+          {selectedBusiness && !selectedBusiness.phone && (
+            <div className="px-4 py-3 bg-yellow-500/10 border-t border-yellow-500/20">
+              <p className="text-sm text-yellow-400 mb-2 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                No phone number found for {selectedBusiness.name}. Enter it manually:
+              </p>
+              <Input
+                type="tel"
+                placeholder="(555) 123-4567"
+                value={manualPhoneNumber}
+                onChange={(e) => setManualPhoneNumber(e.target.value)}
+                className="bg-[#0f1729] border-yellow-500/30 text-white placeholder:text-gray-500"
+              />
+            </div>
+          )}
+          
           <DialogFooter className="gap-2 flex-shrink-0 pt-4 border-t border-purple-500/20">
             <Button 
               variant="outline" 
@@ -1149,6 +1189,7 @@ export function AIConciergeInterface({
                 setShowBusinessPicker(false)
                 setBusinessOptions([])
                 setPendingCallRequest(null)
+                setManualPhoneNumber('')
               }}
               className="border-gray-600"
             >
@@ -1156,7 +1197,7 @@ export function AIConciergeInterface({
             </Button>
             <Button 
               onClick={confirmAndCall}
-              disabled={!selectedBusiness || !selectedBusiness.phone}
+              disabled={!selectedBusiness || (!selectedBusiness.phone && !manualPhoneNumber.trim())}
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Phone className="h-4 w-4 mr-2" />
@@ -1184,9 +1225,9 @@ export function AIConciergeInterface({
               <MapPin className="h-4 w-4 text-gray-500" />
               {selectedBusiness?.address}
             </p>
-            <p className="flex items-center gap-2 text-gray-300 mt-1">
-              <Phone className="h-4 w-4 text-gray-500" />
-              {selectedBusiness?.phone || 'Phone number available'}
+            <p className="flex items-center gap-2 text-green-400 mt-1">
+              <Phone className="h-4 w-4 text-green-500" />
+              {selectedBusiness?.phone || manualPhoneNumber || 'No phone'}
             </p>
             {selectedBusiness?.distance && (
               <p className="flex items-center gap-2 text-green-400 mt-1">

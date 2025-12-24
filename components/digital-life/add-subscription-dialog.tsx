@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useSubscriptions } from '@/lib/hooks/use-subscriptions'
+import { useSubscriptions, BillingType, RenewalType } from '@/lib/hooks/use-subscriptions'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,8 +20,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Loader2 } from 'lucide-react'
+import { Loader2, HelpCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AddSubscriptionDialogProps {
   open: boolean
@@ -41,6 +48,12 @@ export function AddSubscriptionDialog({ open, onOpenChange }: AddSubscriptionDia
     last_four: '',
     account_url: '',
     auto_renew: true,
+    // NEW: Billing terms fields
+    billing_type: 'recurring' as BillingType,
+    renewal_type: 'auto' as RenewalType,
+    contract_end_date: '',
+    original_term_months: '',
+    price_locked: false,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,11 +64,19 @@ export function AddSubscriptionDialog({ open, onOpenChange }: AddSubscriptionDia
       return
     }
 
+    // Validate that one-time/lifetime subscriptions have an end date
+    if ((formData.billing_type === 'one_time' || formData.billing_type === 'lifetime') && !formData.contract_end_date) {
+      toast.error('Please specify an expiration date for one-time or lifetime subscriptions')
+      return
+    }
+
     setLoading(true)
     try {
       await createSubscription({
         ...formData,
         cost: parseFloat(formData.cost),
+        original_term_months: formData.original_term_months ? parseInt(formData.original_term_months) : undefined,
+        contract_end_date: formData.contract_end_date || undefined,
       })
       
       // Reset form
@@ -70,6 +91,11 @@ export function AddSubscriptionDialog({ open, onOpenChange }: AddSubscriptionDia
         last_four: '',
         account_url: '',
         auto_renew: true,
+        billing_type: 'recurring',
+        renewal_type: 'auto',
+        contract_end_date: '',
+        original_term_months: '',
+        price_locked: false,
       })
       
       onOpenChange(false)
@@ -189,6 +215,127 @@ export function AddSubscriptionDialog({ open, onOpenChange }: AddSubscriptionDia
                   <SelectItem value="cancelled" className="text-white">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* NEW: Billing Type and Renewal Settings */}
+          <div className="space-y-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium text-slate-200">Subscription Terms</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-4 w-4 text-slate-400" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>Set whether this is a recurring subscription or one-time purchase, and how it should renew.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="billing_type" className="text-slate-300">
+                  Billing Type
+                </Label>
+                <Select
+                  value={formData.billing_type}
+                  onValueChange={(value: BillingType) => {
+                    setFormData({ 
+                      ...formData, 
+                      billing_type: value,
+                      // Auto-set renewal type based on billing type
+                      renewal_type: value === 'recurring' ? 'auto' : 'expires',
+                      auto_renew: value === 'recurring',
+                    })
+                  }}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="recurring" className="text-white">Recurring</SelectItem>
+                    <SelectItem value="one_time" className="text-white">One-Time Purchase</SelectItem>
+                    <SelectItem value="lifetime" className="text-white">Lifetime Access</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="renewal_type" className="text-slate-300">
+                  At Renewal
+                </Label>
+                <Select
+                  value={formData.renewal_type}
+                  onValueChange={(value: RenewalType) => setFormData({ ...formData, renewal_type: value })}
+                  disabled={formData.billing_type !== 'recurring'}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="auto" className="text-white">Auto-Renews</SelectItem>
+                    <SelectItem value="manual" className="text-white">Manual Renewal</SelectItem>
+                    <SelectItem value="expires" className="text-white">Expires</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contract_end_date" className="text-slate-300">
+                  {formData.billing_type === 'recurring' ? 'Contract End Date' : 'Expiration Date'}
+                  {(formData.billing_type === 'one_time' || formData.billing_type === 'lifetime') && (
+                    <span className="text-red-400 ml-1">*</span>
+                  )}
+                </Label>
+                <Input
+                  id="contract_end_date"
+                  type="date"
+                  value={formData.contract_end_date}
+                  onChange={(e) => setFormData({ ...formData, contract_end_date: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <p className="text-xs text-slate-400">
+                  {formData.billing_type === 'recurring' 
+                    ? 'Optional: When the contract/commitment ends'
+                    : 'When access expires'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="original_term_months" className="text-slate-300">
+                  Term Length (Months)
+                </Label>
+                <Input
+                  id="original_term_months"
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 12 for annual"
+                  value={formData.original_term_months}
+                  onChange={(e) => setFormData({ ...formData, original_term_months: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="price_locked"
+                checked={formData.price_locked}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, price_locked: checked as boolean })
+                }
+                className="border-slate-700"
+              />
+              <Label
+                htmlFor="price_locked"
+                className="text-slate-300 cursor-pointer"
+              >
+                Price is locked for contract duration
+              </Label>
             </div>
           </div>
 

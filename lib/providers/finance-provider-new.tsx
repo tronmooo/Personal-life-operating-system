@@ -187,11 +187,71 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, [items]) as Bill[]
 
   const budgetCategories = useMemo(() => {
+    const now = new Date()
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    
+    // Get all expense transactions for the current month
+    const currentMonthExpenses = items
+      .filter(item => {
+        if (item.metadata?.itemType !== 'transaction') return false
+        if (item.metadata?.type !== 'expense') return false
+        
+        const txDate = item.metadata?.date as string
+        if (!txDate) return false
+        
+        // Check if transaction is in the current month
+        return txDate.startsWith(currentMonth)
+      })
+    
     return items
       .filter(item => item.metadata?.itemType === 'budget')
       .map(item => {
         const budgeted = Number(item.metadata?.budgetedAmount || 0)
-        const spent = Number(item.metadata?.spentAmount || 0)
+        const categoryName = (item.title || '').toLowerCase().trim()
+        const budgetMonth = (item.metadata?.month as string) || ''
+        
+        // Calculate spent amount from actual transactions matching this category
+        // Match by category name (case-insensitive, handles common variations)
+        const matchingExpenses = currentMonthExpenses.filter(tx => {
+          const txCategory = ((tx.metadata?.category as string) || '').toLowerCase().trim()
+          const txTitle = (tx.title || '').toLowerCase().trim()
+          
+          // Direct category match
+          if (txCategory === categoryName) return true
+          
+          // Check for common category mappings
+          const categoryMappings: Record<string, string[]> = {
+            'housing': ['rent', 'mortgage', 'housing', 'rent/mortgage', 'home'],
+            'transportation': ['transportation', 'gas', 'fuel', 'car', 'auto', 'uber', 'lyft', 'transit'],
+            'food': ['food', 'groceries', 'food & dining', 'restaurants', 'dining', 'takeout'],
+            'utilities': ['utilities', 'electric', 'gas', 'water', 'internet', 'phone', 'cable'],
+            'insurance': ['insurance', 'health insurance', 'car insurance', 'life insurance'],
+            'healthcare': ['healthcare', 'medical', 'doctor', 'pharmacy', 'health'],
+            'entertainment': ['entertainment', 'movies', 'games', 'streaming', 'subscriptions'],
+            'shopping': ['shopping', 'clothing', 'amazon', 'retail'],
+            'personal': ['personal', 'personal care', 'grooming', 'gym', 'fitness'],
+            'education': ['education', 'books', 'courses', 'tuition', 'school'],
+            'savings': ['savings', 'investment', 'retirement'],
+            'debt': ['debt', 'debt payment', 'credit card', 'loan payment'],
+          }
+          
+          // Check if the budget category name maps to the transaction category
+          for (const [key, values] of Object.entries(categoryMappings)) {
+            if (categoryName.includes(key) || values.some(v => categoryName.includes(v))) {
+              if (txCategory.includes(key) || values.some(v => txCategory.includes(v))) {
+                return true
+              }
+              // Also check transaction title for keywords
+              if (values.some(v => txTitle.includes(v))) {
+                return true
+              }
+            }
+          }
+          
+          return false
+        })
+        
+        const spent = matchingExpenses.reduce((sum, tx) => sum + Number(tx.metadata?.amount || 0), 0)
         const variance = budgeted - spent
         const percentUsed = budgeted > 0 ? (spent / budgeted) * 100 : 0
 
@@ -200,7 +260,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           category: item.title,
           budgetedAmount: budgeted,
           spentAmount: spent,
-          month: (item.metadata?.month as string) || '',
+          month: budgetMonth,
           year: Number(item.metadata?.year || new Date().getFullYear()),
           variance,
           percentUsed,
@@ -1065,10 +1125,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           amount: data.amount,
           dueDate: fullDueDate,
           recurring: data.recurring,
+          billingType: data.billingType || (data.recurring ? 'recurring' : 'one_time'),
           frequency: data.frequency,
           isAutoPay: data.isAutoPay,
           status: data.status || 'pending',
           account: data.account,
+          endDate: data.endDate,
           notes: data.notes
         }
       })
@@ -1083,11 +1145,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           due_date: data.dueDate,
           dueDate: data.dueDate,
           recurring: data.recurring,
+          billingType: data.billingType || (data.recurring ? 'recurring' : 'one_time'),
           frequency: data.frequency,
           is_autopay: data.isAutoPay,
           isAutoPay: data.isAutoPay,
           status: data.status || 'pending',
           account: data.account,
+          endDate: data.endDate,
           notes: data.notes,
           created_at: entry.createdAt,
           updated_at: entry.updatedAt

@@ -134,3 +134,4 @@ export const COMMAND_CATALOG_PROMPT = `\n\nLIFEHUB CAPABILITIES (authoritative):
 
 
 
+

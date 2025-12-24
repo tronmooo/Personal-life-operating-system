@@ -50,6 +50,7 @@ import { differenceInDays } from 'date-fns'
 import { calculateUnifiedNetWorth } from '@/lib/utils/unified-financial-calculator'
 import { useServiceProviders } from '@/lib/hooks/use-service-providers'
 import { CategorizedAlertsDialog } from '../dialogs/categorized-alerts-dialog'
+import { FinancialBreakdownDialog, type BreakdownViewType } from '../dialogs/financial-breakdown-dialog'
 import { getTodayNutrition, calculateTodayTotals } from '@/lib/nutrition-daily-tracker'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -128,6 +129,8 @@ export function CommandCenterRedesigned() {
   const [addHabitOpen, setAddHabitOpen] = useState(false)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [alertsDialogOpen, setAlertsDialogOpen] = useState(false)
+  const [financialBreakdownOpen, setFinancialBreakdownOpen] = useState(false)
+  const [financialBreakdownView, setFinancialBreakdownView] = useState<BreakdownViewType>('net-worth')
   const [nutritionGoalsVersion, setNutritionGoalsVersion] = useState(0)
   const [expiringDocuments, setExpiringDocuments] = useState<any[]>([]) // Google Drive documents from Supabase
   const [isExpiringDocsLoading, setIsExpiringDocsLoading] = useState(true)
@@ -869,7 +872,7 @@ export function CommandCenterRedesigned() {
       // Check if within current month OR last 30 days (whichever is more inclusive)
       const dateValue = meta?.date || item?.createdAt
       if (dateValue) {
-        const costDate = new Date(dateValue)
+        const costDate = new Date(String(dateValue))
         const isInCurrentMonth = costDate >= startOfMonth
         const isInLast30Days = costDate >= thirtyDaysAgo
         
@@ -936,6 +939,266 @@ export function CommandCenterRedesigned() {
       '😞'
     return `${emoji} ${rounded}/10`
   }
+
+  // Open financial breakdown dialog with specified view
+  const openFinancialBreakdown = (view: BreakdownViewType) => {
+    setFinancialBreakdownView(view)
+    setFinancialBreakdownOpen(true)
+  }
+
+  // Calculate expense items for the breakdown dialog
+  const expenseItems = useMemo(() => {
+    const items = Array.isArray(data.financial) ? data.financial : []
+    const insuranceItems = Array.isArray(data.insurance) ? data.insurance : []
+    const digitalItems = Array.isArray(data.digital) ? data.digital : []
+    const homeItems = Array.isArray(data.home) ? data.home : []
+    const vehicleItems = Array.isArray(data.vehicles) ? data.vehicles : []
+    
+    const result: {
+      housing: Array<{ title: string; amount: number; type?: string }>
+      food: Array<{ title: string; amount: number; type?: string }>
+      insurance: Array<{ title: string; amount: number; type?: string }>
+      transport: Array<{ title: string; amount: number; type?: string }>
+      utilities: Array<{ title: string; amount: number; type?: string }>
+      pets: Array<{ title: string; amount: number; type?: string }>
+      other: Array<{ title: string; amount: number; type?: string }>
+    } = {
+      housing: [],
+      food: [],
+      insurance: [],
+      transport: [],
+      utilities: [],
+      pets: [],
+      other: [],
+    }
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const parseAmount = (meta: any) => {
+      const raw = meta?.amount ?? meta?.value ?? meta?.balance ?? 0
+      const parsed = typeof raw === 'number' ? raw : parseFloat(String(raw))
+      return Number.isFinite(parsed) ? Math.abs(parsed) : 0
+    }
+
+    const normaliseTokens = (meta: any) =>
+      [meta?.type, meta?.itemType, meta?.logType, meta?.category, meta?.transactionCategory]
+        .filter(Boolean)
+        .map((value: any) => String(value).toLowerCase())
+
+    // Process financial domain expenses
+    items.forEach(item => {
+      const meta = (item?.metadata || {}) as Record<string, unknown>
+      const amount = parseAmount(meta)
+      if (!amount) return
+
+      const tokens = normaliseTokens(meta)
+      const dateValue = meta?.date || meta?.timestamp || item?.createdAt
+      const occurredAt = dateValue ? new Date(String(dateValue)) : null
+      if (occurredAt && occurredAt < thirtyDaysAgo) return
+
+      const isExpense = tokens.some(token =>
+        ['expense', 'spending', 'purchase', 'payment', 'cashflow-expense'].includes(token)
+      ) || meta?.logType === 'expense'
+
+      if (!isExpense) return
+
+      const category = String(meta?.category || meta?.transactionCategory || '').toLowerCase()
+      const typeValue = String(meta?.type || meta?.itemType || '')
+      const entry = { title: item.title || 'Expense', amount, type: typeValue || undefined }
+
+      if (category.includes('hous') || category.includes('rent') || category.includes('mort')) {
+        result.housing.push(entry)
+      } else if (category.includes('food') || category.includes('groc') || category.includes('dining')) {
+        result.food.push(entry)
+      } else if (category.includes('insur')) {
+        result.insurance.push(entry)
+      } else if (category.includes('trans') || category.includes('car') || category.includes('gas')) {
+        result.transport.push(entry)
+      } else if (category.includes('utilit') || category.includes('electric') || category.includes('internet')) {
+        result.utilities.push(entry)
+      } else {
+        result.other.push(entry)
+      }
+    })
+
+    // Add insurance premiums
+    insuranceItems.forEach(item => {
+      const meta = (item?.metadata || {}) as Record<string, unknown>
+      const premium = parseFloat(String(meta?.monthlyPremium || meta?.premium || 0))
+      if (premium > 0) {
+        result.insurance.push({ title: item.title || 'Insurance Premium', amount: premium, type: String(meta?.policyType || '') || undefined })
+      }
+    })
+
+    // Add digital subscriptions
+    digitalItems.forEach(item => {
+      const meta = item?.metadata || {}
+      const isSubscription = meta?.type === 'subscription' || meta?.category === 'subscription'
+      if (isSubscription) {
+        const cost = parseFloat(String(meta?.monthlyCost || meta?.cost || 0))
+        if (cost > 0) {
+          result.other.push({ title: item.title || 'Subscription', amount: cost, type: 'subscription' })
+        }
+      }
+    })
+
+    // Add home bills
+    homeItems.forEach(item => {
+      const meta = item?.metadata || {}
+      if (String(meta?.itemType || '').toLowerCase() !== 'bill') return
+      const amount = parseFloat(String(meta?.amount || 0))
+      if (amount <= 0) return
+
+      const category = String(meta?.category || '').toLowerCase()
+      const entry = { title: item.title || 'Home Bill', amount, type: category }
+
+      if (category === 'mortgage' || category === 'rent' || category === 'tax') {
+        result.housing.push(entry)
+      } else if (category === 'utilities') {
+        result.utilities.push(entry)
+      } else if (category === 'insurance') {
+        result.insurance.push(entry)
+      } else {
+        result.other.push(entry)
+      }
+    })
+
+    // Add vehicle costs
+    vehicleItems.forEach(item => {
+      const meta = (item?.metadata || {}) as Record<string, unknown>
+      if (String(meta?.type || '').toLowerCase() !== 'cost') return
+      const amount = parseFloat(String(meta?.amount || 0))
+      if (amount <= 0) return
+
+      const dateValue = meta?.date || item?.createdAt
+      if (dateValue) {
+        const costDate = new Date(String(dateValue))
+        if (costDate < thirtyDaysAgo) return
+      }
+
+      result.transport.push({ title: item.title || 'Vehicle Cost', amount, type: String(meta?.costType || '') || undefined })
+    })
+
+    return result
+  }, [data.financial, data.insurance, data.digital, data.home, data.vehicles])
+
+  // Calculate asset items for the breakdown dialog
+  const assetItems = useMemo(() => {
+    const homeData = Array.isArray(data.home) ? data.home : []
+    const vehicleData = Array.isArray(data.vehicles) ? data.vehicles : []
+    const collectiblesData = Array.isArray(data.collectibles) ? data.collectibles : []
+    const appliancesData = Array.isArray(data.appliances) ? data.appliances : []
+    const miscData = Array.isArray(data.miscellaneous) ? data.miscellaneous : []
+    const financialData = Array.isArray(data.financial) ? data.financial : []
+
+    const result: {
+      home: Array<{ title: string; value: number; type?: string }>
+      vehicles: Array<{ title: string; value: number; type?: string }>
+      collectibles: Array<{ title: string; value: number; type?: string }>
+      appliances: Array<{ title: string; value: number; type?: string }>
+      misc: Array<{ title: string; value: number; type?: string }>
+      financial: Array<{ title: string; value: number; type?: string }>
+    } = {
+      home: [],
+      vehicles: [],
+      collectibles: [],
+      appliances: [],
+      misc: [],
+      financial: [],
+    }
+
+    // Home/Property
+    homeData.forEach(item => {
+      const meta = item?.metadata as any
+      if (meta?.type === 'property' || meta?.itemType === 'property' || meta?.logType === 'property-value') {
+        const value = parseFloat(meta?.value || meta?.estimatedValue || meta?.propertyValue || '0')
+        if (value > 0) {
+          result.home.push({ title: item.title || 'Property', value, type: 'property' })
+        }
+      }
+    })
+
+    // Vehicles
+    vehicleData.forEach(item => {
+      const meta = item?.metadata as any
+      if (meta?.type === 'vehicle') {
+        const value = parseFloat(meta?.estimatedValue || meta?.value || '0')
+        if (value > 0) {
+          result.vehicles.push({ title: item.title || 'Vehicle', value, type: meta?.make })
+        }
+      }
+    })
+
+    // Collectibles
+    collectiblesData.forEach(item => {
+      const meta = item?.metadata as any
+      const value = parseFloat(meta?.estimatedValue || meta?.value || meta?.currentValue || '0')
+      if (value > 0) {
+        result.collectibles.push({ title: item.title || 'Collectible', value, type: meta?.category })
+      }
+    })
+
+    // Appliances
+    appliancesData.forEach(item => {
+      const meta = item?.metadata as any
+      const value = parseFloat(meta?.estimatedValue || meta?.currentValue || meta?.purchasePrice || '0')
+      if (value > 0) {
+        result.appliances.push({ title: item.title || 'Appliance', value, type: meta?.category })
+      }
+    })
+
+    // Miscellaneous
+    miscData.forEach(item => {
+      const meta = item?.metadata as any
+      if (meta?.itemType === 'general-notes') return
+      const value = parseFloat(meta?.estimatedValue || meta?.value || meta?.purchasePrice || '0')
+      if (value > 0) {
+        result.misc.push({ title: item.title || 'Item', value, type: meta?.category })
+      }
+    })
+
+    // Financial Assets (non-debt items)
+    financialData.forEach(item => {
+      const meta = item?.metadata as any
+      const type = String(meta?.accountType || meta?.type || '').toLowerCase()
+      const itemType = String(meta?.itemType || '').toLowerCase()
+      const isDebt = itemType === 'debt' || ['credit', 'loan', 'mortgage', 'liability', 'debt'].some(k => type.includes(k))
+      
+      if (!isDebt) {
+        const value = Number(meta?.balance ?? meta?.currentValue ?? meta?.value ?? 0)
+        if (value > 0) {
+          result.financial.push({ title: item.title || 'Account', value, type: meta?.accountType })
+        }
+      }
+    })
+
+    return result
+  }, [data.home, data.vehicles, data.collectibles, data.appliances, data.miscellaneous, data.financial])
+
+  // Calculate liability items for the breakdown dialog
+  const liabilityItems = useMemo(() => {
+    const financialData = Array.isArray(data.financial) ? data.financial : []
+    const items: Array<{ title: string; amount: number; type?: string }> = []
+
+    financialData.forEach(item => {
+      const meta = item?.metadata as any
+      const type = String(meta?.accountType || meta?.type || '').toLowerCase()
+      const itemType = String(meta?.itemType || '').toLowerCase()
+      const loanType = String(meta?.loanType || '').toLowerCase()
+      
+      const isDebt = itemType === 'debt' || 
+        ['credit', 'loan', 'mortgage', 'liability', 'debt'].some(k => type.includes(k) || loanType.includes(k))
+
+      if (isDebt) {
+        const amount = Math.abs(Number(meta?.currentBalance ?? meta?.balance ?? meta?.currentValue ?? meta?.value ?? 0))
+        if (amount > 0) {
+          items.push({ title: item.title || 'Debt', amount, type: itemType || loanType || type })
+        }
+      }
+    })
+
+    return items
+  }, [data.financial])
 
   const healthStats = useMemo(() => {
     const healthEntries = data.health ?? []
@@ -2316,6 +2579,32 @@ export function CommandCenterRedesigned() {
           {alertsDialogOpen && (
             <CategorizedAlertsDialog open={alertsDialogOpen} onClose={() => setAlertsDialogOpen(false)} />
           )}
+          
+          {/* Financial Breakdown Dialog */}
+          <FinancialBreakdownDialog
+            open={financialBreakdownOpen}
+            onClose={() => setFinancialBreakdownOpen(false)}
+            viewType={financialBreakdownView}
+            netWorthData={{
+              totalAssets: financeNetWorth.assets,
+              totalLiabilities: financeNetWorth.liabilities,
+              netWorth: financeNetWorth.netWorth,
+              breakdown: {
+                homeValue: calculateUnifiedNetWorth(data).breakdown.homeValue,
+                vehicleValue: calculateUnifiedNetWorth(data).breakdown.vehicleValue,
+                collectiblesValue: calculateUnifiedNetWorth(data).breakdown.collectiblesValue,
+                miscValue: calculateUnifiedNetWorth(data).breakdown.miscValue,
+                appliancesValue: calculateUnifiedNetWorth(data).breakdown.appliancesValue,
+                financialAssets: calculateUnifiedNetWorth(data).breakdown.financialAssets,
+                financialLiabilities: calculateUnifiedNetWorth(data).breakdown.financialLiabilities,
+                cashIncome: financeNetWorth.income,
+              }
+            }}
+            monthlyExpenses={{ ...monthlyExpenses, pets: petsStats.totalCosts || 0 }}
+            expenseItems={expenseItems}
+            assetItems={assetItems}
+            liabilityItems={liabilityItems}
+          />
 
           {/* Tasks Card */}
           <Card className="border-2 border-orange-200 dark:border-orange-900 hover:shadow-xl transition-all">
@@ -2456,7 +2745,10 @@ export function CommandCenterRedesigned() {
 
         {/* Financial Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+          <Card 
+            className="bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+            onClick={() => openFinancialBreakdown('net-worth')}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <DollarSign className="w-8 h-8 opacity-80" />
@@ -2466,11 +2758,14 @@ export function CommandCenterRedesigned() {
                 ${isClient ? (financeNetWorth.netWorth / 1000).toFixed(0) : 0}K
               </div>
               <div className="text-sm opacity-90">Net Worth</div>
-              <div className="text-xs opacity-75 mt-1">+$18.5K YTD</div>
+              <div className="text-xs opacity-75 mt-1">Click for breakdown</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card 
+            className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+            onClick={() => openFinancialBreakdown('assets')}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <TrendingUp className="w-8 h-8 opacity-80" />
@@ -2479,28 +2774,32 @@ export function CommandCenterRedesigned() {
                 ${isClient ? (financeNetWorth.assets / 1000).toFixed(0) : 0}K
               </div>
               <div className="text-sm opacity-90">Total Assets</div>
-              <div className="text-xs opacity-75 mt-1">6 categories</div>
+              <div className="text-xs opacity-75 mt-1">Click for breakdown</div>
             </CardContent>
           </Card>
 
-          <Link href="/domains/financial">
-            <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg transition-all cursor-pointer">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <CreditCard className="w-8 h-8 opacity-80" />
-                </div>
-                <div className="text-3xl font-bold mb-1" suppressHydrationWarning>
-                  ${isClient ? (financeNetWorth.liabilities / 1000).toFixed(1) : 0}K
-                </div>
-                <div className="text-sm opacity-90">Liabilities</div>
-                <div className="text-xs opacity-75 mt-1">
-                  Total debt across all accounts
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card 
+            className="bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+            onClick={() => openFinancialBreakdown('liabilities')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <CreditCard className="w-8 h-8 opacity-80" />
+              </div>
+              <div className="text-3xl font-bold mb-1" suppressHydrationWarning>
+                ${isClient ? (financeNetWorth.liabilities / 1000).toFixed(1) : 0}K
+              </div>
+              <div className="text-sm opacity-90">Liabilities</div>
+              <div className="text-xs opacity-75 mt-1">
+                Click for breakdown
+              </div>
+            </CardContent>
+          </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <Card 
+            className="bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+            onClick={() => openFinancialBreakdown('monthly-bills')}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <Activity className="w-8 h-8 opacity-80" />
@@ -2509,7 +2808,7 @@ export function CommandCenterRedesigned() {
                 ${isClient ? (totalMonthlyExpenses / 1000).toFixed(1) : 0}K
               </div>
               <div className="text-sm opacity-90">Monthly Bills</div>
-              <div className="text-xs opacity-75 mt-1">All expenses</div>
+              <div className="text-xs opacity-75 mt-1">Click for breakdown</div>
             </CardContent>
           </Card>
         </div>
@@ -2522,7 +2821,11 @@ export function CommandCenterRedesigned() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
               {Object.entries({ ...monthlyExpenses, pets: petsStats.totalCosts || 0 }).map(([category, amount]) => (
-                <div key={category} className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div 
+                  key={category} 
+                  className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-md transition-all hover:scale-105"
+                  onClick={() => openFinancialBreakdown(`expense-${category}` as BreakdownViewType)}
+                >
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400" suppressHydrationWarning>
                     ${isClient ? amount : 0}
                   </div>

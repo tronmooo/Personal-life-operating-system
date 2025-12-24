@@ -93,10 +93,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Enrich with phone numbers if missing
+    // Enrich with phone numbers - REQUIRED for calling
     const enrichedBusinesses: BusinessResult[] = []
+    const businessesWithoutPhone: string[] = []
     
-    for (const biz of businesses) {
+    // Fetch phone numbers in parallel for better performance
+    const enrichmentPromises = businesses.map(async (biz) => {
       let phone = biz.formattedPhone || biz.phone
 
       // Get details if no phone (call Place Details API)
@@ -111,17 +113,31 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      enrichedBusinesses.push({
-        id: biz.id || biz.placeId,
-        placeId: biz.placeId,
-        name: biz.name,
-        phone: phone,
-        formattedPhone: phone,
-        address: biz.address,
-        rating: biz.rating,
-        distance: biz.distance,
-        coordinates: biz.coordinates
-      })
+      return {
+        business: {
+          id: biz.id || biz.placeId,
+          placeId: biz.placeId,
+          name: biz.name,
+          phone: phone,
+          formattedPhone: phone,
+          address: biz.address,
+          rating: biz.rating,
+          distance: biz.distance,
+          coordinates: biz.coordinates
+        },
+        hasPhone: !!phone
+      }
+    })
+
+    const results = await Promise.all(enrichmentPromises)
+    
+    // Separate businesses with and without phone numbers
+    for (const result of results) {
+      if (result.hasPhone) {
+        enrichedBusinesses.push(result.business)
+      } else {
+        businessesWithoutPhone.push(result.business.name)
+      }
     }
 
     // Sort by distance (should already be sorted, but ensure)
@@ -132,18 +148,33 @@ export async function POST(request: NextRequest) {
       return 0
     })
 
-    console.log(`✅ Found ${enrichedBusinesses.length} businesses:`)
+    console.log(`✅ Found ${enrichedBusinesses.length} callable businesses (${businessesWithoutPhone.length} without phone):`)
     enrichedBusinesses.forEach((b, i) => {
       const distStr = b.distance ? `${b.distance.toFixed(2)} mi` : 'unknown'
-      console.log(`  ${i + 1}. ${b.name} - ${distStr} - ${b.address}`)
+      console.log(`  ${i + 1}. ${b.name} - ${distStr} - ${b.phone} - ${b.address}`)
     })
+    
+    if (businessesWithoutPhone.length > 0) {
+      console.log(`⚠️ Businesses without phone numbers (excluded): ${businessesWithoutPhone.join(', ')}`)
+    }
+
+    // If no businesses have phone numbers, return helpful error
+    if (enrichedBusinesses.length === 0 && businessesWithoutPhone.length > 0) {
+      return NextResponse.json({
+        success: false,
+        error: `Found ${businessesWithoutPhone.length} ${specificBusiness || intent} location(s) but none have phone numbers available in Google. Try a different search term or business.`,
+        businesses: [],
+        businessesWithoutPhone
+      })
+    }
 
     return NextResponse.json({
       success: true,
       businesses: enrichedBusinesses,
       userLocation: location,
       searchQuery,
-      totalFound: enrichedBusinesses.length
+      totalFound: enrichedBusinesses.length,
+      businessesWithoutPhone: businessesWithoutPhone.length > 0 ? businessesWithoutPhone : undefined
     })
 
   } catch (error: unknown) {

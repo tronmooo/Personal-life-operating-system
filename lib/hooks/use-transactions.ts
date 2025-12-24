@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 
 export interface TransactionInput {
@@ -63,6 +63,30 @@ export function useTransactions() {
   }, [supabase])
 
   useEffect(() => { load() }, [load])
+
+  // 🔄 REALTIME SUBSCRIPTION: Listen for changes to sync all hook instances
+  useEffect(() => {
+    const channel = supabase
+      .channel('transactions-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'transactions',
+        },
+        (payload) => {
+          console.log('🔄 [USE-TRANSACTIONS] Realtime change detected:', payload.eventType)
+          // Refetch data to ensure all components stay in sync
+          load()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, load])
 
   const add = useCallback(async (input: TransactionInput) => {
     setError(null)

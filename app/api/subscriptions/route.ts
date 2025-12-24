@@ -86,6 +86,11 @@ export async function POST(request: NextRequest) {
     // Extract icon letter from service name
     const iconLetter = body.service_name?.charAt(0).toUpperCase() || 'S'
     
+    // Determine auto_renew based on billing_type and renewal_type
+    const billingType = body.billing_type || 'recurring'
+    const renewalType = body.renewal_type || (billingType === 'recurring' ? 'auto' : 'expires')
+    const autoRenew = billingType === 'recurring' && renewalType === 'auto' && (body.auto_renew ?? true)
+    
     const subscriptionData = {
       user_id: user.id,
       service_name: body.service_name,
@@ -101,13 +106,19 @@ export async function POST(request: NextRequest) {
       last_four: body.last_four,
       account_url: body.account_url,
       account_email: body.account_email,
-      auto_renew: body.auto_renew ?? true,
+      auto_renew: autoRenew,
       reminder_enabled: body.reminder_enabled ?? true,
       reminder_days_before: body.reminder_days_before || 3,
       icon_color: body.icon_color,
       icon_letter: iconLetter,
       notes: body.notes,
-      tags: body.tags || []
+      tags: body.tags || [],
+      // NEW: Billing terms fields
+      billing_type: billingType,
+      renewal_type: renewalType,
+      contract_end_date: body.contract_end_date || null,
+      price_locked: body.price_locked ?? false,
+      original_term_months: body.original_term_months || null,
     }
 
     const { data: subscription, error } = await supabase

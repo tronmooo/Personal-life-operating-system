@@ -266,6 +266,9 @@ export interface DebtFormData {
 }
 
 // ============ BILL ============
+// Billing type distinguishes one-time payments from recurring bills
+export type BillBillingType = 'recurring' | 'one_time'
+
 export interface BillMetadata {
   itemType: 'bill'
   provider: string
@@ -273,13 +276,15 @@ export interface BillMetadata {
   amount: number
   dueDate: string // Day of month or full date
   recurring: boolean
+  billingType: BillBillingType // NEW: Explicit type for recurring vs one-time
   frequency?: 'monthly' | 'quarterly' | 'semi-annual' | 'annual'
   isAutoPay: boolean
-  status: 'pending' | 'paid' | 'overdue' | 'scheduled'
+  status: 'pending' | 'paid' | 'overdue' | 'scheduled' | 'cancelled' | 'expired'
   account?: string
   website?: string
   lastPaidDate?: string
   nextDueDate?: string
+  endDate?: string  // NEW: When this bill obligation ends
   notes?: string
 }
 
@@ -292,6 +297,7 @@ export interface Bill {
   due_date: string
   dueDate: string
   recurring: boolean
+  billingType: BillBillingType // NEW: Explicit type for recurring vs one-time
   frequency?: string
   is_autopay: boolean
   isAutoPay: boolean
@@ -300,6 +306,7 @@ export interface Bill {
   website?: string
   lastPaidDate?: string
   nextDueDate?: string
+  endDate?: string  // NEW: When this bill obligation ends (expiration date for one-time, end of service for recurring)
   notes?: string
   created_at: string
   updated_at: string
@@ -312,10 +319,12 @@ export interface BillFormData {
   amount: number
   dueDate: string
   recurring: boolean
+  billingType: BillBillingType // NEW: Explicit type for recurring vs one-time
   frequency?: 'monthly' | 'quarterly' | 'semi-annual' | 'annual'
   isAutoPay: boolean
-  status?: 'pending' | 'paid' | 'overdue'
+  status?: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'expired'
   account?: string
+  endDate?: string  // NEW: When this bill obligation ends
   notes?: string
 }
 

@@ -1,22 +1,27 @@
 // @ts-nocheck
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useFinance } from '@/lib/providers/finance-provider-new'
-import { Plus, Trash2, PieChart, TrendingUp, Target } from 'lucide-react'
+import { Plus, Trash2, PieChart, TrendingUp, Target, Calendar, DollarSign } from 'lucide-react'
 import { BudgetVisual } from '../visuals/tab-visuals'
 import { BudgetAllocationDonut, MonthOverMonthComparison, BudgetProgressRing } from '../charts/finance-visualizations'
+import { GoalDialog } from '../dialogs/goal-dialog-new'
+import { BudgetDialog } from '../dialogs/budget-dialog-new'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
 
 interface BudgetTabProps {
   onOpenBudgetDialog?: () => void
 }
 
 export function BudgetTab({ onOpenBudgetDialog }: BudgetTabProps = {}) {
-  const { monthlyBudget, goals, budgetCategories, deleteBudgetItem, transactions } = useFinance()
+  const { monthlyBudget, goals, budgetCategories, deleteBudgetItem, transactions, deleteGoal, updateGoalProgress } = useFinance()
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false)
+  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false)
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -229,7 +234,7 @@ export function BudgetTab({ onOpenBudgetDialog }: BudgetTabProps = {}) {
             <Button 
               size="sm" 
               className="btn-finance"
-              onClick={() => onOpenBudgetDialog?.()}
+              onClick={() => setBudgetDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Budget Item
@@ -240,7 +245,15 @@ export function BudgetTab({ onOpenBudgetDialog }: BudgetTabProps = {}) {
           {budgetCategories.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-500">
               <div className="text-4xl mb-4">📈</div>
-              <p>No budget items yet. Add your first budget category to get started.</p>
+              <p className="text-center mb-4">No budget items yet. Add your first budget category to track spending automatically.</p>
+              <Button 
+                variant="outline" 
+                className="border-slate-600 hover:bg-slate-700"
+                onClick={() => setBudgetDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Budget
+              </Button>
             </div>
           ) : (
             <div className="space-y-6">
@@ -329,43 +342,126 @@ export function BudgetTab({ onOpenBudgetDialog }: BudgetTabProps = {}) {
       {/* Financial Goals */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-slate-200">Financial Goals</CardTitle>
-          <CardDescription className="text-slate-400">
-            Track your progress toward major financial milestones
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-slate-200">Financial Goals</CardTitle>
+              <CardDescription className="text-slate-400">
+                Track your progress toward major financial milestones
+              </CardDescription>
+            </div>
+            <Button 
+              size="sm" 
+              className="btn-finance"
+              onClick={() => setGoalDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Goal
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Example Goals with Progress Bars */}
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-200">Emergency Fund Goal</span>
-                <span className="text-sm font-medium text-white">$15,500 / $20,000</span>
-              </div>
-              <Progress value={77.5} className="h-2" />
-              <p className="text-xs text-slate-400 mt-1">77.5% complete - $4,500 remaining</p>
+          {goals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+              <Target className="h-12 w-12 mb-4 text-slate-600" />
+              <p className="text-center mb-4">No financial goals yet. Set your first goal to stay motivated!</p>
+              <Button 
+                variant="outline" 
+                className="border-slate-600 hover:bg-slate-700"
+                onClick={() => setGoalDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Goal
+              </Button>
             </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-200">Vacation Fund Goal</span>
-                <span className="text-sm font-medium text-white">$800 / $2,500</span>
-              </div>
-              <Progress value={32} className="h-2" />
-              <p className="text-xs text-slate-400 mt-1">32% complete - $1,700 remaining</p>
+          ) : (
+            <div className="space-y-4">
+              {goals.map((goal) => {
+                const remaining = goal.targetAmount - goal.currentAmount
+                const isDebtPayoff = goal.goalType === 'debt-payoff'
+                
+                return (
+                  <div key={goal.id} className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-medium text-slate-200">{goal.title}</h4>
+                          {goal.priority === 'high' || goal.priority === 'critical' ? (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-400 rounded">
+                              {goal.priority}
+                            </span>
+                          ) : null}
+                        </div>
+                        {goal.description && (
+                          <p className="text-xs text-slate-400 mb-2">{goal.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">
+                          {isDebtPayoff 
+                            ? `${formatCurrency(goal.currentAmount)} paid / ${formatCurrency(goal.targetAmount)}`
+                            : `${formatCurrency(goal.currentAmount)} / ${formatCurrency(goal.targetAmount)}`
+                          }
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 hover:bg-red-900/30"
+                          onClick={() => deleteGoal(goal.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-400" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <Progress 
+                      value={Math.min(goal.progress, 100)} 
+                      className={cn(
+                        "h-2",
+                        goal.progress >= 100 && "[&>div]:bg-emerald-500",
+                        goal.progress >= 75 && goal.progress < 100 && "[&>div]:bg-blue-500",
+                        goal.progress >= 50 && goal.progress < 75 && "[&>div]:bg-amber-500",
+                        goal.progress < 50 && "[&>div]:bg-slate-500"
+                      )}
+                    />
+                    
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-slate-400">
+                        {goal.progress.toFixed(1)}% complete - {formatCurrency(remaining)} remaining
+                      </span>
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        {goal.targetDate && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Target: {format(new Date(goal.targetDate), 'MMM yyyy')}
+                          </span>
+                        )}
+                        {goal.monthlyContribution && goal.monthlyContribution > 0 && (
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            {formatCurrency(goal.monthlyContribution)}/mo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-200">Pay off Prime Visa</span>
-                <span className="text-sm font-medium text-white">$1,900 paid / $4,000 original</span>
-              </div>
-              <Progress value={47.5} className="h-2" />
-              <p className="text-xs text-slate-400 mt-1">$2,100 remaining - Target: Dec 2025</p>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
+      
+      {/* Goal Dialog */}
+      <GoalDialog 
+        open={goalDialogOpen} 
+        onOpenChange={setGoalDialogOpen} 
+      />
+      
+      {/* Budget Dialog */}
+      <BudgetDialog
+        open={budgetDialogOpen}
+        onOpenChange={setBudgetDialogOpen}
+      />
     </div>
   )
 }

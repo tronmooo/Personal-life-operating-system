@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
 import { Domain, DomainData } from '@/types/domains'
 import { createSafeBrowserClient } from '@/lib/supabase/safe-client'
-import { idbGet, idbSet } from '@/lib/utils/idb-cache'
 import { toast } from '@/lib/utils/toast'
 import {
   listDomainEntries,
@@ -12,6 +11,8 @@ import {
   deleteDomainEntry as deleteDomainEntryRecord,
 } from '@/lib/hooks/use-domain-entries'
 import { getUserSettings } from '@/lib/supabase/user-settings'
+
+// ✅ NO LOCAL STORAGE - All data comes exclusively from Supabase
 
 // Helper to get the active person ID
 async function getActivePersonId(): Promise<string> {
@@ -132,18 +133,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [activePersonId, setActivePersonId] = useState<string>('me')
 
-  const getLastDomainSnapshotKey = useCallback(
-    (personId: string) => `domain_entries_snapshot_last_${personId}`,
-    []
-  )
-  const getLastTasksSnapshotKey = useCallback((personId: string) => `tasks_snapshot_last_${personId}`, [])
-  const getLastHabitsSnapshotKey = useCallback((personId: string) => `habits_snapshot_last_${personId}`, [])
-  const getLastBillsSnapshotKey = useCallback((personId: string) => `bills_snapshot_last_${personId}`, [])
-
-  const getDomainSnapshotKey = useCallback(() => {
-    const userId = session?.user?.id
-    return userId ? `domain_entries_snapshot_${userId}_${activePersonId}` : null
-  }, [session?.user?.id, activePersonId])
+  // ✅ NO LOCAL STORAGE - Removed all IDB snapshot keys
 
   const emitDomainEvents = useCallback((domain: Domain, payload: DomainData[], action: 'add' | 'update' | 'delete') => {
     if (typeof window === 'undefined') return
@@ -213,7 +203,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  // 🔥 Load directly from Supabase (normalized domain_entries only) with IDB fallback
+  // ✅ Load directly from Supabase ONLY - No local storage/cache
   const loadData = useCallback(async (retryCount = 0) => {
     const maxRetries = 3
     setIsLoading(true)
@@ -228,8 +218,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // 🔧 FIX: Get session directly from Supabase client if provider state doesn't have it yet
-      // This handles the race condition where loadData is called before session state is set
+      // Get session directly from Supabase client if provider state doesn't have it yet
       let user = session?.user
       if (!user) {
         console.log('🔄 Provider session not available, checking Supabase directly...')
@@ -243,43 +232,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Treat missing session as non-fatal (no retries)
-      // Session state is managed by the provider, no need to check for errors here
-
+      // ✅ NO LOCAL STORAGE: If not authenticated, show empty state - no cached data
       if (!user) {
-        console.log('👀 Viewing as guest - no user data to load')
-        // Guest/offline mode: hydrate from last-known IndexedDB snapshots so dashboards can still render
-        // cached data even if the Supabase session cookie is missing/expired.
-        try {
-          const personId = await getActivePersonId()
-          setActivePersonId(personId)
-
-          const lastDomainKey = getLastDomainSnapshotKey(personId)
-          const lastTasksKey = getLastTasksSnapshotKey(personId)
-          const lastHabitsKey = getLastHabitsSnapshotKey(personId)
-          const lastBillsKey = getLastBillsSnapshotKey(personId)
-
-          const cachedDomains = await idbGet<Record<string, DomainData[]>>(lastDomainKey, {})
-          if (cachedDomains && Object.keys(cachedDomains).length > 0) {
-            console.log('🧠 Guest hydration: loaded cached domain data from IDB (last snapshot)', {
-              domainsCount: Object.keys(cachedDomains).length,
-              homeCount: cachedDomains.home?.length || 0,
-            })
-            setData(cachedDomains)
-          }
-
-          const cachedTasks = await idbGet<Task[]>(lastTasksKey, [])
-          if (Array.isArray(cachedTasks) && cachedTasks.length > 0) setTasks(cachedTasks)
-
-          const cachedHabits = await idbGet<Habit[]>(lastHabitsKey, [])
-          if (Array.isArray(cachedHabits) && cachedHabits.length > 0) setHabits(cachedHabits)
-
-          const cachedBills = await idbGet<Bill[]>(lastBillsKey, [])
-          if (Array.isArray(cachedBills) && cachedBills.length > 0) setBills(cachedBills)
-        } catch (e) {
-          console.warn('⚠️ Guest hydration failed (continuing with empty data):', e)
-        }
-
+        console.log('👀 Not authenticated - showing empty state (no local cache)')
+        setData({})
+        setTasks([])
+        setHabits([])
+        setBills([])
         setIsLoaded(true)
         setIsLoading(false)
         return
@@ -290,43 +249,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const currentPersonId = await getActivePersonId()
       setActivePersonId(currentPersonId)
 
-      const snapshotSuffix = `${user.id}_${currentPersonId}`
-      const domainSnapshotKey = `domain_entries_snapshot_${snapshotSuffix}`
-      const tasksSnapshotKey = `tasks_snapshot_${snapshotSuffix}`
-      const habitsSnapshotKey = `habits_snapshot_${snapshotSuffix}`
-      const billsSnapshotKey = `bills_snapshot_${snapshotSuffix}`
-      const lastDomainSnapshotKey = getLastDomainSnapshotKey(currentPersonId)
-      const lastTasksSnapshotKey = getLastTasksSnapshotKey(currentPersonId)
-      const lastHabitsSnapshotKey = getLastHabitsSnapshotKey(currentPersonId)
-      const lastBillsSnapshotKey = getLastBillsSnapshotKey(currentPersonId)
-
-      // Try cached snapshots first for instant UI (non-blocking)
-      // Load IDB cache for instant UI, but mark it as potentially stale
-      // Fresh Supabase data will overwrite this shortly
-      if (domainSnapshotKey) {
-        const cachedDomains = await idbGet<Record<string, DomainData[]>>(domainSnapshotKey, {})
-        // Only use cache for initial paint if we have data
-        // Fresh Supabase data will immediately overwrite this
-        if (cachedDomains && Object.keys(cachedDomains).length > 0) {
-          setData(cachedDomains)
-        }
-      }
-
-      if (tasksSnapshotKey) {
-        const cachedTasks = await idbGet<Task[]>(tasksSnapshotKey, [])
-        if (Array.isArray(cachedTasks) && cachedTasks.length > 0) setTasks(cachedTasks)
-      }
-
-      if (habitsSnapshotKey) {
-        const cachedHabits = await idbGet<Habit[]>(habitsSnapshotKey, [])
-        if (Array.isArray(cachedHabits) && cachedHabits.length > 0) setHabits(cachedHabits)
-      }
-
-      if (billsSnapshotKey) {
-        const cachedBills = await idbGet<Bill[]>(billsSnapshotKey, [])
-        if (Array.isArray(cachedBills) && cachedBills.length > 0) setBills(cachedBills)
-      }
-
+      // ✅ Load directly from Supabase - no IDB cache
       const domainEntries = await listDomainEntries(supabase)
 
       const domainsObj = domainEntries.reduce<Record<string, DomainData[]>>((acc, entry) => {
@@ -402,18 +325,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }))
       })
 
-      // ✅ FIX: Always overwrite IDB cache with fresh Supabase data BEFORE setting state
-      // This prevents stale cache from persisting if state update fails
-      if (domainSnapshotKey) {
-        try {
-          await idbSet(domainSnapshotKey, domainsObj)
-          await idbSet(lastDomainSnapshotKey, domainsObj)
-          console.log('✅ IDB cache overwritten with fresh Supabase data')
-        } catch (cacheErr) {
-          console.warn('Failed to update IDB cache:', cacheErr)
-        }
-      }
-
+      // ✅ NO LOCAL STORAGE - Set state directly from Supabase
       setData(domainsObj)
 
       const userId = user.id
@@ -452,10 +364,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             createdAt: t.created_at || new Date().toISOString(),
           }))
           setTasks(mappedTasks)
-          if (tasksSnapshotKey) {
-            idbSet(tasksSnapshotKey, mappedTasks)
-            idbSet(lastTasksSnapshotKey, mappedTasks)
-          }
+          // ✅ NO LOCAL STORAGE - Tasks loaded directly from Supabase
           console.log(`✅ Loaded ${mappedTasks.length} tasks from database`)
         }
       } catch (e) {
@@ -524,10 +433,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }
           })
           setHabits(mapped)
-          if (habitsSnapshotKey) {
-            idbSet(habitsSnapshotKey, mapped)
-            idbSet(lastHabitsSnapshotKey, mapped)
-          }
+          // ✅ NO LOCAL STORAGE - Habits loaded directly from Supabase
           console.log(`✅ Loaded ${mapped.length} habits from database`)
         }
       } catch (e) {
@@ -565,10 +471,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             createdAt: bill.created_at || new Date().toISOString(),
           }))
           setBills(mappedBills)
-          if (billsSnapshotKey) {
-            idbSet(billsSnapshotKey, mappedBills)
-            idbSet(lastBillsSnapshotKey, mappedBills)
-          }
+          // ✅ NO LOCAL STORAGE - Bills loaded directly from Supabase
           console.log(`✅ Loaded ${mappedBills.length} bills from database`)
         }
       } catch (e) {
@@ -619,7 +522,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [loadData])
 
-  // Reload a specific domain (optimized)
+  // Reload a specific domain directly from Supabase
   const reloadDomain = useCallback(async (domain: Domain) => {
     if (!session?.user || !supabase) {
       console.warn('⚠️ Not authenticated or Supabase not initialized - cannot reload domain')
@@ -632,18 +535,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const personId = await getActivePersonId()
       const entries = await listDomainEntries(supabase, domain, personId)
 
-      setData(prev => {
-        const updated = {
-          ...prev,
-          [domain]: entries,
-        }
-        const snapshotKey = `domain_entries_snapshot_${session.user.id}_${personId}`
-        // 🔧 FIX: Update IDB cache to keep it in sync with Supabase
-        idbSet(snapshotKey, updated).catch(err => {
-          console.warn('Failed to update IDB cache during reload:', err)
-        })
-        return updated
-      })
+      // ✅ NO LOCAL STORAGE - Update state directly from Supabase
+      setData(prev => ({
+        ...prev,
+        [domain]: entries,
+      }))
       console.log(`✅ Reloaded ${domain} domain from Supabase (${entries.length} entries)`) 
       
       // Dispatch domain-specific event
@@ -657,7 +553,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [session, supabase])
 
-  // 🔥 Listen for domain-data-updated events from useDomainEntries hook for INSTANT updates
+  // Listen for domain-data-updated events from useDomainEntries hook for INSTANT updates
   useEffect(() => {
     if (!session?.user || !supabase) return
 
@@ -667,17 +563,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       
       console.log(`🔥 [DataProvider] Received ${domain}-data-updated event:`, action)
       
-      // Immediately update local state with the new data for instant UI feedback
+      // ✅ NO LOCAL STORAGE - Update state directly
       if (Array.isArray(eventData)) {
         setData(prev => ({
           ...prev,
           [domain]: eventData,
         }))
-        
-        // Also update IDB cache
-        const personId = await getActivePersonId()
-        const snapshotKey = `domain_entries_snapshot_${session.user.id}_${personId}`
-        idbSet(snapshotKey, (await idbGet(snapshotKey)) || {}).catch(() => {})
       }
     }
 
@@ -701,7 +592,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const userId = session.user.id
     const currentPersonId = activePersonId
-    const domainSnapshotKey = `domain_entries_snapshot_${userId}_${currentPersonId}`
+    // ✅ NO LOCAL STORAGE - Removed IDB snapshot key
 
     const domainEntriesChannel = supabase
       .channel('realtime-domain-entries')
@@ -719,24 +610,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
           const domain = row.domain as Domain
           
-          // Handle DELETE events immediately without full reload to avoid stale data
+          // Handle DELETE events immediately without full reload
           if (payload.eventType === 'DELETE' && payload.old) {
             const deletedId = payload.old.id
-            console.log(`🔴🔴🔴 [DEBUG] Realtime DELETE detected for ${domain} entry ${deletedId}`)
+            console.log(`🔴 Realtime DELETE detected for ${domain} entry ${deletedId}`)
+            // ✅ NO LOCAL STORAGE - Update state directly
             setData(prev => {
               const currentDomainData = Array.isArray(prev[domain]) ? prev[domain] as DomainData[] : []
               const filteredData = currentDomainData.filter(item => item.id !== deletedId)
-              console.log(`🗑️ Realtime DELETE: Removed ${domain} entry ${deletedId} from local state (${currentDomainData.length} -> ${filteredData.length})`)
-              
-              // ✅ FIX: Update IDB cache using the new updated data (not stale closure)
-              const updatedSnapshot = { ...prev, [domain]: filteredData }
-              idbSet(domainSnapshotKey, updatedSnapshot).then(() => {
-                console.log('✅ IDB cache updated after realtime DELETE')
-              }).catch(err => {
-                console.warn('Failed to update IDB after realtime DELETE:', err)
-              })
-              
-              return updatedSnapshot
+              console.log(`🗑️ Realtime DELETE: Removed ${domain} entry ${deletedId} from state`)
+              return { ...prev, [domain]: filteredData }
             })
           } else {
             // For INSERT and UPDATE, do an immediate reload (no debounce for instant updates)
@@ -918,17 +801,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     setData(updated)
 
-    // Update IDB cache immediately with the same object used to update state
-    try {
-      const snapshotKey = getDomainSnapshotKey()
-      if (snapshotKey) {
-        await idbSet(snapshotKey, updated)
-      }
-      await idbSet(getLastDomainSnapshotKey(activePersonId), updated)
-    } catch (err) {
-      console.warn('Failed to update IDB cache:', err)
-    }
-
+    // ✅ NO LOCAL STORAGE - Data will be persisted to Supabase below
     // Emit events
     emitDomainEvents(domain, newDataArray, 'add')
 
@@ -938,14 +811,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // This avoids issues with multiple Supabase client instances
       if (!session?.user) {
         console.error('❌ Not authenticated - cannot save data: No session')
-        // Rollback optimistic update - restore previous state
+        // ✅ NO LOCAL STORAGE - Rollback optimistic update in state only
         setData(prev => ({ ...prev, [domain]: current }))
-        const snapshotKey = getDomainSnapshotKey()
-        if (snapshotKey) {
-          const rollbackSnapshot = { ...data, [domain]: current }
-          await idbSet(snapshotKey, rollbackSnapshot)
-        }
-        await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: current })
         emitDomainEvents(domain, current, isUpdate ? 'update' : 'delete')
 
         // Show error to user
@@ -972,15 +839,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Successfully saved to database:', savedEntry.id)
 
-      // Update with server response
-  const finalData = newDataArray.map(item => (item.id === entryId ? savedEntry : item))
-  setData(prev => ({ ...prev, [domain]: finalData }))
-  const snapshotKey = getDomainSnapshotKey()
-  if (snapshotKey) {
-    const finalSnapshot = { ...data, [domain]: finalData }
-    await idbSet(snapshotKey, finalSnapshot)
-  }
-  await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: finalData })
+      // ✅ NO LOCAL STORAGE - Update state with server response
+      const finalData = newDataArray.map(item => (item.id === entryId ? savedEntry : item))
+      setData(prev => ({ ...prev, [domain]: finalData }))
       emitDomainEvents(domain, finalData, 'update')
 
       // Show success toast
@@ -991,14 +852,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
       console.error('❌ Failed to persist domain entry:', error)
-      // Rollback optimistic update - restore previous state
+      // ✅ NO LOCAL STORAGE - Rollback optimistic update in state only
       setData(prev => ({ ...prev, [domain]: current }))
-      const snapshotKeyRollback = getDomainSnapshotKey()
-      if (snapshotKeyRollback) {
-        const rollbackSnapshot = { ...data, [domain]: current }
-        await idbSet(snapshotKeyRollback, rollbackSnapshot)
-      }
-      await idbSet(getLastDomainSnapshotKey(activePersonId), { ...data, [domain]: current })
       emitDomainEvents(domain, current, isUpdate ? 'update' : 'delete')
 
       // Show user-friendly error
@@ -1006,7 +861,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast.error('Failed to Save', `Could not save your data: ${error.message || 'Unknown error'}. Please try again or contact support.`)
       }
     }
-  }, [data, emitDomainEvents, supabase, session, getDomainSnapshotKey, getLastDomainSnapshotKey, activePersonId])
+  }, [data, emitDomainEvents, supabase, session])
 
   const updateData = useCallback(async (domain: Domain, id: string, updates: Partial<DomainData>) => {
     const previousDomainData = Array.isArray(data[domain]) ? data[domain] as DomainData[] : []
@@ -1039,17 +894,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return { ...prev, [domain]: newDataArray }
     })
 
-    // Update IDB cache immediately
-    try {
-      const snapshotKey = getDomainSnapshotKey()
-      if (snapshotKey) {
-        const snapshot = { ...data, [domain]: newDataArray }
-        await idbSet(snapshotKey, snapshot)
-      }
-    } catch (err) {
-      console.warn('Failed to update IDB cache:', err)
-    }
-
+    // ✅ NO LOCAL STORAGE - Data will be persisted to Supabase below
     // Emit events
     emitDomainEvents(domain, newDataArray, 'update')
 
@@ -1058,14 +903,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Use the session state from the provider instead of calling getSession() again
       if (!session?.user) {
         console.error('❌ Not authenticated - cannot update data: No session')
-  // Rollback
-  setData(prev => ({ ...prev, [domain]: previousDomainData }))
-  const snapshotKey = getDomainSnapshotKey()
-  if (snapshotKey) {
-    const rollbackSnapshot = { ...data, [domain]: previousDomainData }
-    await idbSet(snapshotKey, rollbackSnapshot)
-  }
-  emitDomainEvents(domain, previousDomainData, 'update')
+        // ✅ NO LOCAL STORAGE - Rollback in state only
+        setData(prev => ({ ...prev, [domain]: previousDomainData }))
+        emitDomainEvents(domain, previousDomainData, 'update')
 
         if (typeof window !== 'undefined') {
           toast.error('Authentication Required', 'Please sign in to save your changes.')
@@ -1088,33 +928,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Successfully updated in database:', id)
 
-      // Update with server response
-  const finalDataArray = newDataArray.map(item => (item.id === id ? updatedEntry : item))
-  setData(prev => ({ ...prev, [domain]: finalDataArray }))
-  const finalSnapshotKey = getDomainSnapshotKey()
-  if (finalSnapshotKey) {
-    const finalSnapshot = { ...data, [domain]: finalDataArray }
-    await idbSet(finalSnapshotKey, finalSnapshot)
-  }
-  emitDomainEvents(domain, finalDataArray, 'update')
+      // ✅ NO LOCAL STORAGE - Update state with server response
+      const finalDataArray = newDataArray.map(item => (item.id === id ? updatedEntry : item))
+      setData(prev => ({ ...prev, [domain]: finalDataArray }))
+      emitDomainEvents(domain, finalDataArray, 'update')
 
     } catch (error: any) {
       console.error('❌ Update error:', error)
-  // Rollback
-  setData(prev => ({ ...prev, [domain]: previousDomainData }))
-  const rollbackSnapshotKey = getDomainSnapshotKey()
-  if (rollbackSnapshotKey) {
-    const rollbackSnapshot = { ...data, [domain]: previousDomainData }
-    await idbSet(rollbackSnapshotKey, rollbackSnapshot)
-  }
-  emitDomainEvents(domain, previousDomainData, 'update')
+      // ✅ NO LOCAL STORAGE - Rollback in state only
+      setData(prev => ({ ...prev, [domain]: previousDomainData }))
+      emitDomainEvents(domain, previousDomainData, 'update')
 
       if (typeof window !== 'undefined') {
         const { toast } = await import('@/lib/utils/toast')
         toast.error('Failed to Update', `Could not save changes: ${error.message || 'Unknown error'}`)
       }
     }
-  }, [data, emitDomainEvents, supabase])
+  }, [data, emitDomainEvents, supabase, session])
 
   const deleteData = useCallback(async (domain: Domain, id: string) => {
     const previousDomainData = Array.isArray(data[domain]) ? (data[domain] as DomainData[]) : []
@@ -1126,23 +956,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     console.log(`🗑️ Deleting ${domain} entry:`, id)
 
-    // Optimistically remove from UI IMMEDIATELY
+    // ✅ NO LOCAL STORAGE - Optimistically remove from UI state only
     const newData = previousDomainData.filter(item => item.id !== id)
-    setData(prev => {
-      const updated = { ...prev, [domain]: newData }
-      return updated
-    })
-
-    // Update IDB cache immediately for offline support
-    try {
-      const snapshotKey = getDomainSnapshotKey()
-      if (snapshotKey) {
-        const snapshot = { ...data, [domain]: newData }
-        await idbSet(snapshotKey, snapshot)
-      }
-    } catch (err) {
-      console.warn('Failed to update IDB cache:', err)
-    }
+    setData(prev => ({ ...prev, [domain]: newData }))
 
     // Emit events for other components
     emitDomainEvents(domain, newData, 'delete')
@@ -1152,14 +968,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Use the session state from the provider instead of calling getSession() again
       if (!session?.user) {
         console.error('❌ Not authenticated - cannot delete data: No session')
-        // Rollback
-  setData(prev => ({ ...prev, [domain]: previousDomainData }))
-  const rollbackSnapshotKey = getDomainSnapshotKey()
-  if (rollbackSnapshotKey) {
-    const rollbackSnapshot = { ...data, [domain]: previousDomainData }
-    await idbSet(rollbackSnapshotKey, rollbackSnapshot)
-  }
-  emitDomainEvents(domain, previousDomainData, 'update')
+        // ✅ NO LOCAL STORAGE - Rollback in state only
+        setData(prev => ({ ...prev, [domain]: previousDomainData }))
+        emitDomainEvents(domain, previousDomainData, 'update')
 
         if (typeof window !== 'undefined') {
           toast.error('Authentication Required', 'Please sign in to delete data.')
@@ -1183,21 +994,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
       console.error('❌ Delete error:', error)
-  // Rollback
-  setData(prev => ({ ...prev, [domain]: previousDomainData }))
-  const deleteRollbackKey = getDomainSnapshotKey()
-  if (deleteRollbackKey) {
-    const rollbackSnapshot = { ...data, [domain]: previousDomainData }
-    await idbSet(deleteRollbackKey, rollbackSnapshot)
-  }
-  emitDomainEvents(domain, previousDomainData, 'update')
+      // ✅ NO LOCAL STORAGE - Rollback in state only
+      setData(prev => ({ ...prev, [domain]: previousDomainData }))
+      emitDomainEvents(domain, previousDomainData, 'update')
 
       if (typeof window !== 'undefined') {
         const { toast } = await import('@/lib/utils/toast')
         toast.error('Failed to Delete', `Could not delete item: ${error.message || 'Unknown error'}`)
       }
     }
-  }, [data, emitDomainEvents, supabase])
+  }, [data, emitDomainEvents, supabase, session])
 
   const getData = useCallback((domain: Domain) => {
     const domainData = data[domain]

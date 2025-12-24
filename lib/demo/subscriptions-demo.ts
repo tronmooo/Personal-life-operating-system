@@ -1,10 +1,16 @@
-import { Subscription, SubscriptionAnalytics } from '@/lib/hooks/use-subscriptions'
+import { Subscription, SubscriptionAnalytics, BillingType, RenewalType } from '@/lib/hooks/use-subscriptions'
 
 // Helper to build ISO date N days from today
 function daysFromNow(days: number) {
   const d = new Date()
   d.setDate(d.getDate() + days)
   return d.toISOString().split('T')[0]
+}
+
+// Default billing terms for demo subscriptions
+const defaultBillingTerms = {
+  billing_type: 'recurring' as BillingType,
+  renewal_type: 'auto' as RenewalType,
 }
 
 // Demo subscriptions closely matching the provided screenshots
@@ -33,6 +39,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['music'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-chatgpt',
@@ -54,6 +61,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['ai'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-netflix',
@@ -75,6 +83,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['tv'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-disney',
@@ -96,6 +105,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['tv'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-icloud',
@@ -117,6 +127,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['storage'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-adobe',
@@ -138,6 +149,10 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['design'],
       created_at: now,
       updated_at: now,
+      billing_type: 'recurring' as BillingType,
+      renewal_type: 'auto' as RenewalType,
+      original_term_months: 12, // Annual contract
+      price_locked: true,
     },
     {
       id: 'demo-setapp',
@@ -159,6 +174,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['software'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-github',
@@ -181,6 +197,9 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['ai', 'dev'],
       created_at: now,
       updated_at: now,
+      billing_type: 'recurring' as BillingType,
+      renewal_type: 'auto' as RenewalType,
+      contract_end_date: daysFromNow(4), // Trial ends
     },
     {
       id: 'demo-perplexity',
@@ -202,6 +221,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['ai'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     {
       id: 'demo-notion',
@@ -223,6 +243,7 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['productivity'],
       created_at: now,
       updated_at: now,
+      ...defaultBillingTerms,
     },
     // Non-active examples for health counts
     {
@@ -245,6 +266,8 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['tv'],
       created_at: now,
       updated_at: now,
+      billing_type: 'recurring' as BillingType,
+      renewal_type: 'manual' as RenewalType, // Paused, manual renewal
     },
     {
       id: 'demo-hbo',
@@ -267,6 +290,9 @@ export function getDemoSubscriptions(): Subscription[] {
       tags: ['tv'],
       created_at: now,
       updated_at: now,
+      billing_type: 'recurring' as BillingType,
+      renewal_type: 'expires' as RenewalType, // Cancelled, will expire
+      contract_end_date: daysFromNow(-5), // Already expired
     },
   ]
 }
