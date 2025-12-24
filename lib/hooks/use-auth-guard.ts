@@ -49,32 +49,34 @@ export function useAuthGuard() {
       return
     }
 
-    // Check initial session
+    // Check initial user - use getUser() instead of getSession() because
+    // getUser() validates against the server while getSession() may fail
+    // if cookies are HTTP-only or not accessible to JavaScript
     debugIngest({
-      location: 'use-auth-guard.ts:before-getSession',
-      message: 'About to call getSession()',
+      location: 'use-auth-guard.ts:before-getUser',
+      message: 'About to call getUser()',
       data: {},
       sessionId: 'debug-session',
       hypothesisId: 'H2',
     })
     
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getUser().then(({ data: { user: authUser }, error }) => {
       debugIngest({
-        location: 'use-auth-guard.ts:getSession-result',
-        message: 'getSession() completed',
-        data: { hasSession: !!session, hasUser: !!session?.user, userEmail: session?.user?.email || 'none', expiresAt: session?.expires_at || 'none' },
+        location: 'use-auth-guard.ts:getUser-result',
+        message: 'getUser() completed',
+        data: { hasUser: !!authUser, userEmail: authUser?.email || 'none', error: error?.message || 'none' },
         sessionId: 'debug-session',
         hypothesisId: 'H2',
       })
       
-      setIsAuthenticated(!!session?.user)
-      setUser(session?.user || null)
+      setIsAuthenticated(!!authUser)
+      setUser(authUser || null)
       setIsLoading(false)
       
       debugIngest({
         location: 'use-auth-guard.ts:state-set',
-        message: 'Auth state set after getSession',
-        data: { isAuthenticated: !!session?.user, isLoading: false },
+        message: 'Auth state set after getUser',
+        data: { isAuthenticated: !!authUser, isLoading: false },
         sessionId: 'debug-session',
         hypothesisId: 'H3',
       })

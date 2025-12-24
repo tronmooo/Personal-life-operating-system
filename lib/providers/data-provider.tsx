@@ -170,9 +170,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔐 DataProvider: Initial session check', session?.user?.email || 'NO USER')
-      setSession(session)
+    // Use getUser() instead of getSession() because getUser() validates
+    // the session against the server, which works with HTTP-only cookies
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      console.log('🔐 DataProvider: Initial user check', user?.email || 'NO USER', error?.message || '')
+      // Create a session-like object for backwards compatibility
+      setSession(user ? { user } : null)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
