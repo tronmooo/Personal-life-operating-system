@@ -159,6 +159,14 @@ export function DocumentUpload({
         metadata: metadataPayload,
       })
       setStatusMessage('Document uploaded successfully.')
+      
+      // 🔥 Emit global event to update all views (domains page, dashboards, etc.)
+      window.dispatchEvent(new CustomEvent('documents-updated', {
+        detail: { action: 'add', documentId: fileId }
+      }))
+      window.dispatchEvent(new CustomEvent('data-updated', {
+        detail: { domain: 'insurance', action: 'add', timestamp: Date.now() }
+      }))
 
       if (onUploadComplete) {
         onUploadComplete(fileId, {

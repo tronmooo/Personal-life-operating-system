@@ -944,8 +944,18 @@ export default function DomainsPage() {
       setRefreshKey(prev => prev + 1)
     }
     
+    // 🔥 Handle documents-updated event specifically
+    const handleDocumentsUpdate = (event: CustomEvent) => {
+      console.log('📄 [DomainsPage] Received documents-updated event:', event.detail)
+      setDocumentsReloadTrigger(prev => prev + 1)
+      setRefreshKey(prev => prev + 1)
+    }
+    
     // Listen for the global data-updated event
     window.addEventListener('data-updated', handleDataUpdate as EventListener)
+    
+    // Listen for documents-updated event
+    window.addEventListener('documents-updated', handleDocumentsUpdate as EventListener)
     
     // Also listen for specific domain events
     const domains = ['digital', 'financial', 'health', 'home', 'vehicles', 'pets', 'insurance', 'appliances', 'fitness', 'nutrition', 'mindfulness', 'relationships', 'education', 'career', 'travel', 'legal', 'miscellaneous', 'services', 'collectibles', 'utilities']
@@ -955,6 +965,7 @@ export default function DomainsPage() {
     
     return () => {
       window.removeEventListener('data-updated', handleDataUpdate as EventListener)
+      window.removeEventListener('documents-updated', handleDocumentsUpdate as EventListener)
       domains.forEach(domain => {
         window.removeEventListener(`${domain}-data-updated`, handleDataUpdate as EventListener)
       })
@@ -969,6 +980,11 @@ export default function DomainsPage() {
   }>({ providers: [], payments: [], analytics: { active: 0, pending: 0, monthlyTotal: 0 } })
   const [documentsFromTable, setDocumentsFromTable] = useState<DomainData[]>([])
   const supabase = createClientComponentClient()
+  
+  // 🔥 CRITICAL: Track reload triggers for specialized tables
+  const [documentsReloadTrigger, setDocumentsReloadTrigger] = useState(0)
+  const [appliancesReloadTrigger, setAppliancesReloadTrigger] = useState(0)
+  const [serviceProvidersReloadTrigger, setServiceProvidersReloadTrigger] = useState(0)
 
   // Load appliances from appliances table (separate from domain_entries)
   useEffect(() => {
@@ -1071,7 +1087,7 @@ export default function DomainsPage() {
     }
     
     loadAppliances()
-  }, [supabase])
+  }, [supabase, appliancesReloadTrigger])
 
   // Load service providers from dedicated service_providers table
   useEffect(() => {
@@ -1124,7 +1140,7 @@ export default function DomainsPage() {
     }
     
     loadServiceProviders()
-  }, [supabase])
+  }, [supabase, serviceProvidersReloadTrigger])
 
   // Load documents from documents table (for Document Manager / insurance domain)
   useEffect(() => {
@@ -1193,6 +1209,67 @@ export default function DomainsPage() {
     }
     
     loadDocuments()
+  }, [supabase, documentsReloadTrigger])
+  
+  // 🔥 CRITICAL: Realtime subscriptions for specialized tables (documents, appliances, service_providers)
+  useEffect(() => {
+    let documentsChannel: ReturnType<typeof supabase.channel> | null = null
+    let appliancesChannel: ReturnType<typeof supabase.channel> | null = null
+    let serviceProvidersChannel: ReturnType<typeof supabase.channel> | null = null
+    
+    const setupRealtimeSubscriptions = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      console.log('🔄 [DomainsPage] Setting up realtime subscriptions for specialized tables')
+      
+      // Subscribe to documents table changes
+      documentsChannel = supabase
+        .channel('realtime-documents-domains')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'documents' },
+          (payload) => {
+            console.log('📄 [DomainsPage] Documents table changed:', payload.eventType)
+            setDocumentsReloadTrigger(prev => prev + 1)
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
+      
+      // Subscribe to appliances table changes
+      appliancesChannel = supabase
+        .channel('realtime-appliances-domains')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'appliances' },
+          (payload) => {
+            console.log('🔧 [DomainsPage] Appliances table changed:', payload.eventType)
+            setAppliancesReloadTrigger(prev => prev + 1)
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
+      
+      // Subscribe to service_providers table changes
+      serviceProvidersChannel = supabase
+        .channel('realtime-service-providers-domains')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'service_providers' },
+          (payload) => {
+            console.log('🏢 [DomainsPage] Service providers table changed:', payload.eventType)
+            setServiceProvidersReloadTrigger(prev => prev + 1)
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
+    }
+    
+    setupRealtimeSubscriptions()
+    
+    return () => {
+      if (documentsChannel) supabase.removeChannel(documentsChannel)
+      if (appliancesChannel) supabase.removeChannel(appliancesChannel)
+      if (serviceProvidersChannel) supabase.removeChannel(serviceProvidersChannel)
+    }
   }, [supabase])
 
   // Enhanced getData that includes appliances, service providers, and documents from separate tables

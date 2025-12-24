@@ -224,6 +224,14 @@ export function AutoOCRUploader({
 
       setSuccess(true)
       
+      // 🔥 Emit global event to update all views (domains page, dashboards, etc.)
+      window.dispatchEvent(new CustomEvent('documents-updated', {
+        detail: { action: 'add', domain: domainId }
+      }))
+      window.dispatchEvent(new CustomEvent('data-updated', {
+        detail: { domain: 'insurance', action: 'add', timestamp: Date.now() }
+      }))
+      
       // Notify parent to reload documents
       setTimeout(() => {
         onDocumentUploaded()

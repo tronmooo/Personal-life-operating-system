@@ -406,8 +406,15 @@ export function DocumentUploadScanner({
       return
     }
 
-    // Trigger callback to update UI immediately
+    // 🔥 Emit global event to update all views (domains page, dashboards, etc.)
+    window.dispatchEvent(new CustomEvent('documents-updated', {
+      detail: { action: 'add', document }
+    }))
+    window.dispatchEvent(new CustomEvent('data-updated', {
+      detail: { domain: 'insurance', action: 'add', timestamp: Date.now() }
+    }))
 
+    // Trigger callback to update UI immediately
     onDocumentSaved(document)
     handleClose()
   }

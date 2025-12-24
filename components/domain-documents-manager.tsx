@@ -117,6 +117,14 @@ export function DomainDocumentsManager({
       // Update doc with saved ID
       const docWithId = { ...doc, id: savedDoc.id }
       onDocumentAdded(docWithId)
+      
+      // 🔥 Emit global event to update all views (domains page, dashboards, etc.)
+      window.dispatchEvent(new CustomEvent('documents-updated', {
+        detail: { action: 'add', document: docWithId }
+      }))
+      window.dispatchEvent(new CustomEvent('data-updated', {
+        detail: { domain: 'insurance', action: 'add', timestamp: Date.now() }
+      }))
     } catch (error: any) {
       console.error('Error saving document:', error)
       alert('Failed to save document: ' + error.message)
