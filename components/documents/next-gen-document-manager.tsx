@@ -307,37 +307,66 @@ export function NextGenDocumentManager({ onDocumentSaved, onCancel }: NextGenDoc
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Photo Capture */}
-              <Button
-                variant="outline"
-                className="h-32 flex flex-col gap-3 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950"
-                onClick={() => {
-                  setUploadMethod('photo')
-                  startCamera()
-                }}
-              >
-                <Camera className="h-12 w-12 text-purple-500" />
-                <div className="text-center">
-                  <div className="font-semibold">Take Photo</div>
-                  <div className="text-xs text-muted-foreground">
-                    Capture with camera
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              {/* Photo Capture - Added camera input for mobile */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  id="camera-capture-input"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      setUploadMethod('photo')
+                      const reader = new FileReader()
+                      reader.onload = (event) => {
+                        const result = event.target?.result as string
+                        setDocumentData({ ...documentData, file })
+                        processDocument(result, file)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full h-28 sm:h-32 flex flex-col gap-2 sm:gap-3 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950 active:border-purple-500 active:bg-purple-50 dark:active:bg-purple-950"
+                  onClick={() => {
+                    // On mobile, use the file input with capture instead of getUserMedia
+                    // This provides better UX on iOS and Android
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                    if (isMobile) {
+                      document.getElementById('camera-capture-input')?.click()
+                    } else {
+                      setUploadMethod('photo')
+                      startCamera()
+                    }
+                  }}
+                >
+                  <Camera className="h-10 w-10 sm:h-12 sm:w-12 text-purple-500" />
+                  <div className="text-center">
+                    <div className="font-semibold text-sm sm:text-base">Take Photo</div>
+                    <div className="text-xs text-muted-foreground">
+                      Capture with camera
+                    </div>
                   </div>
-                </div>
-              </Button>
+                </Button>
+              </div>
 
               {/* File Upload */}
               <Button
                 variant="outline"
-                className="h-32 flex flex-col gap-3 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950"
+                className="h-28 sm:h-32 flex flex-col gap-2 sm:gap-3 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 active:border-blue-500 active:bg-blue-50 dark:active:bg-blue-950"
                 onClick={() => {
                   setUploadMethod('file')
                   fileInputRef.current?.click()
                 }}
               >
-                <Upload className="h-12 w-12 text-blue-500" />
+                <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-blue-500" />
                 <div className="text-center">
-                  <div className="font-semibold">Upload File</div>
+                  <div className="font-semibold text-sm sm:text-base">Upload File</div>
                   <div className="text-xs text-muted-foreground">
                     PDF, JPG, PNG
                   </div>
@@ -347,15 +376,15 @@ export function NextGenDocumentManager({ onDocumentSaved, onCancel }: NextGenDoc
               {/* Manual Entry */}
               <Button
                 variant="outline"
-                className="h-32 flex flex-col gap-3 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950"
+                className="h-28 sm:h-32 flex flex-col gap-2 sm:gap-3 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950 active:border-green-500 active:bg-green-50 dark:active:bg-green-950"
                 onClick={() => {
                   setUploadMethod('manual')
                   handleManualEntry()
                 }}
               >
-                <Edit className="h-12 w-12 text-green-500" />
+                <Edit className="h-10 w-10 sm:h-12 sm:w-12 text-green-500" />
                 <div className="text-center">
-                  <div className="font-semibold">Manual Entry</div>
+                  <div className="font-semibold text-sm sm:text-base">Manual Entry</div>
                   <div className="text-xs text-muted-foreground">
                     Type information
                   </div>
@@ -366,7 +395,7 @@ export function NextGenDocumentManager({ onDocumentSaved, onCancel }: NextGenDoc
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
               className="hidden"
               onChange={handleFileSelect}
             />

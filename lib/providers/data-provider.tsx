@@ -576,7 +576,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     // Listen for events from all domains
-    const domains = ['digital', 'financial', 'health', 'home', 'vehicles', 'pets', 'insurance', 'appliances', 'fitness', 'nutrition', 'mindfulness', 'relationships', 'education', 'career', 'travel', 'legal', 'miscellaneous']
+    // 🔧 FIX: Added 'services' and 'collectibles' to match Domain type
+    const domains = ['digital', 'financial', 'health', 'home', 'vehicles', 'pets', 'insurance', 'appliances', 'fitness', 'nutrition', 'mindfulness', 'relationships', 'education', 'career', 'travel', 'legal', 'miscellaneous', 'services', 'collectibles', 'utilities']
     
     domains.forEach(d => {
       window.addEventListener(`${d}-data-updated`, handleDomainUpdate as EventListener)

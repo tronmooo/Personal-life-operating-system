@@ -378,8 +378,9 @@ export function useDomainEntries(domain?: Domain) {
     window.dispatchEvent(new CustomEvent('data-updated', {
       detail: { domain: entryDomain, data, action, timestamp: Date.now() }
     }))
+    // 🔧 FIX: Include domain in detail so DataProvider handler can identify which domain changed
     window.dispatchEvent(new CustomEvent(`${entryDomain}-data-updated`, {
-      detail: { data, action, timestamp: Date.now() }
+      detail: { domain: entryDomain, data, action, timestamp: Date.now() }
     }))
   }, [])
 

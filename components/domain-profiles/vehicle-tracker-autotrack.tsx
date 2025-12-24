@@ -308,8 +308,10 @@ export function VehicleTrackerAutoTrack() {
             trim: d?.trim || '',
             drivetrain: d?.drivetrain || '',
             condition: d?.condition || 'Good',
-            currentMileage: d?.currentMileage ? Number(d.currentMileage) : (d?.mileage ? Number(d.mileage) : 0),
-            estimatedValue: d?.estimatedValue ? Number(d.estimatedValue) : 0,
+            currentMileage: d?.currentMileage !== undefined && d?.currentMileage !== null 
+              ? Number(d.currentMileage) 
+              : (d?.mileage !== undefined && d?.mileage !== null ? Number(d.mileage) : 0),
+            estimatedValue: d?.estimatedValue !== undefined && d?.estimatedValue !== null ? Number(d.estimatedValue) : 0,
             lifeExpectancy: d?.lifeExpectancy ? Number(d.lifeExpectancy) : 10,
             monthlyInsurance: d?.monthlyInsurance ? Number(d.monthlyInsurance) : 0,
             location: d?.location || '',
@@ -490,7 +492,13 @@ export function VehicleTrackerAutoTrack() {
       alert(`AI Estimated Value: $${data.valuation.estimatedValue.toLocaleString()}\n\n${data.valuation.analysis}`)
     } catch (error: any) {
       console.error('Error fetching AI value:', error)
-      alert(error.message || 'Failed to fetch AI value. Please try again.')
+      // Show a more helpful message for API key configuration errors
+      const errorMessage = error.message || 'Failed to fetch AI value'
+      if (errorMessage.includes('AI valuation is not available') || errorMessage.includes('API key')) {
+        alert('⚠️ AI Valuation Unavailable\n\nThe AI valuation feature requires API keys to be configured in the deployment.\n\n✅ You can still add your vehicle manually - just enter your estimated value in the field above.')
+      } else {
+        alert(errorMessage)
+      }
     } finally {
       setIsFetchingValue(false)
     }

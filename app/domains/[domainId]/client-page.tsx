@@ -508,14 +508,14 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full min-h-[100px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full min-h-[120px] px-4 py-3 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     />
                   ) : field.type === 'select' ? (
                     <select
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     >
                       <option value="">Select {field.label}</option>
                       {field.options && Array.isArray(field.options) && field.options.map((option) => (
@@ -536,7 +536,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                       style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                       autoComplete="off"
                     />
@@ -547,7 +547,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     />
                   )}
                 </div>
@@ -590,14 +590,14 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full min-h-[100px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full min-h-[120px] px-4 py-3 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     />
                   ) : field.type === 'select' ? (
                     <select
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     >
                       <option value="">Select {field.label}</option>
                       {field.options?.map((option) => (
@@ -618,7 +618,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       required={field.required}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                       style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                       autoComplete="off"
                     />
@@ -629,7 +629,7 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
                       placeholder={field.placeholder}
                       value={formData[field.name] || ''}
                       onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full h-12 sm:h-10 px-4 py-3 sm:py-2 text-base sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     />
                   )}
                 </div>

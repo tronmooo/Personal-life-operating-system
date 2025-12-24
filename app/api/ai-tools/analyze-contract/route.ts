@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `You are a legal contract analyzer specializing in service provider agreements. Analyze the following ${serviceType} contract and provide a comprehensive breakdown.
 

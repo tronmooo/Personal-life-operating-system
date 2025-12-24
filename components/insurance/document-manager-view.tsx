@@ -389,12 +389,7 @@ export function DocumentManagerView() {
   }, [listFiles])
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-14 md:top-16 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white overflow-y-auto">
-      {/* Back Button */}
-      <div className="absolute top-4 left-4 z-10">
-        <BackButton className="bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-sm border border-slate-600" />
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white pb-6">
       {/* Preview Modal */}
       <DocumentPreviewModal 
         document={previewDoc}
@@ -404,7 +399,7 @@ export function DocumentManagerView() {
 
       {/* Add Document Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-2xl bg-slate-800 text-white border-slate-700 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl bg-slate-800 text-white border-slate-700 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">Add New Document</DialogTitle>
           </DialogHeader>
@@ -517,56 +512,64 @@ export function DocumentManagerView() {
 
       {/* Header */}
       <div className="p-4 pb-3">
-        <div className="max-w-7xl mx-auto flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">Document Manager</h1>
-            <p className="text-slate-300 text-sm">Organize and track all your important documents</p>
+        <div className="max-w-7xl mx-auto">
+          {/* Back Button - Mobile friendly */}
+          <div className="mb-4">
+            <BackButton className="bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-sm border border-slate-600 min-h-[44px] px-4" />
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setShowUploadDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700 h-10 px-6"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload & Scan
-            </Button>
-            <Button
-              onClick={() => setShowAddDialog(true)}
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700 h-10 px-6"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Manual Entry
-            </Button>
+          
+          {/* Title and Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1">Document Manager</h1>
+              <p className="text-slate-300 text-sm">Organize and track all your important documents</p>
+            </div>
+            <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => setShowUploadDialog(true)}
+                className="bg-blue-600 hover:bg-blue-700 h-12 sm:h-10 px-4 sm:px-6 w-full xs:w-auto"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                <span className="whitespace-nowrap">Upload & Scan</span>
+              </Button>
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 h-12 sm:h-10 px-4 sm:px-6 w-full xs:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="whitespace-nowrap">Manual Entry</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-slate-400 text-xs mb-1">Total Documents</div>
-              <div className="text-3xl font-bold">{stats.total}</div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="text-slate-400 text-[10px] sm:text-xs mb-1">Total</div>
+              <div className="text-2xl sm:text-3xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
           <Card className="bg-green-900/30 border-green-700/50 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-green-300 text-xs mb-1">Active</div>
-              <div className="text-3xl font-bold text-green-400">{stats.active}</div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="text-green-300 text-[10px] sm:text-xs mb-1">Active</div>
+              <div className="text-2xl sm:text-3xl font-bold text-green-400">{stats.active}</div>
             </CardContent>
           </Card>
           <Card className="bg-yellow-900/30 border-yellow-700/50 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-yellow-300 text-xs mb-1">Expiring Soon</div>
-              <div className="text-3xl font-bold text-yellow-400">{stats.expiring}</div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="text-yellow-300 text-[10px] sm:text-xs mb-1">Expiring</div>
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-400">{stats.expiring}</div>
             </CardContent>
           </Card>
           <Card className="bg-red-900/30 border-red-700/50 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-red-300 text-xs mb-1">Expired</div>
-              <div className="text-3xl font-bold text-red-400">{stats.expired}</div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="text-red-300 text-[10px] sm:text-xs mb-1">Expired</div>
+              <div className="text-2xl sm:text-3xl font-bold text-red-400">{stats.expired}</div>
             </CardContent>
           </Card>
         </div>
@@ -625,34 +628,38 @@ export function DocumentManagerView() {
 
       {/* Category Tabs */}
       <div className="max-w-7xl mx-auto px-4 mb-4">
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <Button
-            onClick={() => setSelectedCategory('all')}
-            variant={selectedCategory === 'all' ? 'default' : 'outline'}
-            size="sm"
-            className={selectedCategory === 'all' 
-              ? 'bg-blue-600 hover:bg-blue-700 h-8' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700 h-8'
-            }
-          >
-            <FileText className="h-3 w-3 mr-1.5" />
-            All Documents
-          </Button>
-
-          {categories.map(cat => (
+        <div className="relative -mx-4 px-4">
+          {/* Fade indicator for scrollable content */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-900 to-transparent pointer-events-none z-10 sm:hidden" />
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <Button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              variant={selectedCategory === cat ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory('all')}
+              variant={selectedCategory === 'all' ? 'default' : 'outline'}
               size="sm"
-              className={selectedCategory === cat 
-                ? 'bg-blue-600 hover:bg-blue-700 h-8' 
-                : 'border-slate-600 text-slate-300 hover:bg-slate-700 h-8'
-              }
+              className={`whitespace-nowrap flex-shrink-0 min-h-[40px] px-3 ${selectedCategory === 'all' 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              }`}
             >
-              {cat}
+              <FileText className="h-3 w-3 mr-1.5" />
+              All
             </Button>
-          ))}
+
+            {categories.map(cat => (
+              <Button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                variant={selectedCategory === cat ? 'default' : 'outline'}
+                size="sm"
+                className={`whitespace-nowrap flex-shrink-0 min-h-[40px] px-3 ${selectedCategory === cat 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {cat}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -664,26 +671,24 @@ export function DocumentManagerView() {
           </div>
         ) : filteredDocs.length === 0 ? (
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-8 text-center">
-              <FileText className="h-12 w-12 mx-auto mb-3 text-slate-600" />
-              <h3 className="text-lg font-semibold mb-1.5">No documents found</h3>
-              <p className="text-slate-400 text-sm mb-4">Get started by adding your first document</p>
-              <div className="flex gap-2">
+            <CardContent className="p-6 sm:p-8 text-center">
+              <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 text-slate-600" />
+              <h3 className="text-base sm:text-lg font-semibold mb-1.5">No documents found</h3>
+              <p className="text-slate-400 text-xs sm:text-sm mb-4">Get started by adding your first document</p>
+              <div className="flex flex-col xs:flex-row gap-2 justify-center">
                 <Button
                   onClick={() => setShowUploadDialog(true)}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
                 >
-                  <Upload className="h-3 w-3 mr-1.5" />
+                  <Upload className="h-4 w-4 mr-2" />
                   Upload & Scan
                 </Button>
                 <Button
                   onClick={() => setShowAddDialog(true)}
-                  size="sm"
                   variant="outline"
-                  className="border-slate-600 text-slate-300"
+                  className="border-slate-600 text-slate-300 min-h-[44px]"
                 >
-                  <Plus className="h-3 w-3 mr-1.5" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Manual Entry
                 </Button>
               </div>
@@ -714,75 +719,84 @@ export function DocumentManagerView() {
               
               return (
                 <Card key={doc.id} className="bg-slate-800/50 border-slate-700 backdrop-blur-sm hover:bg-slate-800/70 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        doc.category === 'Insurance' ? 'bg-purple-600' : 'bg-green-600'
-                      }`}>
-                        <Icon className="h-6 w-6 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-bold mb-0.5 truncate">{doc.name}</h3>
-                            <p className="text-slate-400 text-xs">{doc.category}</p>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      {/* Icon and main info */}
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          doc.category === 'Insurance' ? 'bg-purple-600' : 'bg-green-600'
+                        }`}>
+                          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm sm:text-base font-bold mb-0.5 truncate">{doc.name}</h3>
+                              <p className="text-slate-400 text-xs">{doc.category}</p>
+                            </div>
+                            <div className="flex items-center gap-1 ml-2">
+                              {doc.status === 'active' && (
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                              )}
+                              {doc.status === 'expiring' && (
+                                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 flex-shrink-0" />
+                              )}
+                              {doc.status === 'expired' && (
+                                <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 flex-shrink-0" />
+                              )}
+                            </div>
                           </div>
-                          {doc.status === 'active' && (
-                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 ml-2" />
-                          )}
-                          {doc.status === 'expiring' && (
-                            <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0 ml-2" />
-                          )}
-                          {doc.status === 'expired' && (
-                            <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 ml-2" />
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 text-xs mt-2">
-                          {doc.issuer && (
-                            <div>
-                              <div className="text-slate-500 text-[10px]">Issuer</div>
-                              <div className="font-medium truncate">{doc.issuer}</div>
-                            </div>
-                          )}
-                          {doc.number && (
-                            <div>
-                              <div className="text-slate-500 text-[10px]">Number</div>
-                              <div className="font-medium font-mono text-xs truncate">{doc.number}</div>
-                            </div>
-                          )}
-                          {doc.expiryDate && (
-                            <div>
-                              <div className="text-slate-500 text-[10px]">Expires</div>
-                              <div className={`font-medium ${
-                                doc.status === 'expired' ? 'text-red-400' :
-                                doc.status === 'expiring' ? 'text-yellow-400' :
-                                'text-green-400'
-                              }`}>
-                                {new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {/* Metadata grid - responsive */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-xs mt-2">
+                            {doc.issuer && (
+                              <div>
+                                <div className="text-slate-500 text-[10px]">Issuer</div>
+                                <div className="font-medium truncate">{doc.issuer}</div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                            {doc.number && (
+                              <div>
+                                <div className="text-slate-500 text-[10px]">Number</div>
+                                <div className="font-medium font-mono text-xs truncate">{doc.number}</div>
+                              </div>
+                            )}
+                            {doc.expiryDate && (
+                              <div className="col-span-2 sm:col-span-1">
+                                <div className="text-slate-500 text-[10px]">Expires</div>
+                                <div className={`font-medium ${
+                                  doc.status === 'expired' ? 'text-red-400' :
+                                  doc.status === 'expiring' ? 'text-yellow-400' :
+                                  'text-green-400'
+                                }`}>
+                                  {new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex gap-1.5 flex-shrink-0">
+                      {/* Action buttons - always visible on mobile */}
+                      <div className="flex gap-2 flex-shrink-0 justify-end sm:flex-col sm:gap-1.5">
                         <Button
                           onClick={() => setExpandedDocId(isExpanded ? null : doc.id)}
                           size="sm"
                           variant={isExpanded ? "default" : "outline"}
-                          className={isExpanded 
-                            ? "bg-blue-600 hover:bg-blue-700 h-8 w-8 p-0" 
-                            : "border-slate-600 hover:bg-slate-700 h-8 w-8 p-0"
-                          }
+                          className={`min-h-[40px] sm:min-h-0 px-3 sm:px-0 sm:h-8 sm:w-8 ${isExpanded 
+                            ? "bg-blue-600 hover:bg-blue-700" 
+                            : "border-slate-600 hover:bg-slate-700"
+                          }`}
                         >
                           <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          <span className="ml-2 sm:hidden">{isExpanded ? 'Hide' : 'View'}</span>
                         </Button>
                         <Button
                           onClick={() => handleDelete(doc.id)}
                           variant="ghost"
                           size="sm"
-                          className="border border-slate-600 hover:bg-red-900/20 hover:border-red-600 h-8 w-8 p-0"
+                          className="border border-slate-600 hover:bg-red-900/20 hover:border-red-600 min-h-[40px] sm:min-h-0 px-3 sm:px-0 sm:h-8 sm:w-8"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
+                          <span className="ml-2 sm:hidden">Delete</span>
                         </Button>
                       </div>
                     </div>

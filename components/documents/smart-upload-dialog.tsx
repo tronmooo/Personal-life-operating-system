@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useRef, useCallback, ReactNode } from 'react'
+import { useState, useRef, useCallback, ReactNode, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Camera, Upload, Loader2, AlertCircle, FileText, Image as ImageIcon, CheckCircle } from 'lucide-react'
+import { Camera, Upload, Loader2, AlertCircle, FileText, Image as ImageIcon, CheckCircle, Smartphone } from 'lucide-react'
 import { Domain } from '@/types/domains'
 import { DynamicReviewForm } from './dynamic-review-form'
 import { EnhancedExtractedData } from '@/lib/ai/enhanced-document-extractor'
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DOMAIN_CONFIGS } from '@/types/domains'
+import { toast } from 'sonner'
 
 type ProcessingStage = 'idle' | 'uploading' | 'scanning' | 'classifying' | 'extracting' | 'review' | 'quick-upload' | 'preview-confirm' | 'saving' | 'complete'
 
@@ -48,6 +49,18 @@ export function SmartUploadDialog({
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('')
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      setIsMobile(isMobileDevice)
+      console.log('📱 Mobile device detected:', isMobileDevice)
+    }
+    checkMobile()
+  }, [])
 
   // Reset state when dialog opens/closes
   const handleOpenChange = (newOpen: boolean) => {
@@ -91,18 +104,36 @@ export function SmartUploadDialog({
     }
   }, [])
 
-  // Handle file selection
+  // Handle file selection - Enhanced for mobile compatibility
   const handleFileSelect = async (selectedFile: File) => {
+    console.log('📸 handleFileSelect called')
+    console.log('   File name:', selectedFile.name)
+    console.log('   File type:', selectedFile.type)
+    console.log('   File size:', selectedFile.size, 'bytes')
+    
+    // Show toast for feedback on mobile
+    toast.info(`Processing: ${selectedFile.name}`)
+    
     // Validate file size (10MB max)
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setError('File size must be less than 10MB')
+      const errorMsg = 'File size must be less than 10MB'
+      setError(errorMsg)
+      toast.error(errorMsg)
       return
     }
 
-    // Validate file type
-    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!validTypes.includes(selectedFile.type)) {
-      setError('Please upload a PDF or image file (JPG, PNG, WEBP)')
+    // More permissive type validation for mobile cameras
+    // Mobile browsers sometimes report different MIME types
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+    const isImage = selectedFile.type.startsWith('image/') || 
+                    selectedFile.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)
+    const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.endsWith('.pdf')
+    
+    if (!isImage && !isPdf) {
+      const errorMsg = `Unsupported file type: ${selectedFile.type || 'unknown'}. Please upload a photo or PDF.`
+      setError(errorMsg)
+      toast.error(errorMsg)
+      console.error('❌ Invalid file type:', selectedFile.type)
       return
     }
 
@@ -110,8 +141,9 @@ export function SmartUploadDialog({
     setError(null)
     
     // For photos, call OpenAI Vision DIRECTLY (fastest!)
-    const isPhoto = selectedFile.type.startsWith('image/')
-    if (isPhoto) {
+    if (isImage) {
+      console.log('🖼️ Processing image file...')
+      toast.info('Analyzing document with AI...')
       setStage('scanning')
       setProgress(20)
       
@@ -155,29 +187,36 @@ export function SmartUploadDialog({
           const responseText = await scanResponse.text()
           console.log('📝 Response body (raw):', responseText.substring(0, 500))
           
-          if (scanResponse.ok) {
-            try {
-              const result = JSON.parse(responseText)
-              console.log('✅ Auto-ingest SUCCESS:', result)
-              
-              if (!result.document) {
-                throw new Error('API returned success but no document data')
-              }
-              
-              setProgress(100)
-              setStage('complete')
-              
-              setTimeout(() => {
-                onComplete(result.document)
-                handleOpenChange(false)
-              }, 1000)
-            } catch (parseErr: any) {
-              console.error('❌ Failed to parse success response:', parseErr)
-              setError(`Server returned invalid data: ${parseErr.message}`)
-              setStage('idle')
-              setProgress(0)
-            }
-          } else {
+              if (scanResponse.ok) {
+                try {
+                  const result = JSON.parse(responseText)
+                  console.log('✅ Auto-ingest SUCCESS:', result)
+                  
+                  if (!result.document) {
+                    throw new Error('API returned success but no document data')
+                  }
+                  
+                  setProgress(100)
+                  setStage('complete')
+                  
+                  // Show success toast
+                  toast.success('Document saved successfully!', {
+                    description: result.extracted?.documentType || 'Document processed'
+                  })
+                  
+                  setTimeout(() => {
+                    onComplete(result.document)
+                    handleOpenChange(false)
+                  }, 1000)
+                } catch (parseErr: any) {
+                  console.error('❌ Failed to parse success response:', parseErr)
+                  const errorMsg = `Server returned invalid data: ${parseErr.message}`
+                  setError(errorMsg)
+                  toast.error(errorMsg)
+                  setStage('idle')
+                  setProgress(0)
+                }
+              } else {
             // Error response
             let errorData: any = {}
             try {
@@ -192,6 +231,7 @@ export function SmartUploadDialog({
             
             const errorMessage = errorData.error || errorData.message || 'Failed to process document'
             setError(`Upload failed: ${errorMessage}`)
+            toast.error(`Upload failed: ${errorMessage}`)
             setStage('idle')
             setProgress(0)
           }
@@ -203,11 +243,14 @@ export function SmartUploadDialog({
           console.error('   Error message:', fetchErr.message)
           console.error('   Error stack:', fetchErr.stack)
           
+          let errorMsg = ''
           if (fetchErr.name === 'AbortError') {
-            setError('⏱️ Upload timed out (45s). The server may be slow or the image is too large. Try a smaller image or click "Skip OCR & Upload Now".')
+            errorMsg = '⏱️ Upload timed out (45s). The server may be slow or the image is too large. Try a smaller image.'
           } else {
-            setError(`Network error: ${fetchErr.message}. Check your internet connection.`)
+            errorMsg = `Network error: ${fetchErr.message}. Check your internet connection.`
           }
+          setError(errorMsg)
+          toast.error(errorMsg)
           setStage('idle')
           setProgress(0)
         }
@@ -613,22 +656,40 @@ export function SmartUploadDialog({
         {stage === 'idle' && (
           <div className="space-y-4">
             <div
-              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center transition-colors cursor-pointer ${
                 dragActive
                   ? 'border-purple-500 bg-purple-50 dark:bg-purple-950'
-                  : 'border-gray-300 dark:border-gray-700 hover:border-purple-400'
+                  : 'border-gray-300 dark:border-gray-700 hover:border-purple-400 active:border-purple-500 active:bg-purple-50 dark:active:bg-purple-950'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  fileInputRef.current?.click()
+                }
+              }}
             >
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                onChange={(e) => {
+                  console.log('📁 File input onChange triggered')
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    console.log('📁 File selected from gallery:', file.name)
+                    handleFileSelect(file)
+                  } else {
+                    console.log('⚠️ No file selected')
+                  }
+                }}
               />
               <input
                 ref={cameraInputRef}
@@ -636,38 +697,77 @@ export function SmartUploadDialog({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                onChange={(e) => {
+                  console.log('📷 Camera input onChange triggered')
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    console.log('📷 Photo captured:', file.name, file.type, file.size)
+                    toast.success('Photo captured!')
+                    handleFileSelect(file)
+                  } else {
+                    console.log('⚠️ No photo captured - user may have cancelled')
+                  }
+                }}
               />
 
-              <Upload className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <Upload className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-gray-400" />
               
-              <h3 className="text-lg font-semibold mb-2">
-                Drop your document here
+              <h3 className="text-base sm:text-lg font-semibold mb-2">
+                Tap here to upload
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                or click to browse
+                or drag and drop a file
               </p>
 
+              {/* Mobile-optimized buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                {/* Take Photo - Primary action on mobile */}
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    console.log('📷 Take Photo button clicked')
+                    toast.info('Opening camera...')
+                    // Small delay for iOS compatibility
+                    setTimeout(() => {
+                      cameraInputRef.current?.click()
+                    }, 100)
+                  }}
                   size="lg"
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 >
-                  Choose File
+                  <Camera className="h-5 w-5 mr-2" />
+                  📸 Take Photo
                 </Button>
+                
+                {/* Choose File - Secondary */}
                 <Button
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    console.log('📁 Choose File button clicked')
+                    fileInputRef.current?.click()
+                  }}
                   size="lg"
                   variant="outline"
+                  className="w-full sm:w-auto"
                 >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Take Photo
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload File
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground mt-4">
-                Supports PDF, JPG, PNG, WEBP (max 10MB)
+                Supports PDF, JPG, PNG, WEBP, HEIC (max 10MB)
               </p>
+              
+              {/* Mobile hint */}
+              {isMobile && (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                    <Smartphone className="h-4 w-4" />
+                    <span>Tip: Point your camera at a driver&apos;s license, insurance card, or any document</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             <Alert className="bg-purple-50 border-purple-200 dark:bg-purple-950 dark:border-purple-900">

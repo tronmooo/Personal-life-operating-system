@@ -470,15 +470,24 @@ export function SmartDocumentUploadDialog({
 
             {/* File input area */}
             <div
-              className={`relative border-2 border-dashed rounded-lg p-8 transition-colors ${
+              className={`relative border-2 border-dashed rounded-lg p-6 sm:p-8 transition-colors cursor-pointer ${
                 dragActive
                   ? 'border-blue-500 bg-blue-900/20'
-                  : 'border-slate-600 hover:border-slate-500'
+                  : 'border-slate-600 hover:border-slate-500 active:border-blue-500 active:bg-blue-900/20'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  fileInputRef.current?.click()
+                }
+              }}
             >
               <input
                 ref={fileInputRef}
@@ -492,14 +501,17 @@ export function SmartDocumentUploadDialog({
                 className="hidden"
               />
               <div className="text-center">
-                <Upload className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-lg font-medium mb-2">Drop your document here or click to upload</p>
+                <Upload className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 text-slate-400" />
+                <p className="text-base sm:text-lg font-medium mb-2">Tap here to upload</p>
                 <p className="text-sm text-slate-400 mb-4">
                   Supports JPG, PNG, WEBP, PDF • Max 10MB
                 </p>
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fileInputRef.current?.click()
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Choose File

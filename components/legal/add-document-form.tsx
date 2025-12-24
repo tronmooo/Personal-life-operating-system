@@ -82,42 +82,101 @@ export function AddDocumentForm({ onCancel, onSuccess }: Props) {
           setFormData(prev => ({ ...prev, name: nameMatch[1].trim() }))
         }
 
-        // Extract dates - multiple patterns
-        const datePatterns = [
-          /(?:exp(?:ir(?:y|ation))?|valid\s+(?:until|thru)|expires?)[:\s]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/i,
-          /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/g
+        // Extract dates - comprehensive patterns for driver's licenses
+        // Driver's license date patterns:
+        // - EXP 01/15/28, EXP: 01-15-2028
+        // - 4d EXP 01/15/28 (AAMVA format)
+        // - EXPIRES: 01/15/2028
+        // - Various formats: MM/DD/YYYY, MM-DD-YYYY, MM/DD/YY
+        const expirationPatterns = [
+          // Explicit expiration labels
+          /(?:exp(?:ir(?:y|ation)?)?|4d\.?\s*exp)[:\s]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/gi,
+          /(?:expires?|valid\s+(?:until|thru|through))[:\s]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/gi,
+          // Date after EXP keyword on same line
+          /EXP[^\d]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/gi,
+          // AAMVA field 4d (expiration date on licenses)
+          /4d[:\s\.]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/gi,
         ]
 
-        // Try to find expiration date
-        for (const pattern of datePatterns) {
-          const matches = text.matchAll(new RegExp(pattern, 'gi'))
+        // Try explicit expiration patterns first
+        let foundExpiration = false
+        for (const pattern of expirationPatterns) {
+          const matches = text.matchAll(pattern)
           for (const match of matches) {
             const dateStr = match[1]
-            const dateParts = dateStr.split(/[-/]/)
-            
-            if (dateParts.length === 3) {
-              let year, month, day
-              
-              if (dateParts[2].length === 4) {
-                month = dateParts[0].padStart(2, '0')
-                day = dateParts[1].padStart(2, '0')
-                year = dateParts[2]
-              } else {
-                month = dateParts[0].padStart(2, '0')
-                day = dateParts[1].padStart(2, '0')
-                year = '20' + dateParts[2]
-              }
-              
-              const parsedDate = `${year}-${month}-${day}`
-              const daysFromNow = differenceInDays(new Date(parsedDate), new Date())
-              
-              // If date is in the future, likely an expiration date
-              if (daysFromNow > 0 && daysFromNow < 5000 && !formData.expirationDate) {
-                setFormData(prev => ({ ...prev, expirationDate: parsedDate }))
+            const parsed = parseDateString(dateStr)
+            if (parsed && !formData.expirationDate) {
+              const daysFromNow = differenceInDays(new Date(parsed), new Date())
+              // Expiration should be in the future (or recently past)
+              if (daysFromNow > -365 && daysFromNow < 5000) {
+                setFormData(prev => ({ ...prev, expirationDate: parsed }))
+                foundExpiration = true
                 break
               }
             }
           }
+          if (foundExpiration) break
+        }
+
+        // If no explicit expiration found, look for any future date
+        if (!foundExpiration) {
+          const genericDatePattern = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/g
+          const matches = text.matchAll(genericDatePattern)
+          const futureDates: { date: string; daysFromNow: number }[] = []
+          
+          for (const match of matches) {
+            const dateStr = match[1]
+            const parsed = parseDateString(dateStr)
+            if (parsed) {
+              const daysFromNow = differenceInDays(new Date(parsed), new Date())
+              if (daysFromNow > 0 && daysFromNow < 5000) {
+                futureDates.push({ date: parsed, daysFromNow })
+              }
+            }
+          }
+          
+          // Use the furthest future date as expiration (most likely for licenses)
+          if (futureDates.length > 0 && !formData.expirationDate) {
+            const furthestDate = futureDates.reduce((a, b) => 
+              a.daysFromNow > b.daysFromNow ? a : b
+            )
+            setFormData(prev => ({ ...prev, expirationDate: furthestDate.date }))
+          }
+        }
+
+        // Helper function to parse various date formats
+        function parseDateString(dateStr: string): string | null {
+          const parts = dateStr.split(/[-/]/)
+          if (parts.length !== 3) return null
+          
+          let year: string, month: string, day: string
+          
+          // Determine format based on part lengths and values
+          if (parts[2].length === 4) {
+            // MM/DD/YYYY or DD/MM/YYYY
+            month = parts[0].padStart(2, '0')
+            day = parts[1].padStart(2, '0')
+            year = parts[2]
+          } else if (parts[0].length === 4) {
+            // YYYY/MM/DD
+            year = parts[0]
+            month = parts[1].padStart(2, '0')
+            day = parts[2].padStart(2, '0')
+          } else {
+            // MM/DD/YY - assume 2000s for years < 50, 1900s otherwise
+            month = parts[0].padStart(2, '0')
+            day = parts[1].padStart(2, '0')
+            const shortYear = parseInt(parts[2])
+            year = shortYear < 50 ? '20' + parts[2].padStart(2, '0') : '19' + parts[2].padStart(2, '0')
+          }
+          
+          // Validate month and day
+          const monthNum = parseInt(month)
+          const dayNum = parseInt(day)
+          if (monthNum < 1 || monthNum > 12) return null
+          if (dayNum < 1 || dayNum > 31) return null
+          
+          return `${year}-${month}-${day}`
         }
 
         // Extract document number for name if specific document

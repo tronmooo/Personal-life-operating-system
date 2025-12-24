@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useSubscriptions } from '@/lib/hooks/use-subscriptions'
+import { useSubscriptions, Subscription } from '@/lib/hooks/use-subscriptions'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Search,
   MoreVertical,
@@ -15,7 +17,8 @@ import {
   CheckCircle2,
   Clock,
   Pause,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -33,6 +36,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils/currency'
 import { getCategoryColor } from '@/lib/utils/subscription-colors'
@@ -59,11 +76,68 @@ export function DigitalLifeSubscriptions() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [editingSub, setEditingSub] = useState<Subscription | null>(null)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    service_name: '',
+    cost: '',
+    frequency: 'monthly',
+    category: 'streaming',
+    status: 'active',
+    next_due_date: '',
+    contract_end_date: '',
+    auto_renew: true,
+    payment_method: '',
+    account_url: '',
+  })
 
-  const { subscriptions, loading, deleteSubscription } = useSubscriptions({
+  const { subscriptions, loading, deleteSubscription, updateSubscription } = useSubscriptions({
     category: category !== 'all' ? category : undefined,
     search: search || undefined
   })
+  
+  // Handle opening edit dialog
+  const handleEditClick = (sub: Subscription) => {
+    setEditingSub(sub)
+    setEditFormData({
+      service_name: sub.service_name || '',
+      cost: String(sub.cost || ''),
+      frequency: sub.frequency || 'monthly',
+      category: sub.category || 'streaming',
+      status: sub.status || 'active',
+      next_due_date: sub.next_due_date ? sub.next_due_date.split('T')[0] : '',
+      contract_end_date: sub.contract_end_date ? sub.contract_end_date.split('T')[0] : '',
+      auto_renew: sub.auto_renew ?? true,
+      payment_method: sub.payment_method || '',
+      account_url: sub.account_url || '',
+    })
+  }
+  
+  // Handle saving edit
+  const handleSaveEdit = async () => {
+    if (!editingSub) return
+    
+    setEditLoading(true)
+    try {
+      await updateSubscription(editingSub.id, {
+        service_name: editFormData.service_name,
+        cost: parseFloat(editFormData.cost) || 0,
+        frequency: editFormData.frequency,
+        category: editFormData.category,
+        status: editFormData.status,
+        next_due_date: editFormData.next_due_date || undefined,
+        contract_end_date: editFormData.contract_end_date || undefined,
+        auto_renew: editFormData.auto_renew,
+        payment_method: editFormData.payment_method || undefined,
+        account_url: editFormData.account_url || undefined,
+      })
+      setEditingSub(null)
+    } catch (error) {
+      // Error handled by hook
+    } finally {
+      setEditLoading(false)
+    }
+  }
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -255,7 +329,10 @@ export function DigitalLifeSubscriptions() {
                             align="end"
                             className="bg-slate-800 border-slate-700"
                           >
-                            <DropdownMenuItem className="text-slate-300 hover:bg-slate-700">
+                            <DropdownMenuItem 
+                              className="text-slate-300 hover:bg-slate-700"
+                              onClick={() => handleEditClick(sub)}
+                            >
                               <Edit className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
@@ -311,6 +388,198 @@ export function DigitalLifeSubscriptions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Subscription Dialog */}
+      <Dialog open={!!editingSub} onOpenChange={(open) => !open && setEditingSub(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Edit Subscription</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Service Name */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Service Name</Label>
+              <Input
+                value={editFormData.service_name}
+                onChange={(e) => setEditFormData({ ...editFormData, service_name: e.target.value })}
+                placeholder="e.g., Netflix"
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            </div>
+            
+            {/* Cost and Frequency */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Cost</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.cost}
+                  onChange={(e) => setEditFormData({ ...editFormData, cost: e.target.value })}
+                  placeholder="0.00"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">Frequency</Label>
+                <Select
+                  value={editFormData.frequency}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, frequency: value })}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="monthly" className="text-white">Monthly</SelectItem>
+                    <SelectItem value="yearly" className="text-white">Yearly</SelectItem>
+                    <SelectItem value="quarterly" className="text-white">Quarterly</SelectItem>
+                    <SelectItem value="weekly" className="text-white">Weekly</SelectItem>
+                    <SelectItem value="daily" className="text-white">Daily</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Category and Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Category</Label>
+                <Select
+                  value={editFormData.category}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="streaming" className="text-white">Streaming</SelectItem>
+                    <SelectItem value="software" className="text-white">Software</SelectItem>
+                    <SelectItem value="ai_tools" className="text-white">AI Tools</SelectItem>
+                    <SelectItem value="productivity" className="text-white">Productivity</SelectItem>
+                    <SelectItem value="cloud_storage" className="text-white">Cloud Storage</SelectItem>
+                    <SelectItem value="gaming" className="text-white">Gaming</SelectItem>
+                    <SelectItem value="music" className="text-white">Music</SelectItem>
+                    <SelectItem value="fitness" className="text-white">Fitness</SelectItem>
+                    <SelectItem value="news" className="text-white">News</SelectItem>
+                    <SelectItem value="other" className="text-white">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">Status</Label>
+                <Select
+                  value={editFormData.status}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="active" className="text-white">Active</SelectItem>
+                    <SelectItem value="trial" className="text-white">Trial</SelectItem>
+                    <SelectItem value="paused" className="text-white">Paused</SelectItem>
+                    <SelectItem value="cancelled" className="text-white">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Next Due Date and End Date */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Next Due Date</Label>
+                <Input
+                  type="date"
+                  value={editFormData.next_due_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, next_due_date: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">
+                  End Date <span className="text-slate-500">(optional)</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={editFormData.contract_end_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, contract_end_date: e.target.value })}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <p className="text-xs text-slate-400">
+                  Leave empty for recurring subscriptions with no end date
+                </p>
+              </div>
+            </div>
+            
+            {/* Payment Method */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Payment Method</Label>
+              <Input
+                value={editFormData.payment_method}
+                onChange={(e) => setEditFormData({ ...editFormData, payment_method: e.target.value })}
+                placeholder="e.g., Visa •••• 4242"
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            </div>
+            
+            {/* Account URL */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Account URL</Label>
+              <Input
+                type="url"
+                value={editFormData.account_url}
+                onChange={(e) => setEditFormData({ ...editFormData, account_url: e.target.value })}
+                placeholder="https://..."
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            </div>
+            
+            {/* Auto-renew checkbox */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit_auto_renew"
+                checked={editFormData.auto_renew}
+                onCheckedChange={(checked) => 
+                  setEditFormData({ ...editFormData, auto_renew: checked as boolean })
+                }
+                className="border-slate-700"
+              />
+              <Label
+                htmlFor="edit_auto_renew"
+                className="text-slate-300 cursor-pointer"
+              >
+                Auto-renew enabled
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingSub(null)}
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+              disabled={editLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={editLoading}
+            >
+              {editLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

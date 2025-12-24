@@ -199,43 +199,45 @@ export function SmartDocumentUploader({
     <div className="space-y-4">
       {!file && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-purple-500" />
-              Smart Document Upload with OCR
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 flex-shrink-0" />
+              <span className="truncate">Smart Document Upload</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center hover:border-purple-500 transition-colors">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 sm:p-8 text-center hover:border-purple-500 active:border-purple-500 active:bg-purple-50 dark:active:bg-purple-950 transition-colors cursor-pointer touch-manipulation">
               <Input
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*"
+                capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
-                id="file-upload"
+                id="smart-file-upload"
               />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-lg font-medium mb-2">Upload a Document</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  PDF, JPG, PNG, WEBP (max {maxSize}MB)
+              <label htmlFor="smart-file-upload" className="cursor-pointer block py-2">
+                <Upload className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-400" />
+                <p className="text-sm sm:text-lg font-medium mb-1 sm:mb-2">Tap to Upload</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+                  PDF, JPG, PNG (max {maxSize}MB)
                 </p>
-                <Button type="button">Choose File</Button>
+                <Button type="button" className="pointer-events-none min-h-[44px] px-6">
+                  Choose File
+                </Button>
               </label>
             </div>
 
-            <div className="mt-4 p-4 rounded-lg bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-900">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-purple-600 mt-0.5" />
-                <div className="text-sm">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-900">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                <div className="text-xs sm:text-sm">
                   <div className="font-semibold text-purple-700 dark:text-purple-300 mb-1">
-                    AI-Powered Extraction
+                    AI-Powered
                   </div>
-                  <ul className="text-purple-600 dark:text-purple-400 space-y-1">
-                    <li>✓ Automatic text extraction (OCR)</li>
-                    <li>✓ Smart date detection (expiration, renewal)</li>
-                    <li>✓ Policy/account number extraction</li>
-                    <li>✓ Auto-creates reminders for expiring documents</li>
+                  <ul className="text-purple-600 dark:text-purple-400 space-y-0.5 sm:space-y-1">
+                    <li>✓ OCR text extraction</li>
+                    <li>✓ Date detection</li>
+                    <li>✓ Auto-reminders</li>
                   </ul>
                 </div>
               </div>
@@ -246,38 +248,38 @@ export function SmartDocumentUploader({
 
       {file && !result && (
         <Card>
-          <CardHeader>
-            <CardTitle>Document Ready to Process</CardTitle>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Ready to Process</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-accent">
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-accent">
               {file.type === 'application/pdf' ? (
-                <FileText className="h-8 w-8 text-red-500" />
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 flex-shrink-0" />
               ) : (
-                <Image className="h-8 w-8 text-blue-500" />
+                <Image className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 flex-shrink-0" />
               )}
-              <div className="flex-1">
-                <div className="font-medium">{file.name}</div>
-                <div className="text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm sm:text-base truncate">{file.name}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={reset}>
+              <Button variant="ghost" size="sm" onClick={reset} className="min-h-[40px] min-w-[40px] p-2">
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
             {processing && progress && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{progress.message}</span>
-                  <span className="text-muted-foreground">{progress.progress}%</span>
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="font-medium truncate mr-2">{progress.message}</span>
+                  <span className="text-muted-foreground flex-shrink-0">{progress.progress}%</span>
                 </div>
                 <Progress value={progress.progress} className="h-2" />
                 {progress.stage === 'processing' && (
-                  <div className="flex items-center gap-2 text-sm text-purple-600">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Running OCR... this may take 10-30 seconds</span>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-purple-600">
+                    <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                    <span>Processing... 10-30 seconds</span>
                   </div>
                 )}
               </div>
@@ -286,12 +288,12 @@ export function SmartDocumentUploader({
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="text-sm">{error}</AlertDescription>
               </Alert>
             )}
 
             {!processing && !error && (
-              <Button onClick={processDocument} className="w-full" size="lg">
+              <Button onClick={processDocument} className="w-full min-h-[48px]" size="lg">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Process with AI
               </Button>
@@ -302,124 +304,125 @@ export function SmartDocumentUploader({
 
       {result && (
         <Card className="border-green-200 dark:border-green-900">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
-              <Check className="h-5 w-5" />
-              Document Processed Successfully!
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300 text-base sm:text-lg">
+              <Check className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="truncate">Processed Successfully!</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950">
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-green-50 dark:bg-green-950">
               {result.type === 'application/pdf' ? (
-                <FileText className="h-8 w-8 text-green-600" />
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0" />
               ) : (
-                <Image className="h-8 w-8 text-green-600" />
+                <Image className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0" />
               )}
-              <div className="flex-1">
-                <div className="font-medium text-green-700 dark:text-green-300">{result.name}</div>
-                <div className="text-sm text-green-600 dark:text-green-400">
-                  OCR Confidence: {result.ocrConfidence}%
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-green-700 dark:text-green-300 text-sm sm:text-base truncate">{result.name}</div>
+                <div className="text-xs sm:text-sm text-green-600 dark:text-green-400">
+                  Confidence: {result.ocrConfidence}%
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="font-semibold">Extracted Information:</div>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="font-semibold text-sm sm:text-base">Extracted Info:</div>
               
               {result.extractedData.documentType && (
-                <div className="flex items-center gap-2">
-                  <File className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Type:</span>
-                  <Badge variant="outline" className="capitalize">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <File className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Type:</span>
+                  <Badge variant="outline" className="capitalize text-xs">
                     {result.extractedData.documentType.replace(/_/g, ' ')}
                   </Badge>
                 </div>
               )}
 
               {result.extractedData.expirationDate && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm font-medium">Expiration:</span>
-                  <span className="text-sm">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium">Expires:</span>
+                  <span className="text-xs sm:text-sm">
                     {format(new Date(result.extractedData.expirationDate), 'MMM dd, yyyy')}
                   </span>
                   {result.reminderCreated && (
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                      Reminder Created
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-[10px] sm:text-xs">
+                      Reminder Set
                     </Badge>
                   )}
                 </div>
               )}
 
               {result.extractedData.renewalDate && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm">Renewal:</span>
-                  <span className="text-sm">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Renewal:</span>
+                  <span className="text-xs sm:text-sm">
                     {format(new Date(result.extractedData.renewalDate), 'MMM dd, yyyy')}
                   </span>
                 </div>
               )}
 
               {result.extractedData.policyNumber && (
-                <div className="flex items-center gap-2">
-                  <Hash className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Policy #:</span>
-                  <code className="text-sm bg-accent px-2 py-1 rounded">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <Hash className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Policy #:</span>
+                  <code className="text-xs sm:text-sm bg-accent px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate max-w-[150px] sm:max-w-none">
                     {result.extractedData.policyNumber}
                   </code>
                 </div>
               )}
 
               {result.extractedData.accountNumber && (
-                <div className="flex items-center gap-2">
-                  <Hash className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Account #:</span>
-                  <code className="text-sm bg-accent px-2 py-1 rounded">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <Hash className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Account #:</span>
+                  <code className="text-xs sm:text-sm bg-accent px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate max-w-[150px] sm:max-w-none">
                     {result.extractedData.accountNumber}
                   </code>
                 </div>
               )}
 
               {result.extractedData.amount && (
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Amount:</span>
-                  <span className="text-sm font-semibold">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Amount:</span>
+                  <span className="text-xs sm:text-sm font-semibold">
                     ${result.extractedData.amount.toLocaleString()}
                   </span>
                 </div>
               )}
 
               {result.extractedData.email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Email:</span>
-                  <span className="text-sm">{result.extractedData.email}</span>
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <Mail className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Email:</span>
+                  <span className="text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none">{result.extractedData.email}</span>
                 </div>
               )}
 
               {result.extractedData.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Phone:</span>
-                  <span className="text-sm">{result.extractedData.phone}</span>
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                  <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Phone:</span>
+                  <span className="text-xs sm:text-sm">{result.extractedData.phone}</span>
                 </div>
               )}
             </div>
 
             <div>
-              <Label>Add Notes (Optional)</Label>
+              <Label className="text-sm">Add Notes (Optional)</Label>
               <Textarea
-                placeholder="Add any additional notes about this document..."
+                placeholder="Additional notes..."
                 value={result.notes}
                 onChange={(e) => setResult({ ...result, notes: e.target.value })}
-                rows={3}
+                rows={2}
+                className="text-sm"
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={reset} variant="outline" className="flex-1">
+            <div className="flex flex-col xs:flex-row gap-2">
+              <Button onClick={reset} variant="outline" className="flex-1 min-h-[44px]">
                 Upload Another
               </Button>
               <Button 
@@ -427,7 +430,7 @@ export function SmartDocumentUploader({
                   onDocumentUploaded(result)
                   reset()
                 }}
-                className="flex-1"
+                className="flex-1 min-h-[44px]"
               >
                 Save Document
               </Button>

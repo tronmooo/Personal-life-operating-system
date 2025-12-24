@@ -2381,39 +2381,57 @@ export function CommandCenterRedesigned() {
       <div className="max-w-[1800px] mx-auto">
         
         {/* Content */}
-        <div className="p-4 md:p-6 space-y-6 contain-layout">
+        <div className="px-3 py-4 md:p-6 space-y-4 md:space-y-6 contain-layout">
 
         {/* Quick Add Dialogs */}
         {addTaskOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-sm rounded-lg bg-white dark:bg-gray-900 p-4 shadow-lg">
-              <div className="text-lg font-semibold mb-2">Add Task</div>
-              <input className="w-full border rounded p-2 mb-2 bg-transparent" placeholder="Task title" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} />
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <select className="border rounded p-2 bg-transparent" value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as any)}>
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setAddTaskOpen(false) }}
+          >
+            <div className="w-full max-w-sm rounded-lg bg-white dark:bg-gray-900 p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="text-lg font-semibold mb-3">Add Task</div>
+              <input 
+                className="w-full border rounded p-3 mb-3 bg-transparent text-base" 
+                placeholder="Task title" 
+                value={newTaskTitle} 
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                autoFocus
+              />
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <select className="border rounded p-3 bg-transparent text-base" value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as any)}>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                 </select>
-                <input className="border rounded p-2 bg-transparent" type="date" value={newTaskDueDate} onChange={(e) => setNewTaskDueDate(e.target.value)} />
+                <input className="border rounded p-3 bg-transparent text-base" type="date" value={newTaskDueDate} onChange={(e) => setNewTaskDueDate(e.target.value)} />
               </div>
-              <textarea className="w-full border rounded p-2 mb-3 bg-transparent" rows={3} placeholder="Notes (optional)" value={newTaskNotes} onChange={(e) => setNewTaskNotes(e.target.value)} />
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setAddTaskOpen(false)}>Cancel</Button>
-                <Button onClick={() => { if (!newTaskTitle.trim()) return; addTask({ title: newTaskTitle, completed: false, priority: newTaskPriority, dueDate: newTaskDueDate || undefined, notes: newTaskNotes || undefined } as any); setNewTaskTitle(''); setNewTaskNotes(''); setNewTaskDueDate(''); setNewTaskPriority('medium'); setAddTaskOpen(false); }}>Add</Button>
+              <textarea className="w-full border rounded p-3 mb-4 bg-transparent text-base" rows={3} placeholder="Notes (optional)" value={newTaskNotes} onChange={(e) => setNewTaskNotes(e.target.value)} />
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" size="lg" onClick={() => setAddTaskOpen(false)}>Cancel</Button>
+                <Button size="lg" onClick={() => { if (!newTaskTitle.trim()) return; addTask({ title: newTaskTitle, completed: false, priority: newTaskPriority, dueDate: newTaskDueDate || undefined, notes: newTaskNotes || undefined } as any); setNewTaskTitle(''); setNewTaskNotes(''); setNewTaskDueDate(''); setNewTaskPriority('medium'); setAddTaskOpen(false); }}>Add Task</Button>
               </div>
             </div>
           </div>
         )}
 
         {addHabitOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-sm rounded-lg bg-white dark:bg-gray-900 p-4 shadow-lg">
-              <div className="text-lg font-semibold mb-2">Add Habit</div>
-              <input className="w-full border rounded p-2 mb-2 bg-transparent" placeholder="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setAddHabitOpen(false) }}
+          >
+            <div className="w-full max-w-sm rounded-lg bg-white dark:bg-gray-900 p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="text-lg font-semibold mb-3">Add Habit</div>
+              <input 
+                className="w-full border rounded p-3 mb-3 bg-transparent text-base" 
+                placeholder="Habit name" 
+                value={newHabitName} 
+                onChange={(e) => setNewHabitName(e.target.value)}
+                autoFocus
+              />
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <select
-                  className="border rounded p-2 bg-background col-span-2"
+                  className="border rounded p-3 bg-background col-span-2 text-base"
                   value={newHabitFrequency}
                   onChange={(e) => setNewHabitFrequency(e.target.value as any)}
                 >
@@ -2422,7 +2440,7 @@ export function CommandCenterRedesigned() {
                   <option value="monthly">Monthly</option>
                 </select>
                 <input
-                  className="border rounded p-2 bg-background"
+                  className="border rounded p-3 bg-background text-base"
                   type="number"
                   min={1}
                   value={Number.isFinite(newHabitTarget as any) ? newHabitTarget : ''}
@@ -2436,10 +2454,15 @@ export function CommandCenterRedesigned() {
                   inputMode="numeric"
                 />
               </div>
-              <input className="w-full border rounded p-2 mb-3 bg-transparent" placeholder="Icon (emoji) e.g. ⭐" value={newHabitIcon} onChange={(e) => setNewHabitIcon(e.target.value)} />
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setAddHabitOpen(false)}>Cancel</Button>
-                <Button onClick={() => { if (!newHabitName.trim()) return; addHabit({ name: newHabitName, completed: false, streak: 0, frequency: newHabitFrequency, icon: newHabitIcon } as any); setNewHabitName(''); setNewHabitIcon('⭐'); setNewHabitTarget(1); setNewHabitFrequency('daily'); setAddHabitOpen(false); }}>Add</Button>
+              <input 
+                className="w-full border rounded p-3 mb-4 bg-transparent text-base" 
+                placeholder="Icon (emoji) e.g. ⭐" 
+                value={newHabitIcon} 
+                onChange={(e) => setNewHabitIcon(e.target.value)} 
+              />
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" size="lg" onClick={() => setAddHabitOpen(false)}>Cancel</Button>
+                <Button size="lg" onClick={() => { if (!newHabitName.trim()) return; addHabit({ name: newHabitName, completed: false, streak: 0, frequency: newHabitFrequency, icon: newHabitIcon } as any); setNewHabitName(''); setNewHabitIcon('⭐'); setNewHabitTarget(1); setNewHabitFrequency('daily'); setAddHabitOpen(false); }}>Add Habit</Button>
               </div>
             </div>
           </div>
@@ -2472,14 +2495,14 @@ export function CommandCenterRedesigned() {
         {/* Top Row - Priority Cards - True Masonry layout */}
         <Masonry
           breakpointCols={{ default: 2, 768: 1 }}
-          className="flex -ml-4 w-auto masonry-stable"
-          columnClassName="pl-4 bg-clip-padding"
+          className="flex -ml-3 md:-ml-4 w-auto masonry-stable"
+          columnClassName="pl-3 md:pl-4 bg-clip-padding"
         >
           {/* Smart Inbox Card - AI Email Parsing */}
-          <div className="mb-4 min-h-[200px]"><SmartInboxCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[200px]"><SmartInboxCard /></div>
 
           {/* Critical Alerts Card */}
-          <div className="mb-4 min-h-[180px]">
+          <div className="mb-3 md:mb-4 md:min-h-[180px]">
             <Card className="border-2 border-red-200 dark:border-red-900 hover:shadow-xl transition-all cursor-pointer h-full" onClick={() => setAlertsDialogOpen(true)}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
@@ -2530,7 +2553,7 @@ export function CommandCenterRedesigned() {
           </div>
 
           {/* Tasks Card */}
-          <div className="mb-4 min-h-[200px]">
+          <div className="mb-3 md:mb-4 md:min-h-[200px]">
             <Card className="border-2 border-orange-200 dark:border-orange-900 hover:shadow-xl transition-all h-full">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between">
@@ -2553,15 +2576,16 @@ export function CommandCenterRedesigned() {
                 <div className="space-y-2">
                   {tasks.slice(0, 3).map((task) => (
                     <div key={task.id} className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group">
-                      <div className="flex items-center gap-2 flex-1">
-                        <input 
-                          type="checkbox" 
-                          checked={!!task.completed} 
-                          className="w-4 h-4 cursor-pointer" 
-                          onChange={() => updateTask(task.id, { completed: !task.completed })} 
-                        />
+                      <button 
+                        type="button"
+                        onClick={() => updateTask(task.id, { completed: !task.completed })}
+                        className="flex items-center gap-3 flex-1 min-h-[44px] text-left"
+                      >
+                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${task.completed ? 'bg-orange-500 border-orange-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                          {task.completed && <CheckCircle className="w-4 h-4 text-white" />}
+                        </div>
                         <span className={`text-sm flex-1 truncate ${task.completed ? 'line-through opacity-60' : ''}`}>{task.title}</span>
-                      </div>
+                      </button>
                       {task.dueDate && (
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap">{task.dueDate}</span>
                       )}
@@ -2572,10 +2596,10 @@ export function CommandCenterRedesigned() {
                             await deleteTask(task.id)
                           }
                         }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900 rounded opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         title="Delete task"
                       >
-                        <Trash2 className="w-3 h-3 text-red-600" />
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   ))}
@@ -2591,7 +2615,7 @@ export function CommandCenterRedesigned() {
           </div>
 
           {/* Habits Card */}
-          <div className="mb-4 min-h-[200px]">
+          <div className="mb-3 md:mb-4 md:min-h-[200px]">
             <Card className="border-2 border-teal-200 dark:border-teal-900 hover:shadow-xl transition-all h-full">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
@@ -2614,27 +2638,28 @@ export function CommandCenterRedesigned() {
                   <div className="space-y-2">
                     {habits.slice(0, 3).map((habit) => (
                       <div key={habit.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group">
-                        <div className="flex items-center gap-2 flex-1">
-                          <input 
-                            type="checkbox" 
-                            checked={!!habit.completed} 
-                            className="w-4 h-4" 
-                            onChange={() => toggleHabit(habit.id)} 
-                          />
+                        <button 
+                          type="button"
+                          onClick={() => toggleHabit(habit.id)}
+                          className="flex items-center gap-3 flex-1 min-h-[44px] text-left"
+                        >
+                          <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${habit.completed ? 'bg-teal-500 border-teal-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                            {habit.completed && <CheckCircle className="w-4 h-4 text-white" />}
+                          </div>
                           <span className={`text-sm ${habit.completed ? 'line-through opacity-60' : ''}`}>{habit.name}</span>
-                        </div>
+                        </button>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">{habit.streak}d</Badge>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                            className="h-9 w-9 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleDeleteHabit(habit.id, habit.name)
                             }}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -2646,28 +2671,28 @@ export function CommandCenterRedesigned() {
           </div>
 
           {/* Google Calendar Card - Upcoming Events */}
-          <div className="mb-4 min-h-[200px]"><GoogleCalendarCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[200px]"><GoogleCalendarCard /></div>
 
           {/* Special Dates Card - Birthdays & Anniversaries from Relationships */}
-          <div className="mb-4 min-h-[180px]"><SpecialDatesCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[180px]"><SpecialDatesCard /></div>
 
           {/* AI-Powered Insights - OpenAI GPT-4 powered personalized insights */}
-          <div className="mb-4 min-h-[200px]"><AIInsightsCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[200px]"><AIInsightsCard /></div>
           
           {/* Weekly Insights (Rule-based) - Real-time insights from your data */}
-          <div className="mb-4 min-h-[200px]"><InsightsCardWorking /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[200px]"><InsightsCardWorking /></div>
 
           {/* Weather Forecast - 7 Day Outlook (FREE API - No Key Needed!) */}
-          <div className="mb-4 min-h-[180px]"><WeatherFreeCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[180px]"><WeatherFreeCard /></div>
 
           {/* Tech News - Hacker News Top Stories (FREE API - No Key Needed!) */}
-          <div className="mb-4 min-h-[200px]"><NewsFreeCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[200px]"><NewsFreeCard /></div>
 
           {/* Document Expiration Tracker - Critical Documents Expiring Soon */}
-          <div className="mb-4 min-h-[180px]"><DocumentExpirationCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[180px]"><DocumentExpirationCard /></div>
 
           {/* Upcoming Bills - Next 30 Days */}
-          <div className="mb-4 min-h-[200px]"><UpcomingBillsCard /></div>
+          <div className="mb-3 md:mb-4 md:min-h-[200px]"><UpcomingBillsCard /></div>
         </Masonry>
 
         {/* Dialogs - Outside Masonry */}
@@ -2713,7 +2738,7 @@ export function CommandCenterRedesigned() {
         />
 
         {/* Financial Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card 
             className="bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
             onClick={() => openFinancialBreakdown('net-worth')}

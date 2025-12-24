@@ -568,13 +568,34 @@ export const computeDigitalStats = (entries?: DomainData[] | null): DigitalStats
     return hasLogin ? total + 1 : total
   }, 0)
 
+  // 🔧 FIX: Only count subscriptions as "expiring" if they have an actual END date
+  // NOT just a renewal/billing date. Recurring subscriptions with auto-renewal don't expire.
   const expiring = mapped.filter(({ meta }) => {
+    // Check billing type - recurring subscriptions with auto-renewal don't expire
+    const billingType = getNestedValue(meta, 'billing_type') ?? getNestedValue(meta, 'billingType')
+    const renewalType = getNestedValue(meta, 'renewal_type') ?? getNestedValue(meta, 'renewalType')
+    const autoRenew = getNestedValue(meta, 'auto_renew') ?? getNestedValue(meta, 'autoRenew')
+    
+    // If it's a recurring subscription with auto-renewal, it doesn't expire
+    if (billingType === 'recurring' && (renewalType === 'auto' || autoRenew === true)) {
+      // ONLY check contract_end_date for recurring subscriptions (when contract ends)
+      const contractEndDate = pickFirstDate(meta, ['contract_end_date', 'contractEndDate'])
+      if (!contractEndDate) return false // No contract end = never expires
+      const daysUntil = differenceInDays(contractEndDate, now)
+      return daysUntil >= 0 && daysUntil <= 30
+    }
+    
+    // For non-recurring or manual-renewal subscriptions, check actual expiration dates
+    // Do NOT include renewalDate, nextBillingDate, nextChargeDate as these are just billing cycle dates
     const expiryDate = pickFirstDate(meta, [
-      'renewalDate',
+      'contract_end_date',
+      'contractEndDate',
+      'endDate',
+      'end_date',
       'expiryDate',
       'expirationDate',
-      'nextBillingDate',
-      'nextChargeDate',
+      'cancellation_date',
+      'cancellationDate',
     ])
     if (!expiryDate) return false
     const daysUntil = differenceInDays(expiryDate, now)

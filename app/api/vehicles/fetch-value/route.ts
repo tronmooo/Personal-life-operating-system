@@ -63,8 +63,11 @@ export async function POST(request: NextRequest) {
 
     if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: 'AI API key not configured' },
-        { status: 500 }
+        { 
+          error: 'AI valuation is not available. The app administrator needs to configure GEMINI_API_KEY or OPENAI_API_KEY in the deployment environment variables.',
+          suggestion: 'You can still add your vehicle manually by entering an estimated value yourself.'
+        },
+        { status: 503 }
       )
     }
 

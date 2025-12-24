@@ -179,20 +179,20 @@ export function DomainDocumentsTab({ domainId, policyId }: DomainDocumentsTabPro
 
       {/* Smart Document Upload with Enhanced AI Extraction */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            Upload Documents with AI-Powered Extraction
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
+            AI-Powered Upload
           </CardTitle>
-          <CardDescription>
-            Upload any document - AI automatically extracts 20-30+ fields with confidence scores
+          <CardDescription className="text-xs sm:text-sm">
+            AI automatically extracts key fields from your documents
           </CardDescription>
         </CardHeader>
         <CardContent>
           <SmartUploadDialog
             domain={domainId as any}
             trigger={
-              <Button size="lg" className="w-full">
+              <Button size="lg" className="w-full min-h-[48px] text-base">
                 <Upload className="h-5 w-5 mr-2" />
                 Upload or Take Photo
               </Button>
@@ -207,20 +207,20 @@ export function DomainDocumentsTab({ domainId, policyId }: DomainDocumentsTabPro
 
       {/* Documents List */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 sm:pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle>Your Documents</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Your Documents</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 {isLoading ? 'Loading...' : `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
               </CardDescription>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <Input
-                placeholder="Search documents..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64"
+                className="w-full sm:w-64 h-10"
               />
             </div>
           </div>
@@ -232,20 +232,22 @@ export function DomainDocumentsTab({ domainId, policyId }: DomainDocumentsTabPro
               <h3 className="font-semibold mb-2">Loading documents...</h3>
             </div>
           ) : documents.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="font-semibold mb-2">No documents yet</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="text-center py-8 sm:py-12">
+              <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <h3 className="font-semibold mb-2 text-base sm:text-lg">No documents yet</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Upload your first document to get started
               </p>
             </div>
           ) : (
             <Tabs defaultValue="recent" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="expiring">Expiring Soon</TabsTrigger>
-                <TabsTrigger value="recent">Recent</TabsTrigger>
-                <TabsTrigger value="all">All Documents</TabsTrigger>
-              </TabsList>
+              <div className="relative -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto">
+                <TabsList className="grid w-full min-w-[300px] grid-cols-3">
+                  <TabsTrigger value="expiring" className="text-xs sm:text-sm">Expiring</TabsTrigger>
+                  <TabsTrigger value="recent" className="text-xs sm:text-sm">Recent</TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="expiring" className="space-y-4 mt-4">
                 {expiringDocs.length > 0 ? (
@@ -306,52 +308,69 @@ function DocumentCard({ doc, onDelete, onDownload, onView }: {
 
   return (
     <div className={`border rounded-lg ${isExpiring ? 'border-red-200 bg-red-50 dark:bg-red-950/20' : ''}`}>
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center space-x-4 flex-1">
-          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 gap-3">
+        {/* Document info */}
+        <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
             {doc.fileType.includes('image') ? (
-              <ImageIcon className="h-6 w-6 text-primary" />
+              <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             ) : (
-              <FileText className="h-6 w-6 text-primary" />
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h4 className="font-semibold truncate">{doc.name}</h4>
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+              <h4 className="font-semibold truncate text-sm sm:text-base max-w-[200px] sm:max-w-none">{doc.name}</h4>
               {doc.documentType && (
-                <Badge variant="outline" className="capitalize text-xs">
+                <Badge variant="outline" className="capitalize text-[10px] sm:text-xs">
                   {doc.documentType.replace(/_/g, ' ')}
                 </Badge>
               )}
               {doc.ocrConfidence > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-[10px] sm:text-xs hidden xs:inline-flex">
                   <Sparkles className="h-3 w-3 mr-1" />
-                  {Math.round(doc.ocrConfidence)}% OCR
+                  {Math.round(doc.ocrConfidence)}%
                 </Badge>
               )}
             </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
-              <span>Uploaded {format(doc.uploadDate, 'MMM d, yyyy')}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-1">
+              <span>{format(doc.uploadDate, 'MMM d, yyyy')}</span>
               {doc.expirationDate && (
                 <>
-                  <span>•</span>
+                  <span className="hidden xs:inline">•</span>
                   <span className={isExpiring ? 'text-red-600 font-medium' : ''}>
-                    Expires {format(doc.expirationDate, 'MMM d, yyyy')}
+                    Exp: {format(doc.expirationDate, 'MMM d, yy')}
                   </span>
                 </>
               )}
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
-          <Button variant="outline" size="sm" onClick={() => onView(doc)}>
-            <Eye className="h-4 w-4 mr-1" />
-            Preview
+        {/* Action buttons - mobile-friendly */}
+        <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onView(doc)}
+            className="min-h-[40px] sm:min-h-0 flex-1 sm:flex-none"
+          >
+            <Eye className="h-4 w-4 sm:mr-1" />
+            <span className="ml-1 sm:ml-0">View</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onDownload(doc)}
+            className="min-h-[40px] sm:min-h-0 px-3"
+          >
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onDelete(doc.id)} className="text-destructive">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onDelete(doc.id)} 
+            className="text-destructive min-h-[40px] sm:min-h-0 px-3"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
