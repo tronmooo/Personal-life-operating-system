@@ -2,6 +2,9 @@
   "name": "lifehub",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "check:no-storage": "rg -n --no-ignore --hidden --glob '!*node_modules*' --glob '!**/.next/**' --glob '!**/coverage/**' --glob '!**/dist/**' 'localStorage|sessionStorage' || true",
     "verify-migration": "npx tsx scripts/verify-localstorage-migration.ts",

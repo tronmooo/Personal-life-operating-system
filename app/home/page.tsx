@@ -1,4 +1,4 @@
-'use client'
+That's a fuck all right let's get the day started come back let's go come on come on come on come on my back my buddy oh'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
