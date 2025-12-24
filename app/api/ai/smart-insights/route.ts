@@ -1,6 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -288,25 +288,19 @@ async function gatherUserData(supabase: any, userId: string): Promise<InsightDat
 }
 
 async function generateAIInsights(data: InsightData) {
-  const apiKey = process.env.OPENAI_API_KEY
+  const hasGemini = !!process.env.GEMINI_API_KEY
+  const hasOpenAI = !!process.env.OPENAI_API_KEY
   
-  if (!apiKey) {
-    console.warn('OpenAI API key not configured, using rule-based insights')
+  if (!hasGemini && !hasOpenAI) {
+    console.warn('No AI API key configured, using rule-based insights')
     return generateRuleBasedInsights(data)
   }
 
   try {
-    const openai = getOpenAI()
-    
     // Build context for AI
     const context = buildDataContext(data)
     
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a personal life insights analyst. Generate 3-5 SHORT, MEANINGFUL, and ACTIONABLE insights based on the user's life data.
+    const systemPrompt = `You are a personal life insights analyst. Generate 3-5 SHORT, MEANINGFUL, and ACTIONABLE insights based on the user's life data.
 
 Rules:
 1. Each insight must be 1-2 sentences MAX (under 100 characters preferred)
@@ -317,36 +311,39 @@ Rules:
 6. Be encouraging but honest
 7. Make connections across domains when relevant (e.g., "High dining expenses might be impacting your savings goal")
 
-Output format (JSON array):
-[
-  {
-    "emoji": "💸",
-    "title": "Short Title",
-    "message": "Brief insight message",
-    "type": "warning" | "success" | "tip" | "alert",
-    "domain": "financial" | "health" | "productivity" | "relationships" | "general",
-    "priority": 1-5 (1 is highest)
-  }
-]`
-        },
-        {
-          role: 'user',
-          content: context
-        }
-      ],
+Output format (JSON object with "insights" array):
+{
+  "insights": [
+    {
+      "emoji": "💸",
+      "title": "Short Title",
+      "message": "Brief insight message",
+      "type": "warning" | "success" | "tip" | "alert",
+      "domain": "financial" | "health" | "productivity" | "relationships" | "general",
+      "priority": 1-5 (1 is highest)
+    }
+  ]
+}`
+
+    const aiResponse = await AI.requestAI({
+      prompt: context,
+      systemPrompt,
       temperature: 0.7,
-      max_tokens: 800,
-      response_format: { type: "json_object" }
+      maxTokens: 800
     })
 
-    const response = completion.choices[0]?.message?.content
+    const response = aiResponse.content
     
     if (response) {
       try {
-        const parsed = JSON.parse(response)
-        const insights = parsed.insights || parsed
-        if (Array.isArray(insights)) {
-          return insights.sort((a: any, b: any) => (a.priority || 5) - (b.priority || 5)).slice(0, 5)
+        // Try to extract JSON from the response
+        const jsonMatch = response.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          const insights = parsed.insights || parsed
+          if (Array.isArray(insights)) {
+            return insights.sort((a: any, b: any) => (a.priority || 5) - (b.priority || 5)).slice(0, 5)
+          }
         }
       } catch (parseError) {
         console.error('Failed to parse AI response:', parseError)
@@ -355,7 +352,7 @@ Output format (JSON array):
     
     return generateRuleBasedInsights(data)
   } catch (error) {
-    console.error('OpenAI error:', error)
+    console.error('AI insights error:', error)
     return generateRuleBasedInsights(data)
   }
 }

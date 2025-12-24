@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as AI from '@/lib/services/ai-service'
 import OpenAI from 'openai'
 
 // OpenAI Assistant Configuration
@@ -109,7 +110,51 @@ export async function POST(request: Request) {
       }
     })
     
-    // Try OpenAI Assistants API first (Primary method)
+    // Try Gemini first (free and reliable)
+    const geminiKey = process.env.GEMINI_API_KEY
+    
+    if (geminiKey) {
+      try {
+        console.log('🧠 Using Gemini AI for therapy chat (primary)...')
+        
+        const therapeuticPrompt = buildTherapeuticPrompt(message, context)
+        
+        const aiResponse = await AI.requestAI({
+          prompt: therapeuticPrompt,
+          temperature: 0.9,
+          maxTokens: 500
+        })
+        
+        const response = aiResponse.content
+        
+        if (response) {
+          context.messages.push({
+            role: 'assistant',
+            content: response,
+            timestamp: Date.now()
+          })
+          
+          // Keep last 24 messages (12 exchanges)
+          if (context.messages.length > 24) {
+            context.messages = context.messages.slice(-24)
+          }
+          
+          conversationHistory.set(threadId, context)
+          
+          console.log('✅ Gemini therapy response generated')
+          return NextResponse.json({ 
+            response: response.trim(),
+            threadId,
+            source: 'gemini'
+          })
+        }
+      } catch (geminiError) {
+        console.warn('⚠️ Gemini request failed:', geminiError)
+        // Continue to OpenAI fallback
+      }
+    }
+
+    // Try OpenAI Assistants API as fallback (for threaded conversations)
     const openaiKey = process.env.OPENAI_API_KEY
     
     if (openaiKey) {
@@ -232,72 +277,6 @@ export async function POST(request: Request) {
       console.log('ℹ️ No OpenAI API key found, skipping to fallback')
     }
     
-    // Try Gemini as fallback
-    const geminiKey = process.env.GEMINI_API_KEY
-    
-    if (geminiKey) {
-      try {
-        console.log('🧠 Using Gemini AI for therapy chat...')
-        
-        const therapeuticPrompt = buildTherapeuticPrompt(message, context)
-        
-        const geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: therapeuticPrompt }]
-              }],
-              generationConfig: {
-                temperature: 0.9,
-                maxOutputTokens: 500,
-                topP: 0.95,
-                topK: 40
-              }
-            }),
-            signal: AbortSignal.timeout(10000) // 10 second timeout
-          }
-        )
-
-        if (geminiResponse.ok) {
-          const data = await geminiResponse.json()
-          const response = data.candidates?.[0]?.content?.parts?.[0]?.text
-          
-          if (response) {
-            context.messages.push({
-              role: 'assistant',
-              content: response,
-              timestamp: Date.now()
-            })
-            
-            // Keep last 24 messages (12 exchanges)
-            if (context.messages.length > 24) {
-              context.messages = context.messages.slice(-24)
-            }
-            
-            conversationHistory.set(threadId, context)
-            
-            console.log('✅ Gemini therapy response generated')
-            return NextResponse.json({ 
-              response: response.trim(),
-              threadId,
-              source: 'gemini'
-            })
-          }
-        } else {
-          const errorText = await geminiResponse.text()
-          console.warn('⚠️ Gemini API error:', geminiResponse.status, errorText)
-        }
-      } catch (geminiError) {
-        console.warn('⚠️ Gemini request failed:', geminiError)
-        // Continue to OpenAI fallback
-      }
-    } else {
-      console.log('ℹ️ No Gemini API key found, skipping to OpenAI')
-    }
-
     // OpenAI Chat Completions fallback (if Assistants API fails)
     if (openaiKey) {
       try {

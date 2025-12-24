@@ -1,6 +1,7 @@
 /**
  * Add Medication Dialog
  * Create new medication entries with schedule and details
+ * Automatically creates a habit for medication reminders
  */
 
 'use client'
@@ -13,7 +14,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useDomainCRUD } from '@/lib/hooks/use-domain-crud'
+// eslint-disable-next-line no-restricted-imports -- Need addHabit for medication habit creation
+import { useData } from '@/lib/providers/data-provider'
 import { Loader2 } from 'lucide-react'
+import { toast } from '@/lib/utils/toast'
 
 interface AddMedicationDialogProps {
   open: boolean
@@ -29,8 +33,26 @@ const FREQUENCY_OPTIONS = [
   'As needed'
 ]
 
+// Helper to convert medication frequency to habit frequency
+function getHabitFrequency(medFrequency: string): 'daily' | 'weekly' | 'monthly' {
+  const freq = medFrequency.toLowerCase()
+  if (freq.includes('weekly')) return 'weekly'
+  if (freq.includes('monthly')) return 'monthly'
+  return 'daily' // Most medications are daily
+}
+
+// Helper to format time for display (convert 24h to 12h format)
+function formatTimeForDisplay(time24: string): string {
+  if (!time24) return ''
+  const [hours, minutes] = time24.split(':').map(Number)
+  const period = hours >= 12 ? 'PM' : 'AM'
+  const hour12 = hours % 12 || 12
+  return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`
+}
+
 export function AddMedicationDialog({ open, onOpenChange }: AddMedicationDialogProps) {
   const { create } = useDomainCRUD('health')
+  const { addHabit } = useData()
   const [saving, setSaving] = useState(false)
   
   const [name, setName] = useState('')
@@ -51,6 +73,7 @@ export function AddMedicationDialog({ open, onOpenChange }: AddMedicationDialogP
     try {
       setSaving(true)
 
+      // Create the medication entry
       await create({
         domain: 'health',
         title: `${name} ${dosage}`.trim(),
@@ -68,6 +91,24 @@ export function AddMedicationDialog({ open, onOpenChange }: AddMedicationDialogP
           taken: false,
         },
       })
+
+      // Automatically create a habit for the medication if there's a scheduled time
+      if (scheduledTime) {
+        const timeDisplay = formatTimeForDisplay(scheduledTime)
+        const habitName = dosage 
+          ? `Take ${name} (${dosage}) at ${timeDisplay}`
+          : `Take ${name} at ${timeDisplay}`
+        
+        await addHabit({
+          name: habitName,
+          icon: '💊',
+          frequency: getHabitFrequency(frequency),
+          completed: false,
+          streak: 0,
+        })
+        
+        toast.success('Medication & Habit Created', `Added ${name} and created a daily habit reminder for ${timeDisplay}`)
+      }
 
       // Reset form
       setName('')

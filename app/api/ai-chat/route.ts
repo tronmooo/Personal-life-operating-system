@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,98 +25,80 @@ export async function POST(request: NextRequest) {
     const docKeywords = ['document', 'insurance', 'license', 'card', 'pdf', 'show me', 'pull up', 'find my']
     const isDocumentQuery = docKeywords.some(keyword => message.toLowerCase().includes(keyword))
 
-    if (isDocumentQuery && process.env.OPENAI_API_KEY) {
-      // Use OpenAI with function calling for document retrieval
-      const completion = await getOpenAI().chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant that can search and retrieve user documents. When asked about documents, use the search_documents function to find them.'
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        functions: [
-          {
-            name: 'search_documents',
-            description: 'Search user documents by keywords or category',
-            parameters: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Keywords to search (e.g., "insurance", "auto", "license")'
-                },
-                category: {
-                  type: 'string',
-                  enum: ['insurance', 'health', 'vehicles', 'financial', 'legal', 'all'],
-                  description: 'Category to filter by'
-                }
-              }
-            }
-          }
-        ],
-        function_call: 'auto'
+    if (isDocumentQuery && (process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY)) {
+      // Use AI to extract search terms from the user's message
+      const aiResponse = await AI.requestAI({
+        prompt: `Extract search parameters from this user request about finding documents: "${message}"
+        
+Return JSON with:
+{
+  "query": "extracted keywords or null",
+  "category": "one of: insurance, health, vehicles, financial, legal, all"
+}`,
+        systemPrompt: 'You are a helpful assistant that extracts document search parameters. Return only valid JSON.',
+        temperature: 0.1,
+        maxTokens: 100
       })
 
-      const responseMessage = completion.choices[0]?.message
-
-      // If function call, execute it
-      if (responseMessage?.function_call) {
-        const args = JSON.parse(responseMessage.function_call.arguments || '{}')
-        console.log('🔍 Searching documents:', args)
-
-        // Search database
-        let query = supabase
-          .from('documents')
-          .select('id, document_name, document_type, file_url, file_path, expiration_date, domain, metadata')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-
-        if (args.category && args.category !== 'all') {
-          query = query.eq('domain', args.category)
+      let args: { query?: string; category?: string } = {}
+      try {
+        const jsonMatch = aiResponse.content?.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          args = JSON.parse(jsonMatch[0])
         }
+      } catch {
+        args = { query: message, category: 'all' }
+      }
+      
+      console.log('🔍 Searching documents:', args)
 
-        const { data: docs } = await query.limit(10)
+      // Search database
+      let query = supabase
+        .from('documents')
+        .select('id, document_name, document_type, file_url, file_path, expiration_date, domain, metadata')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
-        // Filter by query text
-        let filteredDocs = docs || []
-        if (args.query) {
-          const searchLower = args.query.toLowerCase()
-          filteredDocs = filteredDocs.filter(doc =>
-            doc.document_name?.toLowerCase().includes(searchLower) ||
-            doc.document_type?.toLowerCase().includes(searchLower) ||
-            doc.domain?.toLowerCase().includes(searchLower)
-          )
-        }
+      if (args.category && args.category !== 'all') {
+        query = query.eq('domain', args.category)
+      }
 
-        if (filteredDocs.length > 0) {
-          const docList = filteredDocs.map(doc => ({
-            id: doc.id,
-            name: doc.document_name || 'Untitled',
-            type: doc.document_type,
-            category: doc.metadata?.category || doc.domain,
-            expirationDate: doc.expiration_date,
-            url: doc.file_url || doc.file_path
-          }))
+      const { data: docs } = await query.limit(10)
 
-          console.log(`✅ Found ${docList.length} documents, opening them`)
+      // Filter by query text
+      let filteredDocs = docs || []
+      if (args.query) {
+        const searchLower = args.query.toLowerCase()
+        filteredDocs = filteredDocs.filter(doc =>
+          doc.document_name?.toLowerCase().includes(searchLower) ||
+          doc.document_type?.toLowerCase().includes(searchLower) ||
+          doc.domain?.toLowerCase().includes(searchLower)
+        )
+      }
 
-          return NextResponse.json({
-            response: `I found ${docList.length} document(s): ${docList.map(d => d.name).join(', ')}. Opening them now...`,
-            documents: docList,
-            openDocuments: true,
-            timestamp: new Date().toISOString()
-          })
-        } else {
-          return NextResponse.json({
-            response: `I couldn't find any documents matching "${args.query || 'your search'}". Try uploading some documents first!`,
-            timestamp: new Date().toISOString()
-          })
-        }
+      if (filteredDocs.length > 0) {
+        const docList = filteredDocs.map(doc => ({
+          id: doc.id,
+          name: doc.document_name || 'Untitled',
+          type: doc.document_type,
+          category: doc.metadata?.category || doc.domain,
+          expirationDate: doc.expiration_date,
+          url: doc.file_url || doc.file_path
+        }))
+
+        console.log(`✅ Found ${docList.length} documents, opening them`)
+
+        return NextResponse.json({
+          response: `I found ${docList.length} document(s): ${docList.map(d => d.name).join(', ')}. Opening them now...`,
+          documents: docList,
+          openDocuments: true,
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        return NextResponse.json({
+          response: `I couldn't find any documents matching "${args.query || 'your search'}". Try uploading some documents first!`,
+          timestamp: new Date().toISOString()
+        })
       }
     }
 

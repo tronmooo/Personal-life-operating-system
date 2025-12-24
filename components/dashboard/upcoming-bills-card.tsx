@@ -204,19 +204,9 @@ export function UpcomingBillsCard() {
         })
       }
 
-      // Scheduled maintenance
-      if (meta.nextServiceDate || meta.maintenanceDue) {
-        const maintDate = meta.nextServiceDate || meta.maintenanceDue
-        billsList.push({
-          title: `${entry.title || meta.make + ' ' + meta.model || 'Vehicle'} - Maintenance`,
-          amount: parseFloat(String(meta.estimatedServiceCost || meta.maintenanceCost || 0)),
-          dueDate: coerceDueDateString(maintDate),
-          category: 'Vehicle Maintenance',
-          isRecurring: false,
-          source: 'vehicles',
-          domain: 'vehicles'
-        })
-      }
+      // NOTE: Vehicle maintenance reminders (oil change due, repair due, etc.) are NOT bills.
+      // They are shown in the Alerts section instead, since no payment has been made yet.
+      // Only actual paid expenses should appear in bills/expenses.
     })
 
     // 7. Get pet-related bills (vet visits, medications, insurance)

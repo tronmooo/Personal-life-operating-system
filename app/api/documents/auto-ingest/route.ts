@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
 import { createClient } from '@supabase/supabase-js'
-import OpenAI from 'openai'
+import * as AI from '@/lib/services/ai-service'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
 import { refreshGoogleToken } from '@/lib/auth/refresh-google-token'
@@ -82,33 +82,17 @@ export async function POST(request: NextRequest) {
     const base64 = buffer.toString('base64')
     const dataUrl = `data:${file.type};base64,${base64}`
 
-    console.log('🤖 Step 3: Calling OpenAI Vision...')
+    console.log('🤖 Step 3: Calling AI Vision (Gemini/OpenAI)...')
 
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OpenAI API key not configured!')
-      throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your .env.local file.')
+    // Check if AI API key is configured
+    if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+      console.error('❌ No AI API key configured!')
+      throw new Error('No AI API key configured. Please add GEMINI_API_KEY or OPENAI_API_KEY to your .env.local file.')
     }
 
-    console.log(`✅ API key found (starts with: ${process.env.OPENAI_API_KEY.substring(0, 10)}...)`)
-    
-    // Initialize OpenAI client with API key
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-    
-    console.log('✅ OpenAI client initialized')
+    console.log(`✅ AI key found (using ${process.env.GEMINI_API_KEY ? 'Gemini' : 'OpenAI'})`)
 
-    // Add timeout to OpenAI API call (30 seconds)
-    const completionPromise = openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Analyze this document and extract information. This is for OFFICIAL DOCUMENTS only (IDs, licenses, insurance, legal docs, registrations, etc.).
+    const documentPrompt = `Analyze this document and extract information. This is for OFFICIAL DOCUMENTS only (IDs, licenses, insurance, legal docs, registrations, etc.).
 
 **Extract:**
 1. **Title** - Be specific with issuer (e.g., "Driver License - California DMV", "Auto Insurance - Geico", "Passport - USA", "Credit Card - Chase Visa")
@@ -142,29 +126,25 @@ Return ONLY JSON:
 {"documentTitle":"specific title","documentType":"exact type","expirationDate":"YYYY-MM-DD or null","category":"category","ocrText":"all visible text"}
 
 **Date Format:** "03/15/2025"→"2025-03-15", "12/2025"→"2025-12-31", "2025"→"2025-12-31"`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: dataUrl
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 1000,
+
+    // Add timeout wrapper for AI call
+    const aiPromise = AI.requestAI({
+      prompt: documentPrompt,
+      maxTokens: 1000,
+      temperature: 0.1,
+      image: dataUrl
     })
 
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('OpenAI API request timed out after 30 seconds')), 30000)
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('AI API request timed out after 30 seconds')), 30000)
     )
 
-    const completion = await Promise.race([completionPromise, timeoutPromise]) as Awaited<typeof completionPromise>
+    const aiResponse = await Promise.race([aiPromise, timeoutPromise])
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
-    console.log(`✅ OpenAI API call completed in ${elapsed}s`)
+    console.log(`✅ AI API call completed in ${elapsed}s`)
     
-    const aiText = completion.choices[0]?.message?.content || ''
+    const aiText = aiResponse.content || ''
     console.log('📝 OpenAI response length:', aiText.length, 'characters')
     console.log('📝 OpenAI response preview:', aiText.substring(0, 200))
 
@@ -400,7 +380,7 @@ Return ONLY JSON:
         thumbnail_link: driveThumbnailLink,
         metadata: {
           aiExtracted: true,
-          extractedBy: 'openai-vision',
+          extractedBy: process.env.GEMINI_API_KEY ? 'gemini-vision' : 'openai-vision',
           category: mappedCategory,
           originalCategory: extracted.category,
           uploadedToDrive: !!driveFileId

@@ -71,11 +71,13 @@ function renderVisualization(viz: AIMessage['visualization']) {
 
   switch (viz.type) {
     case 'line':
+      // Determine the x-axis dataKey based on available data properties
+      const lineXKey = viz.data[0]?.name ? 'name' : viz.data[0]?.category ? 'category' : 'date'
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
           <LineChart data={viz.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={lineXKey} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -88,11 +90,13 @@ function renderVisualization(viz: AIMessage['visualization']) {
       )
 
     case 'bar':
+      // Determine the x-axis dataKey based on available data properties
+      const barXKey = viz.data[0]?.name ? 'name' : viz.data[0]?.category ? 'category' : 'date'
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart data={viz.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={barXKey} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -131,11 +135,13 @@ function renderVisualization(viz: AIMessage['visualization']) {
       )
 
     case 'area':
+      // Determine the x-axis dataKey based on available data properties
+      const areaXKey = viz.data[0]?.name ? 'name' : viz.data[0]?.category ? 'category' : 'date'
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
           <AreaChart data={viz.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={areaXKey} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -273,6 +279,29 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
           visualization: responseData.visualization
         }
         setMessages(prev => [...prev, aiMessage])
+        
+        // Handle navigation commands
+        if (responseData.navigate) {
+          console.log('🧭 AI requesting navigation to:', responseData.navigate.path)
+          setTimeout(() => {
+            window.location.href = responseData.navigate.path
+          }, 500)
+        }
+
+        // Handle open tool commands
+        if (responseData.openTool) {
+          console.log('🔧 AI requesting to open tool:', responseData.openTool.path)
+          setTimeout(() => {
+            window.location.href = responseData.openTool.path
+          }, 500)
+        }
+        
+        // Handle data save - trigger reload
+        if (responseData.triggerReload || responseData.saved) {
+          console.log('✅ Data was saved! Triggering reload event...')
+          // Dispatch custom event to notify components about the save
+          window.dispatchEvent(new CustomEvent('ai-assistant-saved'))
+        }
       }
 
     } catch (error) {

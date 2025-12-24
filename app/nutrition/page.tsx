@@ -2,14 +2,16 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, Camera, Droplet, Target } from 'lucide-react'
+import { TrendingUp, Camera, Droplet, Target, ArrowLeft } from 'lucide-react'
 import { DashboardView } from '@/components/nutrition/dashboard-view'
 import { MealsView } from '@/components/nutrition/meals-view'
 import { WaterView } from '@/components/nutrition/water-view'
 import { GoalsView } from '@/components/nutrition/goals-view'
+import { useRouter } from 'next/navigation'
 
 export default function NutritionPage() {
   const [activeView, setActiveView] = useState('dashboard')
+  const router = useRouter()
 
   const navigationButtons = [
     { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
@@ -22,6 +24,15 @@ export default function NutritionPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
       <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white p-8">
         <div className="max-w-7xl mx-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="mb-4 text-white/90 hover:text-white hover:bg-white/10"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
           <h1 className="text-3xl font-bold mb-2">NutriTrack</h1>
           <p className="text-green-100">Your Personal Nutrition Companion</p>
           <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">

@@ -1,12 +1,12 @@
 /**
  * Health Recommendations API
- * Generates personalized health recommendations using OpenAI
+ * Generates personalized health recommendations using Gemini/OpenAI
  */
 
 import { createServerClient } from '@/lib/supabase/server'
 
 import { NextResponse } from 'next/server'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 
 export async function POST(request: Request) {
   try {
@@ -75,30 +75,32 @@ export async function POST(request: Request) {
       focusArea: focusArea || 'overall',
     }
 
-    // Generate recommendations
-    const completion = await getOpenAI().chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a certified health coach providing personalized recommendations. Based on the user's health data, provide 4-6 specific, actionable recommendations focused on "${focusArea}". Each recommendation should:
+    // Generate recommendations with AI (Gemini primary, OpenAI fallback)
+    const systemPrompt = `You are a certified health coach providing personalized recommendations. Based on the user's health data, provide 4-6 specific, actionable recommendations focused on "${focusArea}". Each recommendation should:
 1. Be specific and measurable
 2. Include the rationale (why it matters)
 3. Provide a concrete action step
 4. Be appropriate for the user's current health status
 
-Format as JSON array with: { title: string, description: string, action: string, priority: "high"|"medium"|"low", category: string }`
-        },
-        {
-          role: 'user',
-          content: `Generate recommendations based on:\n\n${JSON.stringify(context, null, 2)}`
-        }
-      ],
-      response_format: { type: 'json_object' },
+Format your response as a JSON object with a "recommendations" array, where each item has: { title: string, description: string, action: string, priority: "high"|"medium"|"low", category: string }`
+
+    const aiResponse = await AI.requestAI({
+      prompt: `Generate recommendations based on:\n\n${JSON.stringify(context, null, 2)}`,
+      systemPrompt,
       temperature: 0.7,
+      maxTokens: 1500
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || '{"recommendations":[]}')
+    let result = { recommendations: [] }
+    try {
+      const content = aiResponse.content || '{}'
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0])
+      }
+    } catch {
+      console.error('Failed to parse AI response for health recommendations')
+    }
 
     return NextResponse.json({
       success: true,

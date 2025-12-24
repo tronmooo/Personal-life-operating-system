@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Wrench, Package, Settings, FileText } from 'lucide-react'
+import { Wrench, Package, Settings, FileText, Home, DollarSign } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface OverviewTabProps {
@@ -12,7 +12,11 @@ interface OverviewTabProps {
 
 export function OverviewTab({ home }: OverviewTabProps) {
   const [pieData, setPieData] = useState<any[]>([])
-  const [insight, setInsight] = useState<{ label: string; change: string } | null>(null)
+
+  // Calculate total property value = base property value + assets value
+  const basePropertyValue = Number(home.propertyValue || 0)
+  const assetsValue = Number(home.totalAssetsValue || 0)
+  const totalPropertyValue = basePropertyValue + assetsValue
 
   useEffect(() => {
     // Prepare pie chart data
@@ -25,15 +29,6 @@ export function OverviewTab({ home }: OverviewTabProps) {
       { name: 'Assets', value: assets || 1, color: '#10b981' },
       { name: 'Projects', value: projects || 1, color: '#f59e0b' },
     ])
-
-    // Simple insight placeholder (requires history to compute real MoM)
-    const current = Number(home.propertyValue || 0)
-    if (current > 0) {
-      // Display a friendly placeholder until historical series is wired
-      setInsight({ label: 'Home value', change: 'tracking monthly' })
-    } else {
-      setInsight(null)
-    }
   }, [home])
 
   const stats = [
@@ -65,20 +60,43 @@ export function OverviewTab({ home }: OverviewTabProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6 overflow-x-hidden">
-      {/* Home Value Insight */}
-      {insight && (
-        <Card className="p-3 sm:p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="text-xs sm:text-sm text-muted-foreground">{insight.label}</div>
-              <div className="text-lg sm:text-2xl font-bold flex flex-wrap items-baseline gap-1" suppressHydrationWarning>
-                <span>${Number(home.propertyValue || 0).toLocaleString()}</span>
-                <span className="text-green-600 text-xs sm:text-sm">{insight.change}</span>
+      {/* Total Property Value Card - includes assets */}
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-emerald-500 rounded-xl">
+            <Home className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium mb-1">Total Property Value</p>
+            <p className="text-2xl sm:text-4xl font-bold text-emerald-600 dark:text-emerald-400" suppressHydrationWarning>
+              ${totalPropertyValue.toLocaleString()}
+            </p>
+            
+            {/* Breakdown */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <Home className="h-4 w-4 text-blue-600" />
+                  <p className="text-xs text-muted-foreground">Property Value</p>
+                </div>
+                <p className="text-lg font-semibold text-blue-600" suppressHydrationWarning>
+                  ${basePropertyValue.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <Package className="h-4 w-4 text-purple-600" />
+                  <p className="text-xs text-muted-foreground">Home Contents</p>
+                </div>
+                <p className="text-lg font-semibold text-purple-600" suppressHydrationWarning>
+                  ${assetsValue.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">{home.totalAssets || 0} items</p>
               </div>
             </div>
           </div>
-        </Card>
-      )}
+        </div>
+      </Card>
       {/* Pie Chart at Top */}
       <Card className="p-3 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
         <h3 className="text-base sm:text-2xl font-bold mb-2 sm:mb-4">Activity Distribution</h3>

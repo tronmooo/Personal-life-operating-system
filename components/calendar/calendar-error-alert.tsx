@@ -33,10 +33,10 @@ export function CalendarErrorAlert() {
         if (response.status === 503) {
           setHasCredentialError(true)
           setErrorMessage(data.error || 'Calendar service is unavailable')
-        } else if (response.status === 401) {
+        } else         if (response.status === 401) {
           if (data.needsReauth) {
             setHasCredentialError(true)
-            setErrorMessage('Calendar access expired. Please sign in again with Google.')
+            setErrorMessage('Connect your Google account to enable Calendar sync.')
           }
         }
       } catch (error) {
@@ -60,15 +60,12 @@ export function CalendarErrorAlert() {
           size="sm"
           className="ml-4"
           onClick={() => {
-            if (errorMessage.includes('sign in')) {
-              window.location.href = '/api/auth/signout?callbackUrl=/api/auth/signin'
-            } else {
-              window.location.href = '/settings'
-            }
+            // Always go to settings to connect Google, not force sign-out
+            window.location.href = '/settings'
           }}
         >
           <Settings className="h-4 w-4 mr-2" />
-          {errorMessage.includes('sign in') ? 'Re-authenticate' : 'Configure'}
+          Connect Google
         </Button>
       </AlertDescription>
     </Alert>

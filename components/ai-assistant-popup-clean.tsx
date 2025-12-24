@@ -53,13 +53,16 @@ function renderVisualization(viz: AIMessage['visualization']) {
 
   const chartHeight = 250
 
+  // Determine the x-axis dataKey based on available data properties
+  const xAxisKey = viz.data[0]?.name ? 'name' : viz.data[0]?.category ? 'category' : 'date'
+
   switch (viz.type) {
     case 'line':
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
           <LineChart data={viz.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={xAxisKey} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -76,7 +79,7 @@ function renderVisualization(viz: AIMessage['visualization']) {
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart data={viz.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={xAxisKey} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -117,7 +120,7 @@ function renderVisualization(viz: AIMessage['visualization']) {
         <ResponsiveContainer width="100%" height={chartHeight}>
           <AreaChart data={viz.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={xAxisKey} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -134,7 +137,7 @@ function renderVisualization(viz: AIMessage['visualization']) {
         <ResponsiveContainer width="100%" height={chartHeight}>
           <LineChart>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
+            <XAxis dataKey={xAxisKey} type="category" allowDuplicatedCategory={false} tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} stroke="#4b5563" />
             <Tooltip 
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -312,50 +315,67 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
     try {
       // FIRST: Try multi-entity extraction for data entry commands
       console.log('🧠 [MULTI-ENTITY] Attempting multi-entity extraction...')
-      const multiEntityResponse = await fetch('/api/ai-assistant/multi-entry', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: question,
-          userContext: {
-            recentEntries: Object.values(data).flat().slice(0, 50),
-            preferences: {
-              // Extract default names from recent data
-              defaultPetName: data.pets?.[0]?.metadata?.petName || data.pets?.[0]?.title,
-              defaultVehicle: data.vehicles?.[0]?.title,
-              defaultHome: data.home?.[0]?.title
+      try {
+        const multiEntityResponse = await fetch('/api/ai-assistant/multi-entry', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: question,
+            userContext: {
+              recentEntries: Object.values(data).flat().slice(0, 50),
+              preferences: {
+                // Extract default names from recent data
+                defaultPetName: data.pets?.[0]?.metadata?.petName || data.pets?.[0]?.title,
+                defaultVehicle: data.vehicles?.[0]?.title,
+                defaultHome: data.home?.[0]?.title
+              }
             }
-          }
+          })
         })
-      })
 
-      if (multiEntityResponse.ok) {
-        const multiResult = await multiEntityResponse.json()
-        console.log('📥 [MULTI-ENTITY] Response:', multiResult)
+        if (multiEntityResponse.ok) {
+          const multiResult = await multiEntityResponse.json()
+          console.log('📥 [MULTI-ENTITY] Full response:', JSON.stringify(multiResult, null, 2))
 
-        // If entities were extracted and saved, use multi-entity response
-        if (multiResult.success && multiResult.results && multiResult.results.length > 0) {
-          console.log(`✅ [MULTI-ENTITY] Saved ${multiResult.results.length} entities!`)
-          
-          // Trigger reload of DataProvider
-          if (multiResult.triggerReload) {
-            console.log('💾 [MULTI-ENTITY] Data was saved! Triggering reload...')
-            if (typeof window !== 'undefined') {
-              // ✅ FIXED: Wait for Supabase to commit BEFORE dispatching event
-              await new Promise(resolve => setTimeout(resolve, 800))
-              window.dispatchEvent(new CustomEvent('ai-assistant-saved'))
-              console.log('✅ Dispatched ai-assistant-saved event')
-              await new Promise(resolve => setTimeout(resolve, 300))
+          // If entities were extracted and saved, use multi-entity response
+          if (multiResult.success && multiResult.results && multiResult.results.length > 0) {
+            console.log(`✅ [MULTI-ENTITY] Saved ${multiResult.results.length} entities!`)
+            console.log('📊 [MULTI-ENTITY] Results:', multiResult.results.map((r: any) => `${r.domain}: ${r.title}`).join(', '))
+            
+            // Trigger reload of DataProvider
+            if (multiResult.triggerReload) {
+              console.log('💾 [MULTI-ENTITY] Data was saved! Triggering reload...')
+              if (typeof window !== 'undefined') {
+                // ✅ FIXED: Wait for Supabase to commit BEFORE dispatching event
+                await new Promise(resolve => setTimeout(resolve, 800))
+                window.dispatchEvent(new CustomEvent('ai-assistant-saved'))
+                console.log('✅ Dispatched ai-assistant-saved event')
+                await new Promise(resolve => setTimeout(resolve, 300))
+              }
+            }
+
+            return { message: multiResult.message || 'Data logged successfully!' }
+          } else {
+            console.log('💬 [MULTI-ENTITY] No entities extracted or save failed.')
+            console.log('📊 [MULTI-ENTITY] Success:', multiResult.success, 'Results count:', multiResult.results?.length || 0)
+            if (multiResult.error) {
+              console.warn('⚠️ [MULTI-ENTITY] Error:', multiResult.error)
+            }
+            if (multiResult.extractionResult) {
+              console.log('📊 [MULTI-ENTITY] Extraction result:', JSON.stringify(multiResult.extractionResult, null, 2))
             }
           }
-
-          return { message: multiResult.message || 'Data logged successfully!' }
+        } else {
+          const errorText = await multiEntityResponse.text()
+          console.warn('⚠️ [MULTI-ENTITY] API returned non-OK status:', multiEntityResponse.status, errorText)
         }
+      } catch (multiError) {
+        console.warn('⚠️ [MULTI-ENTITY] Extraction failed, falling back to chat:', multiError)
       }
       
-      // FALLBACK: If no entities found, use regular chat endpoint
-      console.log('💬 [FALLBACK] No entities found, using regular chat...')
+      // FALLBACK: Use regular chat endpoint
+      console.log('💬 [FALLBACK] Using regular chat endpoint...')
       const response = await fetch('/api/ai-assistant/chat', {
         method: 'POST',
         credentials: 'include',
@@ -387,6 +407,22 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
           console.log('✅ Dispatched ai-assistant-saved event')
           await new Promise(resolve => setTimeout(resolve, 300))
         }
+      }
+      
+      // Handle navigation commands
+      if (result.navigate) {
+        console.log('🧭 AI requesting navigation to:', result.navigate.path)
+        setTimeout(() => {
+          window.location.href = result.navigate.path
+        }, 500)
+      }
+
+      // Handle open tool commands
+      if (result.openTool) {
+        console.log('🔧 AI requesting to open tool:', result.openTool.path)
+        setTimeout(() => {
+          window.location.href = result.openTool.path
+        }, 500)
       }
       
       return { 

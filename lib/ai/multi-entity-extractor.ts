@@ -29,7 +29,7 @@ export interface UserContext {
 }
 
 /**
- * Multi-Entity Extraction using GPT-4
+ * Multi-Entity Extraction using GPT-4 (with Gemini fallback)
  * Extracts ALL data points from natural language input
  */
 export async function extractMultipleEntities(
@@ -37,7 +37,26 @@ export async function extractMultipleEntities(
   userContext?: UserContext
 ): Promise<MultiEntityResult> {
   
+  // Get current date/time for accurate timestamps
+  const currentDate = new Date()
+  const currentISODate = currentDate.toISOString()
+  const currentDateOnly = currentISODate.split('T')[0]
+  const currentTime = currentDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  
   const systemPrompt = `You are a MULTI-ENTITY DATA EXTRACTOR for a comprehensive life management app.
+
+**🚨 CRITICAL - READ THE USER'S ACTUAL INPUT AND EXTRACT EXACT VALUES:**
+- You MUST extract the EXACT numbers, names, and values from what the user says
+- DO NOT use values from examples - examples are just for structure/format reference
+- If user says "175 pounds" → extract 175, NOT any other number
+- If user says "42 minutes" → extract 42, NOT any other number  
+- If user says "eggs and toast" → extract "eggs and toast", NOT "chicken salad"
+- If user says "118/76" → extract 118/76, NOT 120/80
+
+**CURRENT DATE/TIME FOR ALL ENTRIES:**
+- Use this exact timestamp for dates: ${currentISODate}
+- Use this date-only value: ${currentDateOnly}
+- Use this time value: ${currentTime}
 
 **YOUR PRIMARY JOB:** Extract EVERY piece of data from the user's input and route each to the correct domain.
 
@@ -189,286 +208,28 @@ export async function extractMultipleEntities(
   - "I'm feeling lonely and depressed" → journal entry
   - Any emotional venting or feeling expression → journal entry
 
-**EXAMPLES:**
+**FORMAT EXAMPLES (for structure reference ONLY - use USER'S actual values, not example values!):**
 
-Input: "my dog weighs 175 pounds and i drank 20 oz water"
-Output:
+🚨 REMEMBER: These show FORMAT only - extract actual values from user input!
+
+Example showing fitness + nutrition format:
+- If user says "ran 5 miles 45 min" → domain: fitness, duration: "45", distance: "5"
+- If user says "ate pizza 600 cal" → domain: nutrition, name: "pizza", calories: 600
+
+Example JSON structure for multi-entity:
 {
   "entities": [
-    {
-      "domain": "pets",
-      "confidence": 95,
-      "title": "Dog weight check",
-      "data": {
-        "type": "health_record",
-        "petName": "dog",
-        "species": "Dog",
-        "weight": "175",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "my dog weighs 175 pounds"
-    },
-    {
-      "domain": "nutrition",
-      "confidence": 98,
-      "title": "Water intake",
-      "data": {
-        "type": "water",
-        "logType": "water",
-        "water": 20,
-        "value": 20,
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "i drank 20 oz water"
-    }
+    { "domain": "[from user input]", "confidence": 95, "title": "[from user input]", "data": { ... }, "rawText": "[exact quote from user]" }
   ],
-  "originalInput": "my dog weighs 175 pounds and i drank 20 oz water",
-  "timestamp": "${new Date().toISOString()}",
+  "originalInput": "[user's full input]",
+  "timestamp": "${currentISODate}",
   "requiresConfirmation": false
 }
 
-Input: "spent $45 on groceries, walked 30 minutes, car needs oil change"
-Output:
-{
-  "entities": [
-    {
-      "domain": "financial",
-      "confidence": 95,
-      "title": "Grocery expense",
-      "data": {
-        "type": "expense",
-        "amount": "45",
-        "category": "groceries",
-        "description": "groceries",
-        "transactionDate": "${new Date().toISOString()}"
-      },
-      "rawText": "spent $45 on groceries"
-    },
-    {
-      "domain": "fitness",
-      "confidence": 92,
-      "title": "Walking workout",
-      "data": {
-        "activityType": "Walking",
-        "duration": "30",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "walked 30 minutes"
-    },
-    {
-      "domain": "vehicles",
-      "confidence": 85,
-      "title": "Oil change needed",
-      "description": "Car needs oil change",
-      "data": {
-        "type": "maintenance",
-        "serviceType": "Oil Change",
-        "status": "Pending",
-        "needsService": true,
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "car needs oil change"
-    }
-  ],
-  "originalInput": "spent $45 on groceries, walked 30 minutes, car needs oil change",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
-
-Input: "Max had vet appointment $150, need to buy dog food"
-Output:
-{
-  "entities": [
-    {
-      "domain": "pets",
-      "confidence": 95,
-      "title": "Vet appointment - Max",
-      "data": {
-        "petName": "Max",
-        "type": "vet_visit",
-        "cost": "150",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "Max had vet appointment $150"
-    },
-    {
-      "domain": "financial",
-      "confidence": 88,
-      "title": "Vet expense",
-      "data": {
-        "type": "expense",
-        "amount": "150",
-        "category": "pet care",
-        "description": "vet appointment for Max",
-        "transactionDate": "${new Date().toISOString()}"
-      },
-      "rawText": "Max had vet appointment $150"
-    }
-  ],
-  "originalInput": "Max had vet appointment $150, need to buy dog food",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
-
-Input: "ran 5 miles in 45 minutes, blood pressure 120/80, ate chicken salad 450 calories"
-Output:
-{
-  "entities": [
-    {
-      "domain": "fitness",
-      "confidence": 95,
-      "title": "Running workout",
-      "data": {
-        "activityType": "Running",
-        "duration": "45",
-        "distance": "5",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "ran 5 miles in 45 minutes"
-    },
-    {
-      "domain": "health",
-      "confidence": 98,
-      "title": "Blood pressure reading",
-      "data": {
-        "recordType": "blood_pressure",
-        "systolic": "120",
-        "diastolic": "80",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "blood pressure 120/80"
-    },
-    {
-      "domain": "nutrition",
-      "confidence": 92,
-      "title": "Chicken salad meal",
-      "data": {
-        "type": "meal",
-        "logType": "meal",
-        "name": "Chicken salad",
-        "mealType": "Lunch",
-        "description": "chicken salad",
-        "calories": 450,
-        "time": "${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "ate chicken salad 450 calories"
-    }
-  ],
-  "originalInput": "ran 5 miles in 45 minutes, blood pressure 120/80, ate chicken salad 450 calories",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
-
-Input: "I have an interview at Amazon tomorrow at 4:30 PM"
-Output:
-{
-  "entities": [
-    {
-      "domain": "calendar",
-      "confidence": 98,
-      "title": "Interview with Amazon",
-      "data": {
-        "type": "interview",
-        "company": "Amazon",
-        "date": "tomorrow",
-        "time": "4:30 PM",
-        "duration": 60,
-        "description": "Job interview at Amazon"
-      },
-      "rawText": "interview at Amazon tomorrow at 4:30 PM"
-    }
-  ],
-  "originalInput": "I have an interview at Amazon tomorrow at 4:30 PM",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
-
-Input: "meeting with John at 2pm, spent $45 on lunch"
-Output:
-{
-  "entities": [
-    {
-      "domain": "calendar",
-      "confidence": 95,
-      "title": "Meeting with John",
-      "data": {
-        "type": "meeting",
-        "withWhom": "John",
-        "time": "2:00 PM",
-        "duration": 60,
-        "date": "${new Date().toISOString().split('T')[0]}"
-      },
-      "rawText": "meeting with John at 2pm"
-    },
-    {
-      "domain": "financial",
-      "confidence": 95,
-      "title": "Lunch expense",
-      "data": {
-        "type": "expense",
-        "amount": "45",
-        "category": "food",
-        "description": "lunch",
-        "transactionDate": "${new Date().toISOString()}"
-      },
-      "rawText": "spent $45 on lunch"
-    }
-  ],
-  "originalInput": "meeting with John at 2pm, spent $45 on lunch",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
-
-Input: "I'm just pissed off I don't know what to do I'm lonely and scared and depressed"
-Output:
-{
-  "entities": [
-    {
-      "domain": "mindfulness",
-      "confidence": 95,
-      "title": "Journal Entry - ${new Date().toLocaleDateString()}",
-      "data": {
-        "type": "journal",
-        "logType": "journal-entry",
-        "entryType": "Journal",
-        "fullContent": "I'm just pissed off I don't know what to do I'm lonely and scared and depressed",
-        "wordCount": 16,
-        "mood": "frustrated, lonely, scared, depressed",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "I'm just pissed off I don't know what to do I'm lonely and scared and depressed"
-    }
-  ],
-  "originalInput": "I'm just pissed off I don't know what to do I'm lonely and scared and depressed",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
-
-Input: "feeling anxious about work today, can't focus"
-Output:
-{
-  "entities": [
-    {
-      "domain": "mindfulness",
-      "confidence": 95,
-      "title": "Journal Entry - ${new Date().toLocaleDateString()}",
-      "data": {
-        "type": "journal",
-        "logType": "journal-entry",
-        "entryType": "Journal",
-        "fullContent": "feeling anxious about work today, can't focus",
-        "wordCount": 8,
-        "mood": "anxious",
-        "date": "${new Date().toISOString()}"
-      },
-      "rawText": "feeling anxious about work today, can't focus"
-    }
-  ],
-  "originalInput": "feeling anxious about work today, can't focus",
-  "timestamp": "${new Date().toISOString()}",
-  "requiresConfirmation": false
-}
+**DOMAIN ROUTING EXAMPLES (format reference only):**
+- Calendar events: { domain: "calendar", data: { type: "meeting/interview", date: "[from user]", time: "[from user]" } }
+- Financial: { domain: "financial", data: { type: "expense", amount: "[from user]", category: "[inferred]" } }
+- Mindfulness/emotional: { domain: "mindfulness", data: { type: "journal", logType: "journal-entry", fullContent: "[user's exact words]" } }
 
 **CRITICAL RULES:**
 - Extract ALL entities (don't miss any!)
@@ -489,38 +250,141 @@ Return ONLY valid JSON matching the MultiEntityResult interface. No other text.`
 - Default vehicle: ${userContext.preferences.defaultVehicle || 'Unknown'}
 Use these defaults when user doesn't specify names.` : ''
 
+  const extractionReminder = `
+
+🚨 FINAL REMINDER - EXTRACT EXACT VALUES FROM USER INPUT:
+- READ the user's message carefully
+- Extract the EXACT numbers they say (not example numbers)
+- Extract the EXACT food/activity names they mention
+- Use today's date: ${currentDateOnly}
+- Use current timestamp: ${currentISODate}
+- Use current time: ${currentTime}
+- If user says "175" → use 175, if user says "42" → use 42
+- NEVER substitute example values for user values`
+
   const openAIKey = process.env.OPENAI_API_KEY
-  if (!openAIKey) {
-    throw new Error('OpenAI API key not configured')
-  }
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openAIKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt + contextPrompt },
-        { role: 'user', content: input }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-      response_format: { type: 'json_object' }
-    })
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`OpenAI API error: ${error}`)
-  }
-
-  const data = await response.json()
-  const resultText = data.choices[0].message.content
+  const geminiKey = process.env.GEMINI_API_KEY
   
-  console.log('🤖 [MULTI-ENTITY] Raw AI response:', resultText)
+  console.log('🔑 [MULTI-ENTITY] API keys status:', {
+    openai: openAIKey ? 'configured' : 'missing',
+    gemini: geminiKey ? 'configured' : 'missing'
+  })
+  
+  if (!openAIKey && !geminiKey) {
+    throw new Error('Neither OpenAI nor Gemini API key is configured')
+  }
+
+  let resultText: string | null = null
+  let aiSource = 'unknown'
+  let openAIError: string | null = null
+  
+  // Try Gemini FIRST if available (more reliable when OpenAI has quota issues)
+  if (geminiKey) {
+    try {
+      console.log('🤖 [MULTI-ENTITY] Trying Gemini first...')
+      console.log('🎯 [MULTI-ENTITY] User input to extract from:', input)
+      const geminiPrompt = `${systemPrompt}${contextPrompt}${extractionReminder}
+
+**USER'S ACTUAL INPUT TO EXTRACT FROM (use ONLY these values):**
+"${input}"
+
+Extract the EXACT values from the user's input above. Return ONLY valid JSON matching the MultiEntityResult interface. No markdown, no code blocks, just raw JSON.`
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: geminiPrompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 3000,
+            }
+          })
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text
+        
+        if (content) {
+          // Clean up Gemini response - it sometimes wraps in markdown code blocks
+          resultText = content
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .trim()
+          aiSource = 'gemini'
+          console.log('✅ [MULTI-ENTITY] Gemini response received')
+        }
+      } else {
+        const error = await response.text()
+        console.warn(`⚠️ [MULTI-ENTITY] Gemini failed (${response.status}): ${error.substring(0, 200)}`)
+      }
+    } catch (geminiError: any) {
+      console.warn('⚠️ [MULTI-ENTITY] Gemini error:', geminiError.message)
+    }
+  }
+  
+  // Fallback to OpenAI if Gemini failed or isn't available
+  if (!resultText && openAIKey) {
+    try {
+      console.log('🤖 [MULTI-ENTITY] Trying OpenAI as fallback...')
+      console.log('🎯 [MULTI-ENTITY] User input to extract from:', input)
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openAIKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', // Use gpt-4o-mini for better rate limits
+          messages: [
+            { role: 'system', content: systemPrompt + contextPrompt + extractionReminder },
+            { role: 'user', content: `**USER'S ACTUAL INPUT TO EXTRACT FROM (use ONLY these values):**\n"${input}"\n\nExtract the EXACT values from this input.` }
+          ],
+          temperature: 0.1, // Lower temperature for more precise extraction
+          max_tokens: 3000,
+          response_format: { type: 'json_object' }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        resultText = data.choices[0].message.content
+        aiSource = 'openai'
+        console.log('✅ [MULTI-ENTITY] OpenAI response received')
+      } else {
+        const error = await response.text()
+        openAIError = error.substring(0, 200)
+        console.warn(`⚠️ [MULTI-ENTITY] OpenAI failed (${response.status}): ${openAIError}`)
+        
+        // Check for quota error specifically
+        if (response.status === 429 || error.includes('quota') || error.includes('insufficient_quota')) {
+          console.error('❌ [MULTI-ENTITY] OpenAI quota exceeded! Consider adding credits or using Gemini.')
+        }
+      }
+    } catch (openaiError: any) {
+      console.warn('⚠️ [MULTI-ENTITY] OpenAI error:', openaiError.message)
+      openAIError = openaiError.message
+    }
+  }
+  
+  // If both failed, throw detailed error
+  if (!resultText) {
+    const errorDetails = []
+    if (!geminiKey) errorDetails.push('Gemini API key not configured')
+    else errorDetails.push('Gemini API call failed')
+    if (!openAIKey) errorDetails.push('OpenAI API key not configured')
+    else if (openAIError) errorDetails.push(`OpenAI error: ${openAIError}`)
+    else errorDetails.push('OpenAI API call failed')
+    
+    throw new Error(`Both AI providers failed. ${errorDetails.join('; ')}. Please check your API keys and quotas.`)
+  }
+  
+  console.log(`🤖 [MULTI-ENTITY] Raw AI response (${aiSource}):`, resultText.substring(0, 500))
   
   // Parse JSON response
   let result: MultiEntityResult

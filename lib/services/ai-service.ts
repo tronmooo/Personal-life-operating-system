@@ -9,6 +9,7 @@ export interface AIRequest {
   temperature?: number
   maxTokens?: number
   imageBase64?: string
+  image?: string  // Alias for imageBase64 (data URL or base64 string)
 }
 
 export interface AIResponse {
@@ -43,8 +44,12 @@ export async function requestAI(request: AIRequest): Promise<AIResponse> {
     systemPrompt,
     temperature = 0.7,
     maxTokens = 2000,
-    imageBase64
+    imageBase64,
+    image
   } = request
+  
+  // Support both imageBase64 and image parameters
+  const imageData = imageBase64 || image
 
   // Try Gemini first (FREE and powerful)
   const geminiKey = process.env.GEMINI_API_KEY
@@ -62,11 +67,11 @@ export async function requestAI(request: AIRequest): Promise<AIResponse> {
       }
       
       // Add image if provided
-      if (imageBase64) {
+      if (imageData) {
         parts.push({
           inlineData: {
             mimeType: 'image/jpeg',
-            data: imageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
+            data: imageData.replace(/^data:image\/[a-z]+;base64,/, '')
           }
         })
       }
@@ -125,14 +130,14 @@ export async function requestAI(request: AIRequest): Promise<AIResponse> {
         messages.push({ role: 'system', content: systemPrompt })
       }
       
-      if (imageBase64) {
+      if (imageData) {
         messages.push({
           role: 'user',
           content: [
             { type: 'text', text: prompt },
             {
               type: 'image_url',
-              image_url: { url: imageBase64 }
+              image_url: { url: imageData }
             }
           ]
         })
@@ -147,7 +152,7 @@ export async function requestAI(request: AIRequest): Promise<AIResponse> {
           'Authorization': `Bearer ${openaiKey}`
         },
         body: JSON.stringify({
-          model: imageBase64 ? 'gpt-4o-mini' : 'gpt-4o-mini',
+          model: imageData ? 'gpt-4o' : 'gpt-4o-mini',  // Use gpt-4o for vision tasks
           messages,
           temperature,
           max_tokens: maxTokens

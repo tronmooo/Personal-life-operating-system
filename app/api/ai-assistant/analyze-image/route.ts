@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import * as AI from '@/lib/services/ai-service'
 import { randomUUID } from 'crypto'
-
-// Lazy-initialize OpenAI client to prevent build-time errors
-let _openai: OpenAI | null = null
-function getOpenAI() {
-  if (!_openai) {
-    _openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  }
-  return _openai
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,13 +20,8 @@ export async function POST(request: NextRequest) {
 
     console.log('🖼️ [IMAGE ANALYSIS] Starting analysis for user:', user.id)
 
-    // Use GPT-4 Vision to analyze the image
-    const visionResponse = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an AI assistant that analyzes images and extracts structured data for a life management app with 21 domains:
+    // Use AI vision to analyze the image (Gemini primary, OpenAI fallback)
+    const systemPrompt = `You are an AI assistant that analyzes images and extracts structured data for a life management app with 21 domains:
           
 **21 DOMAINS:**
 1. health - weight, blood pressure, heart rate, temperature, sleep, steps, mood, medications, symptoms
@@ -72,108 +56,17 @@ export async function POST(request: NextRequest) {
    - description: brief description of what you see
    - confidence: your confidence level (high/medium/low)
 
-**EXAMPLES:**
-
-Receipt/Bill → financial domain:
-{
-  "domain": "financial",
-  "type": "receipt",
-  "data": {
-    "amount": 45.50,
-    "merchant": "Whole Foods",
-    "category": "groceries",
-    "date": "2024-10-18"
-  },
-  "description": "Receipt from Whole Foods for groceries",
-  "confidence": "high"
-}
-
-Scale Reading → health domain:
-{
-  "domain": "health",
-  "type": "weight",
-  "data": {
-    "weight": 175.5,
-    "unit": "lbs"
-  },
-  "description": "Scale showing weight reading",
-  "confidence": "high"
-}
-
-Odometer → vehicles domain:
-{
-  "domain": "vehicles",
-  "type": "mileage",
-  "data": {
-    "mileage": 50234,
-    "unit": "miles"
-  },
-  "description": "Car odometer reading",
-  "confidence": "high"
-}
-
-Food/Meal → nutrition domain:
-{
-  "domain": "nutrition",
-  "type": "meal",
-  "data": {
-    "name": "Grilled chicken with vegetables",
-    "description": "Grilled chicken with vegetables",
-    "calories": 450,
-    "mealType": "Lunch"
-  },
-  "description": "Photo of a meal",
-  "confidence": "medium"
-}
-
-Medication Bottle → health domain:
-{
-  "domain": "health",
-  "type": "medication",
-  "data": {
-    "name": "Ibuprofen",
-    "dosage": "200mg",
-    "quantity": 100
-  },
-  "description": "Medication bottle label",
-  "confidence": "high"
-}
-
-Gas Station Sign → financial/vehicles domain:
-{
-  "domain": "vehicles",
-  "type": "fuel_price",
-  "data": {
-    "pricePerGallon": 3.89,
-    "grade": "Regular"
-  },
-  "description": "Gas station price sign",
-  "confidence": "high"
-}
-
 **RESPONSE FORMAT:**
 Return ONLY valid JSON with no additional text. Be as specific as possible with extracted data.`
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze this image and extract structured data in the JSON format specified.'
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: image
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 1000,
+
+    const visionResponse = await AI.requestAI({
+      prompt: 'Analyze this image and extract structured data in the JSON format specified.',
+      systemPrompt,
+      maxTokens: 1000,
+      image
     })
 
-    const analysisText = visionResponse.choices[0].message.content || '{}'
+    const analysisText = visionResponse.content || '{}'
     console.log('🤖 [GPT-4 VISION] Raw response:', analysisText)
 
     // Parse the JSON response

@@ -1,12 +1,12 @@
 /**
  * Health Insights API
- * Generates AI-powered health insights from vital data using OpenAI
+ * Generates AI-powered health insights from vital data using Gemini/OpenAI
  */
 
 import { createServerClient } from '@/lib/supabase/server'
 
 import { NextResponse } from 'next/server'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 
 export async function POST(request: Request) {
   try {
@@ -115,31 +115,34 @@ export async function POST(request: Request) {
       }
     }
 
-    // Generate insights with OpenAI
-    const completion = await getOpenAI().chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a professional health data analyst. Analyze the user's health data and provide 3-4 concise, actionable insights. Each insight should:
+    // Generate insights with AI (Gemini primary, OpenAI fallback)
+    const systemPrompt = `You are a professional health data analyst. Analyze the user's health data and provide 3-4 concise, actionable insights. Each insight should:
 1. Have a clear title (e.g., "Blood Pressure Trending Well")
 2. Include specific data points and numbers
 3. Provide actionable recommendations
 4. Be categorized as "positive" (green), "caution" (yellow), or "concern" (red)
 5. Be friendly and encouraging
 
-Format each insight as JSON with: { category: "positive"|"caution"|"concern", title: string, message: string, icon: "heart"|"moon"|"droplet"|"activity"|"alert" }`
-        },
-        {
-          role: 'user',
-          content: `Please analyze this health data and provide insights:\n\n${JSON.stringify(healthContext, null, 2)}`
-        }
-      ],
-      response_format: { type: 'json_object' },
+Format your response as a JSON object with an "insights" array, where each insight has: { category: "positive"|"caution"|"concern", title: string, message: string, icon: "heart"|"moon"|"droplet"|"activity"|"alert" }`
+
+    const aiResponse = await AI.requestAI({
+      prompt: `Please analyze this health data and provide insights:\n\n${JSON.stringify(healthContext, null, 2)}`,
+      systemPrompt,
       temperature: 0.7,
+      maxTokens: 1500
     })
 
-    const insights = JSON.parse(completion.choices[0].message.content || '{"insights":[]}')
+    let insights = { insights: [] }
+    try {
+      const content = aiResponse.content || '{}'
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        insights = JSON.parse(jsonMatch[0])
+      }
+    } catch {
+      console.error('Failed to parse AI response for health insights')
+    }
 
     return NextResponse.json({
       success: true,

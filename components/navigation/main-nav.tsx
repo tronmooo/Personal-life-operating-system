@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FolderOpen, BarChart3, Zap, Sparkles, Upload, LogOut, User as UserIcon, Settings, Plug, Brain, Phone, Users, History, Calendar, Menu, X } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, BarChart3, Zap, Sparkles, Upload, LogOut, LogIn, User as UserIcon, Settings, Plug, Brain, Phone, Users, History, Calendar, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/lib/utils/toast'
@@ -300,31 +300,12 @@ export function MainNav() {
               </Link>
               <DropdownMenuSeparator />
               {!user ? (
-                <DropdownMenuItem onClick={async () => {
-                  await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                      redirectTo: `${window.location.origin}/auth/callback`,
-                      queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                      },
-                      scopes: [
-                        'email',
-                        'profile',
-                        'https://www.googleapis.com/auth/gmail.readonly',
-                        'https://www.googleapis.com/auth/gmail.modify',
-                        'https://www.googleapis.com/auth/calendar',
-                        'https://www.googleapis.com/auth/calendar.events',
-                        'https://www.googleapis.com/auth/drive.file',
-                        'https://www.googleapis.com/auth/drive.appdata'
-                      ].join(' ')
-                    },
-                  })
-                }}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign In</span>
-                </DropdownMenuItem>
+                <Link href="/auth/signin">
+                  <DropdownMenuItem>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    <span>Sign In</span>
+                  </DropdownMenuItem>
+                </Link>
               ) : (
                 <DropdownMenuItem onClick={async () => {
                   try {

@@ -12,7 +12,7 @@ import { createServerClient, getSupabaseAdmin } from '@/lib/supabase/server'
 import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
 import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -260,15 +260,7 @@ export async function POST(request: NextRequest) {
 
 async function extractReceiptData(imageUrl: string): Promise<ReceiptData> {
   try {
-    const response = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Extract ALL information from this receipt image. Return ONLY valid JSON with no additional text:
+    const prompt = `Extract ALL information from this receipt image. Return ONLY valid JSON with no additional text:
 
 {
   "merchant_name": "Store or restaurant name exactly as shown",
@@ -295,19 +287,16 @@ Rules:
 - category should be inferred from the merchant/items
 - confidence should be 0.0-1.0 based on image clarity
 - Extract ALL line items if visible`
-            },
-            {
-              type: 'image_url',
-              image_url: { url: imageUrl }
-            }
-          ]
-        }
-      ],
-      max_tokens: 2000,
-      temperature: 0.1
+
+    // Use AI service with Gemini primary (better for vision tasks)
+    const aiResponse = await AI.requestAI({
+      prompt,
+      temperature: 0.1,
+      maxTokens: 2000,
+      image: imageUrl
     })
 
-    const content = response.choices[0]?.message?.content || '{}'
+    const content = aiResponse.content || '{}'
     
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/)

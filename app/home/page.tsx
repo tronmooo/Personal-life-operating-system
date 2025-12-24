@@ -17,6 +17,8 @@ interface Home {
   type: string
   purchaseDate: string
   propertyValue: number
+  totalAssetsValue: number
+  totalValue: number // propertyValue + totalAssetsValue
   totalMaintenanceTasks: number
   totalAssets: number
   totalProjects: number
@@ -39,9 +41,9 @@ export default function HomePage() {
         item.metadata?.itemType === 'maintenance-task' && item.metadata?.homeId === property.id
       ).length
       
-      const assets = entries.filter(item => 
+      const assetEntries = entries.filter(item => 
         item.metadata?.itemType === 'asset' && item.metadata?.homeId === property.id
-      ).length
+      )
       
       const projects = entries.filter(item => 
         item.metadata?.itemType === 'project' && item.metadata?.homeId === property.id
@@ -51,15 +53,24 @@ export default function HomePage() {
         item.metadata?.itemType === 'document' && item.metadata?.homeId === property.id
       ).length
 
+      // Calculate total assets value (room-by-room inventory)
+      const totalAssetsValue = assetEntries.reduce((sum, asset) => 
+        sum + (Number(asset.metadata?.value) || 0), 0
+      )
+      
+      const propertyValue = parseFloat(String(property.metadata?.propertyValue || property.metadata?.value || 0)) || 0
+
       return {
         id: property.id,
         name: property.title || property.metadata?.name || 'Unnamed Property',
         address: property.metadata?.address || property.description || '',
         type: property.metadata?.propertyType || property.metadata?.type || 'primary',
         purchaseDate: property.metadata?.purchaseDate || '',
-        propertyValue: parseFloat(String(property.metadata?.propertyValue || property.metadata?.value || 0)) || 0,
+        propertyValue: propertyValue,
+        totalAssetsValue: totalAssetsValue,
+        totalValue: propertyValue + totalAssetsValue, // Combined total
         totalMaintenanceTasks: maintenanceTasks,
-        totalAssets: assets,
+        totalAssets: assetEntries.length,
         totalProjects: projects,
         totalDocuments: documents
       } as Home
@@ -308,8 +319,13 @@ export default function HomePage() {
                         <HomeIcon className="h-6 w-6 text-white" />
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Value</p>
-                        <p className="text-lg font-bold text-purple-600">${home.propertyValue.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Total Value</p>
+                        <p className="text-lg font-bold text-emerald-600">${home.totalValue.toLocaleString()}</p>
+                        {home.totalAssetsValue > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Property: ${home.propertyValue.toLocaleString()} + Contents: ${home.totalAssetsValue.toLocaleString()}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <h3 className="text-xl font-bold mb-1">{home.name}</h3>
@@ -322,6 +338,9 @@ export default function HomePage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Assets</p>
                         <p className="text-lg font-semibold">{home.totalAssets || 0}</p>
+                        {home.totalAssetsValue > 0 && (
+                          <p className="text-xs text-purple-600">${home.totalAssetsValue.toLocaleString()}</p>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/lib/supabase/auth-provider'
 
 interface DriveFile {
   id: string
@@ -31,7 +31,7 @@ interface UploadResult {
 }
 
 export function useGoogleDrive(domain: string) {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [files, setFiles] = useState<DriveFile[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +41,7 @@ export function useGoogleDrive(domain: string) {
    */
   const uploadFile = useCallback(
     async (file: File, recordId?: string, extractedText?: string): Promise<UploadResult> => {
-      if (!session) {
+      if (!user) {
         return { success: false, error: 'Not authenticated' }
       }
 
@@ -79,14 +79,14 @@ export function useGoogleDrive(domain: string) {
         setLoading(false)
       }
     },
-    [session, domain]
+    [user, domain]
   )
 
   /**
    * List files for current domain
    */
   const listFiles = useCallback(async () => {
-    if (!session) {
+    if (!user) {
       setFiles([])
       return
     }
@@ -111,14 +111,14 @@ export function useGoogleDrive(domain: string) {
     } finally {
       setLoading(false)
     }
-  }, [session, domain])
+  }, [user, domain])
 
   /**
    * Delete file from Google Drive
    */
   const deleteFile = useCallback(
     async (fileId: string) => {
-      if (!session) return
+      if (!user) return
 
       setLoading(true)
       setError(null)
@@ -145,7 +145,7 @@ export function useGoogleDrive(domain: string) {
         setLoading(false)
       }
     },
-    [session, listFiles]
+    [user, listFiles]
   )
 
   /**
@@ -153,7 +153,7 @@ export function useGoogleDrive(domain: string) {
    */
   const createShareableLink = useCallback(
     async (fileId: string): Promise<string | null> => {
-      if (!session) return null
+      if (!user) return null
 
       try {
         const response = await fetch('/api/drive/share', {
@@ -175,7 +175,7 @@ export function useGoogleDrive(domain: string) {
         return null
       }
     },
-    [session]
+    [user]
   )
 
   /**
@@ -183,7 +183,7 @@ export function useGoogleDrive(domain: string) {
    */
   const shareWithEmail = useCallback(
     async (fileId: string, email: string, role: 'reader' | 'writer' = 'reader') => {
-      if (!session) return
+      if (!user) return
 
       try {
         const response = await fetch('/api/drive/share', {
@@ -205,7 +205,7 @@ export function useGoogleDrive(domain: string) {
         throw err
       }
     },
-    [session]
+    [user]
   )
 
   return {
@@ -217,7 +217,7 @@ export function useGoogleDrive(domain: string) {
     deleteFile,
     createShareableLink,
     shareWithEmail,
-    isAuthenticated: !!session,
+    isAuthenticated: !!user,
   }
 }
 

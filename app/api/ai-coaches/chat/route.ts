@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
-import OpenAI from 'openai'
+import * as AI from '@/lib/services/ai-service'
 
 // Coach-specific system prompts
 const COACH_PROMPTS: Record<string, string> = {
@@ -164,15 +164,6 @@ APPROACH:
 Never encourage ending relationships hastily. Focus on growth, understanding, and healthy communication patterns.`
 }
 
-// Get OpenAI client
-function getOpenAI(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured')
-  }
-  return new OpenAI({ apiKey })
-}
-
 export async function POST(request: Request) {
   try {
     const { 
@@ -200,10 +191,11 @@ export async function POST(request: Request) {
       console.log('⚠️ No authenticated user, proceeding with limited context')
     }
 
-    // Check for OpenAI API key
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      console.error('❌ OpenAI API key not configured')
+    // Check for AI API keys (Gemini or OpenAI)
+    const hasGemini = !!process.env.GEMINI_API_KEY
+    const hasOpenAI = !!process.env.OPENAI_API_KEY
+    if (!hasGemini && !hasOpenAI) {
+      console.error('❌ No AI API key configured')
       return NextResponse.json({
         response: getFallbackResponse(coachType, message),
         isAI: false
@@ -217,42 +209,36 @@ export async function POST(request: Request) {
       systemPrompt += `\n\n--- USER CONTEXT ---\n${context}\n--- END CONTEXT ---\n\nUse this context to provide personalized advice. Reference specific data when relevant.`
     }
 
-    // Build messages array
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: 'system', content: systemPrompt },
-      ...conversationHistory.slice(-8).map((msg: { role: string; content: string }) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content
-      })),
-      { role: 'user', content: message }
-    ]
+    // Build conversation context from history
+    const historyContext = conversationHistory.slice(-8)
+      .map((msg: { role: string; content: string }) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n\n')
 
-    // Call OpenAI
-    const openai = getOpenAI()
+    const fullPrompt = historyContext 
+      ? `Previous conversation:\n${historyContext}\n\nUser: ${message}`
+      : message
+
+    console.log(`🤖 Calling AI for ${coachType}...`)
     
-    console.log(`🤖 Calling OpenAI for ${coachType}...`)
-    
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages,
+    const aiResponse = await AI.requestAI({
+      prompt: fullPrompt,
+      systemPrompt,
       temperature: coachType === 'mindfulness-coach' ? 0.6 : 0.7,
-      max_tokens: 800,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1
+      maxTokens: 800
     })
 
-    const responseContent = completion.choices[0]?.message?.content
+    const responseContent = aiResponse.content
 
     if (!responseContent) {
-      throw new Error('No response from OpenAI')
+      throw new Error('No response from AI')
     }
 
-    console.log(`✅ OpenAI response received for ${coachType}`)
+    console.log(`✅ AI response received for ${coachType}`)
 
     return NextResponse.json({
       response: responseContent,
       isAI: true,
-      model: 'gpt-4o',
+      model: hasGemini ? 'gemini' : 'gpt-4o',
       coachType
     })
 
@@ -262,13 +248,13 @@ export async function POST(request: Request) {
     // Check for specific error types
     if (error.message?.includes('API key')) {
       return NextResponse.json({
-        response: 'AI features are not configured. Please add your OpenAI API key.',
+        response: 'AI features are not configured. Please add your Gemini or OpenAI API key.',
         isAI: false,
         error: 'api_key_missing'
       })
     }
 
-    if (error.code === 'rate_limit_exceeded') {
+    if (error.code === 'rate_limit_exceeded' || error.message?.includes('rate limit')) {
       return NextResponse.json({
         response: "I'm receiving a lot of requests right now. Please try again in a moment.",
         isAI: false,
@@ -335,16 +321,22 @@ function getFallbackResponse(coachType: string, message: string): string {
 
 // GET endpoint to check API status
 export async function GET() {
-  const hasApiKey = !!process.env.OPENAI_API_KEY
+  const hasGemini = !!process.env.GEMINI_API_KEY
+  const hasOpenAI = !!process.env.OPENAI_API_KEY
+  const hasApiKey = hasGemini || hasOpenAI
   
   return NextResponse.json({
     status: hasApiKey ? 'ready' : 'no_api_key',
     message: hasApiKey 
       ? 'AI Coaches are ready to help!' 
-      : 'OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.',
-    availableCoaches: Object.keys(COACH_PROMPTS)
+      : 'No AI API key configured. Please add GEMINI_API_KEY or OPENAI_API_KEY to your environment variables.',
+    availableCoaches: Object.keys(COACH_PROMPTS),
+    primaryProvider: hasGemini ? 'gemini' : (hasOpenAI ? 'openai' : 'none')
   })
 }
+
+
+
 
 
 

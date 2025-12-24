@@ -121,20 +121,24 @@ export function HomeDetailPageClient({ homeId }: { homeId: string }) {
       {/* Tabs */}
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
-          {/* Mobile-friendly tab container with horizontal scroll */}
-          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+          {/* Horizontally scrollable tab toolbar */}
+          <div className="relative">
             {/* Fade indicator for more content on right */}
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none sm:hidden z-10" />
-            <TabsList className="inline-flex w-max min-w-full gap-1 sm:grid sm:w-full sm:grid-cols-4 lg:grid-cols-8 sm:gap-2 pb-1">
-              <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 sm:px-3">Overview</TabsTrigger>
-              <TabsTrigger value="maintenance" className="text-xs sm:text-sm px-3 sm:px-3">Maintenance</TabsTrigger>
-              <TabsTrigger value="assets" className="text-xs sm:text-sm px-3 sm:px-3">Assets</TabsTrigger>
-              <TabsTrigger value="projects" className="text-xs sm:text-sm px-3 sm:px-3">Projects</TabsTrigger>
-              <TabsTrigger value="bills" className="text-xs sm:text-sm px-3 sm:px-3">Bills</TabsTrigger>
-              <TabsTrigger value="service" className="text-xs sm:text-sm px-3 sm:px-3">Service</TabsTrigger>
-              <TabsTrigger value="schedule" className="text-xs sm:text-sm px-3 sm:px-3">Schedule</TabsTrigger>
-              <TabsTrigger value="documents" className="text-xs sm:text-sm px-3 sm:px-3">Documents</TabsTrigger>
-            </TabsList>
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10" />
+            {/* Fade indicator for more content on left */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none z-10" />
+            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6">
+              <TabsList className="inline-flex w-max gap-1 p-1">
+                <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
+                <TabsTrigger value="maintenance" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Maintenance</TabsTrigger>
+                <TabsTrigger value="assets" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Assets</TabsTrigger>
+                <TabsTrigger value="projects" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Projects</TabsTrigger>
+                <TabsTrigger value="bills" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Bills</TabsTrigger>
+                <TabsTrigger value="service" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Service</TabsTrigger>
+                <TabsTrigger value="schedule" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Schedule</TabsTrigger>
+                <TabsTrigger value="documents" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Documents</TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="overview">

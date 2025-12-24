@@ -1,44 +1,107 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { getOpenAI } from '@/lib/openai/client'
+
+async function callGemini(prompt: string, systemPrompt: string, format?: string): Promise<string | null> {
+  const geminiKey = process.env.GEMINI_API_KEY
+  if (!geminiKey) return null
+
+  try {
+    const fullPrompt = systemPrompt + '\n\n' + prompt
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2000,
+            topP: 0.95,
+            topK: 40
+          }
+        }),
+        signal: AbortSignal.timeout(30000)
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || null
+    }
+  } catch (error) {
+    console.warn('⚠️ Gemini request failed:', error)
+  }
+  return null
+}
+
+async function callOpenAI(prompt: string, systemPrompt: string, format?: string): Promise<string | null> {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) return null
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        response_format: format === 'json' ? { type: 'json_object' } : undefined,
+        temperature: 0.7,
+        max_tokens: 1500
+      }),
+      signal: AbortSignal.timeout(30000)
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.choices?.[0]?.message?.content || null
+    }
+  } catch (error) {
+    console.warn('⚠️ OpenAI request failed:', error)
+  }
+  return null
+}
 
 export async function POST(request: Request) {
   try {
     const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    // Allow guest access to try AI tools with a limit
-    const isGuest = !user
+    await supabase.auth.getUser() // Just validate session, allow guest access
 
     const { type, data, prompt, format } = await request.json()
     
-    if (!type) {
-      return NextResponse.json({ error: 'Analysis type required' }, { status: 400 })
+    if (!type && !prompt) {
+      return NextResponse.json({ error: 'Analysis type or prompt required' }, { status: 400 })
     }
 
     const analysisPrompt = prompt || getPromptForAnalysisType(type, data)
+    const systemPrompt = "You are a helpful financial and administrative AI assistant. Provide clear, actionable advice and analysis." + (format === 'json' ? " Return your response in valid JSON format." : "")
 
-    const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful financial and administrative AI assistant. Provide clear, actionable advice and analysis." + (format === 'json' ? " Return your response in valid JSON format." : "")
-        },
-        {
-          role: "user",
-          content: analysisPrompt
-        }
-      ],
-      response_format: format === 'json' ? { type: "json_object" } : undefined,
-      temperature: 0.7,
-      max_tokens: 1500,
-    })
+    // Try Gemini first (free), then OpenAI as fallback
+    let analysis = await callGemini(analysisPrompt, systemPrompt, format)
+    let source = 'gemini'
+    
+    if (!analysis) {
+      analysis = await callOpenAI(analysisPrompt, systemPrompt, format)
+      source = 'openai'
+    }
 
-    const analysis = response.choices[0]?.message?.content || ''
+    if (!analysis) {
+      return NextResponse.json(
+        { error: 'No AI API keys configured. Please set GEMINI_API_KEY or OPENAI_API_KEY.' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       analysis,
+      source,
       success: true
     })
   } catch (error: any) {

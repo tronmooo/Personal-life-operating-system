@@ -9,6 +9,43 @@ import { Plus, Trash2, Calendar, ChevronLeft, ChevronRight, List, CalendarDays }
 import { BillsVisual } from '../visuals/tab-visuals'
 import { BillsCalendar, UpcomingBillsList } from '../charts/finance-visualizations'
 import { cn } from '@/lib/utils'
+import { format, parseISO, isValid } from 'date-fns'
+
+// Helper to format due date consistently (always "MMM d" format like "Jan 15")
+function formatDueDate(dueDate: string | number | undefined): string {
+  if (!dueDate) return '--'
+  
+  // If it's just a number (day of month), format as ordinal
+  if (typeof dueDate === 'number' || /^\d{1,2}(st|nd|rd|th)?$/.test(String(dueDate))) {
+    const day = parseInt(String(dueDate).replace(/\D/g, ''))
+    if (!isNaN(day) && day >= 1 && day <= 31) {
+      // Create a date for the current month with this day
+      const today = new Date()
+      let targetDate = new Date(today.getFullYear(), today.getMonth(), day)
+      // If day has passed this month, show next month
+      if (targetDate < today) {
+        targetDate = new Date(today.getFullYear(), today.getMonth() + 1, day)
+      }
+      return format(targetDate, 'MMM d')
+    }
+    return String(dueDate)
+  }
+  
+  // If it's a full date string, parse and format
+  try {
+    const date = typeof dueDate === 'string' && dueDate.includes('-') 
+      ? parseISO(dueDate) 
+      : new Date(dueDate)
+    
+    if (isValid(date)) {
+      return format(date, 'MMM d')
+    }
+  } catch {
+    // Fall through to return original
+  }
+  
+  return String(dueDate)
+}
 
 interface BillsTabProps {
   onOpenBillDialog?: () => void
@@ -343,7 +380,7 @@ export function BillsTab({ onOpenBillDialog }: BillsTabProps = {}) {
                       <td className="py-4 px-4 text-base font-semibold text-white">
                         {formatCurrency(bill.amount)}
                       </td>
-                      <td className="py-4 px-4 text-sm text-slate-400">{bill.due_date}</td>
+                      <td className="py-4 px-4 text-sm text-slate-400">{formatDueDate(bill.due_date)}</td>
                       <td className="py-4 px-4 text-sm text-slate-400">
                         {bill.is_autopay ? '✓ Yes' : 'No'}
                       </td>

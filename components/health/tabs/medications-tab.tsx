@@ -11,12 +11,24 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from '@/components/ui/checkbox'
 import { Pill, Plus, CheckCircle, XCircle, Clock, AlertTriangle, Calendar } from 'lucide-react'
 import { useHealth } from '@/lib/context/health-context'
+// eslint-disable-next-line no-restricted-imports -- Need addHabit for medication habit creation
+import { useData } from '@/lib/providers/data-provider'
 import { format, parseISO, isToday } from 'date-fns'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/lib/utils/toast'
+
+// Helper to convert medication frequency to habit frequency
+function getHabitFrequency(medFrequency: string): 'daily' | 'weekly' | 'monthly' {
+  const freq = medFrequency.toLowerCase()
+  if (freq.includes('weekly')) return 'weekly'
+  if (freq.includes('monthly')) return 'monthly'
+  return 'daily' // Most medications are daily
+}
 
 export function MedicationsTab() {
   const { healthData, addMedication, updateMedication, deleteMedication, logMedicationAdherence } = useHealth()
+  const { addHabit } = useData()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'refills' | 'history'>('active')
   
@@ -50,8 +62,31 @@ export function MedicationsTab() {
     return true
   })
 
-  const handleAddMedication = () => {
+  const handleAddMedication = async () => {
     addMedication(newMed)
+    
+    // Automatically create habits for medication reminders if times are specified
+    if (newMed.timesOfDay && newMed.timesOfDay.length > 0) {
+      for (const time of newMed.timesOfDay) {
+        const habitName = newMed.dosage 
+          ? `Take ${newMed.name} (${newMed.dosage}) at ${time}`
+          : `Take ${newMed.name} at ${time}`
+        
+        await addHabit({
+          name: habitName,
+          icon: '💊',
+          frequency: getHabitFrequency(newMed.frequency),
+          completed: false,
+          streak: 0,
+        })
+      }
+      
+      const timesText = newMed.timesOfDay.length === 1 
+        ? newMed.timesOfDay[0] 
+        : `${newMed.timesOfDay.length} times daily`
+      toast.success('Medication & Habits Created', `Added ${newMed.name} and created habit reminder(s) for ${timesText}`)
+    }
+    
     setAddDialogOpen(false)
     setNewMed({
       name: '',

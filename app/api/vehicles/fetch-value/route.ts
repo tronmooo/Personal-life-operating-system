@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
+        { error: 'AI API key not configured' },
         { status: 500 }
       )
     }
@@ -131,23 +131,14 @@ Respond with valid JSON in this exact format:
 
 Base your estimate on REAL market data accounting for ALL factors.`
 
-    const completion = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional vehicle appraiser with real-time access to market data from KBB, Edmunds, NADA, and other automotive pricing sources. Always provide accurate, data-backed valuations. Respond with valid JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+    const aiResponse = await AI.requestAI({
+      prompt,
+      systemPrompt: 'You are a professional vehicle appraiser with real-time access to market data from KBB, Edmunds, NADA, and other automotive pricing sources. Always provide accurate, data-backed valuations. Respond with valid JSON only.',
       temperature: 0.3,
-      max_tokens: 800
+      maxTokens: 800
     })
 
-    const responseText = completion.choices[0]?.message?.content?.trim() || ''
+    const responseText = aiResponse.content?.trim() || ''
     
     console.log(`📊 AI Response preview: ${responseText.substring(0, 200)}...`)
     

@@ -1502,10 +1502,10 @@ async function handleCreateBill(
     .insert({
       id: billId,
       user_id: userId,
-      name,
+      title: name, // bills table uses 'title' not 'name'
       amount: parseFloat(amount),
-      due_date: dueDate || new Date().toISOString().split('T')[0],
-      paid: false,
+      due_date: dueDate || new Date().toISOString(),
+      status: 'pending', // bills table uses 'status' not 'paid'
       recurring,
       recurrence_period: recurrencePeriod || null,
       category: category || 'other',
@@ -1544,6 +1544,16 @@ async function handleCreateEvent(
     })
   }
 
+  // Build the event_date timestamp
+  let eventDate = new Date()
+  if (date) {
+    eventDate = new Date(date)
+  }
+  if (time) {
+    const [hours, minutes] = time.split(':').map(Number)
+    eventDate.setHours(hours || 9, minutes || 0, 0, 0)
+  }
+
   const eventId = crypto.randomUUID()
   const { data, error } = await supabase
     .from('events')
@@ -1551,12 +1561,10 @@ async function handleCreateEvent(
       id: eventId,
       user_id: userId,
       title,
-      start_date: date || new Date().toISOString().split('T')[0],
-      start_time: time || null,
+      event_date: eventDate.toISOString(), // events table uses 'event_date' not 'start_date'
       location: location || null,
       description: description || null,
-      all_day: allDay,
-      metadata: { source: 'ai_assistant' },
+      metadata: { source: 'ai_assistant', allDay, time: time || null },
       created_at: new Date().toISOString()
     })
     .select()

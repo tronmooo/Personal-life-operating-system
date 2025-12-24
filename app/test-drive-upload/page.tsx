@@ -2,10 +2,12 @@
 
 import { DocumentUpload } from '@/components/ui/document-upload'
 import { Card } from '@/components/ui/card'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/lib/supabase/auth-provider'
 
 export default function TestDriveUploadPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
+  // Map Supabase user to session-like object for compatibility
+  const session = user ? { user: { email: user.email } } : null
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -125,7 +127,7 @@ export default function TestDriveUploadPage() {
         <div className="space-y-2 text-sm font-mono">
           <div>Session: {session ? '✅ Active' : '❌ None'}</div>
           <div>Email: {session?.user?.email || 'Not signed in'}</div>
-          <div>Access Token: {session?.accessToken ? '✅ Present' : '❌ Missing'}</div>
+          <div>Auth Provider: Supabase</div>
         </div>
         <p className="text-xs text-gray-600 mt-4">
           Open browser console (F12) to see detailed upload logs

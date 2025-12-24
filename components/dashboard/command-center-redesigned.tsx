@@ -78,6 +78,8 @@ import {
   pickStringTokens,
 } from '@/lib/dashboard/metrics-normalizers'
 import { usePetsStats } from '@/lib/hooks/use-pets-stats'
+import { useCrossDomainExpenses, type ExpenseCategory } from '@/lib/hooks/use-cross-domain-expenses'
+import type { ExpenseItemWithDomain } from '../dialogs/financial-breakdown-dialog'
 import type { GenericMetadata } from '@/lib/dashboard/metrics-normalizers'
 
 // Helper function to get the upcoming occurrence of an annual date (birthday, anniversary)
@@ -125,6 +127,10 @@ export function CommandCenterRedesigned() {
   const supabase = createClientComponentClient()
   const { data, tasks, habits, events, addTask, updateTask, deleteTask, addHabit, toggleHabit, deleteHabit, addEvent, isLoading, isLoaded } = useData()
   const { analytics: serviceProvidersAnalytics, analyticsLoading: serviceProvidersLoading } = useServiceProviders()
+  
+  // Cross-domain expense aggregation for unified Command Center view
+  const crossDomainExpenses = useCrossDomainExpenses(30)
+  
   const [addTaskOpen, setAddTaskOpen] = useState(false)
   const [addHabitOpen, setAddHabitOpen] = useState(false)
   const [addEventOpen, setAddEventOpen] = useState(false)
@@ -890,6 +896,51 @@ export function CommandCenterRedesigned() {
     
     console.log('🚗 [MONTHLY-EXPENSES] Vehicle costs total added to transport:', vehicleCostTotal)
 
+    // Add bills from the financial domain (items with itemType='bill')
+    // These are the bills stored via the FinanceProvider (like Auto insurance, Netflix, etc.)
+    const financialBills = items.filter(item => {
+      const meta = item?.metadata || {}
+      return String(meta?.itemType || '').toLowerCase() === 'bill'
+    })
+    
+    console.log('💵 [MONTHLY-EXPENSES] Processing financial domain bills:', {
+      billsCount: financialBills.length,
+      billsSample: financialBills.map((b: any) => ({
+        title: b.title,
+        category: b.metadata?.category,
+        amount: b.metadata?.amount
+      }))
+    })
+    
+    financialBills.forEach(item => {
+      const meta = item?.metadata || {}
+      const amount = parseFloat(String(meta?.amount || 0))
+      if (amount <= 0) return
+      
+      const category = String(meta?.category || '').toLowerCase()
+      
+      // Categorize bills into the appropriate expense bucket
+      if (category === 'insurance' || category.includes('insur')) {
+        result.insurance += amount
+        console.log(`🛡️ [BILLS] Added ${category} bill to insurance: $${amount} (${item.title})`)
+      } else if (category === 'utilities' || category.includes('utilit') || category.includes('electric') || category.includes('water') || category.includes('internet') || category.includes('phone')) {
+        result.utilities += amount
+        console.log(`💡 [BILLS] Added ${category} bill to utilities: $${amount} (${item.title})`)
+      } else if (category === 'housing' || category.includes('rent') || category.includes('mort')) {
+        result.housing += amount
+        console.log(`🏠 [BILLS] Added ${category} bill to housing: $${amount} (${item.title})`)
+      } else if (category === 'food' || category.includes('groc') || category.includes('dining')) {
+        result.food += amount
+        console.log(`🍔 [BILLS] Added ${category} bill to food: $${amount} (${item.title})`)
+      } else if (category === 'transport' || category.includes('trans') || category.includes('car') || category.includes('gas')) {
+        result.transport += amount
+        console.log(`🚗 [BILLS] Added ${category} bill to transport: $${amount} (${item.title})`)
+      } else {
+        result.other += amount
+        console.log(`📄 [BILLS] Added ${category || 'other'} bill to other: $${amount} (${item.title})`)
+      }
+    })
+
     return result
   }, [data.financial, data.insurance, data.digital, data.home, data.vehicles, serviceProvidersAnalytics])
   const [isClient, setIsClient] = useState(false)
@@ -946,141 +997,35 @@ export function CommandCenterRedesigned() {
     setFinancialBreakdownOpen(true)
   }
 
-  // Calculate expense items for the breakdown dialog
+  // Calculate expense items for the breakdown dialog using cross-domain aggregation
+  // This provides unified expense tracking with domain attribution
   const expenseItems = useMemo(() => {
-    const items = Array.isArray(data.financial) ? data.financial : []
-    const insuranceItems = Array.isArray(data.insurance) ? data.insurance : []
-    const digitalItems = Array.isArray(data.digital) ? data.digital : []
-    const homeItems = Array.isArray(data.home) ? data.home : []
-    const vehicleItems = Array.isArray(data.vehicles) ? data.vehicles : []
-    
-    const result: {
-      housing: Array<{ title: string; amount: number; type?: string }>
-      food: Array<{ title: string; amount: number; type?: string }>
-      insurance: Array<{ title: string; amount: number; type?: string }>
-      transport: Array<{ title: string; amount: number; type?: string }>
-      utilities: Array<{ title: string; amount: number; type?: string }>
-      pets: Array<{ title: string; amount: number; type?: string }>
-      other: Array<{ title: string; amount: number; type?: string }>
-    } = {
-      housing: [],
-      food: [],
-      insurance: [],
-      transport: [],
-      utilities: [],
-      pets: [],
-      other: [],
+    // Convert cross-domain expenses to dialog format with domain attribution
+    const convertToDialogFormat = (category: ExpenseCategory): ExpenseItemWithDomain[] => {
+      return crossDomainExpenses.byCategory[category].map(item => ({
+        title: item.title,
+        amount: item.amount,
+        type: item.type,
+        domain: item.domain,
+        domainLabel: item.domainLabel,
+        domainIcon: item.domainIcon,
+        isRecurring: item.isRecurring,
+      }))
     }
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-
-    const parseAmount = (meta: any) => {
-      const raw = meta?.amount ?? meta?.value ?? meta?.balance ?? 0
-      const parsed = typeof raw === 'number' ? raw : parseFloat(String(raw))
-      return Number.isFinite(parsed) ? Math.abs(parsed) : 0
+    return {
+      housing: convertToDialogFormat('housing'),
+      food: convertToDialogFormat('food'),
+      insurance: convertToDialogFormat('insurance'),
+      transport: convertToDialogFormat('transport'),
+      utilities: convertToDialogFormat('utilities'),
+      pets: convertToDialogFormat('pets'),
+      health: convertToDialogFormat('health'),
+      education: convertToDialogFormat('education'),
+      subscriptions: convertToDialogFormat('subscriptions'),
+      other: convertToDialogFormat('other'),
     }
-
-    const normaliseTokens = (meta: any) =>
-      [meta?.type, meta?.itemType, meta?.logType, meta?.category, meta?.transactionCategory]
-        .filter(Boolean)
-        .map((value: any) => String(value).toLowerCase())
-
-    // Process financial domain expenses
-    items.forEach(item => {
-      const meta = (item?.metadata || {}) as Record<string, unknown>
-      const amount = parseAmount(meta)
-      if (!amount) return
-
-      const tokens = normaliseTokens(meta)
-      const dateValue = meta?.date || meta?.timestamp || item?.createdAt
-      const occurredAt = dateValue ? new Date(String(dateValue)) : null
-      if (occurredAt && occurredAt < thirtyDaysAgo) return
-
-      const isExpense = tokens.some(token =>
-        ['expense', 'spending', 'purchase', 'payment', 'cashflow-expense'].includes(token)
-      ) || meta?.logType === 'expense'
-
-      if (!isExpense) return
-
-      const category = String(meta?.category || meta?.transactionCategory || '').toLowerCase()
-      const typeValue = String(meta?.type || meta?.itemType || '')
-      const entry = { title: item.title || 'Expense', amount, type: typeValue || undefined }
-
-      if (category.includes('hous') || category.includes('rent') || category.includes('mort')) {
-        result.housing.push(entry)
-      } else if (category.includes('food') || category.includes('groc') || category.includes('dining')) {
-        result.food.push(entry)
-      } else if (category.includes('insur')) {
-        result.insurance.push(entry)
-      } else if (category.includes('trans') || category.includes('car') || category.includes('gas')) {
-        result.transport.push(entry)
-      } else if (category.includes('utilit') || category.includes('electric') || category.includes('internet')) {
-        result.utilities.push(entry)
-      } else {
-        result.other.push(entry)
-      }
-    })
-
-    // Add insurance premiums
-    insuranceItems.forEach(item => {
-      const meta = (item?.metadata || {}) as Record<string, unknown>
-      const premium = parseFloat(String(meta?.monthlyPremium || meta?.premium || 0))
-      if (premium > 0) {
-        result.insurance.push({ title: item.title || 'Insurance Premium', amount: premium, type: String(meta?.policyType || '') || undefined })
-      }
-    })
-
-    // Add digital subscriptions
-    digitalItems.forEach(item => {
-      const meta = item?.metadata || {}
-      const isSubscription = meta?.type === 'subscription' || meta?.category === 'subscription'
-      if (isSubscription) {
-        const cost = parseFloat(String(meta?.monthlyCost || meta?.cost || 0))
-        if (cost > 0) {
-          result.other.push({ title: item.title || 'Subscription', amount: cost, type: 'subscription' })
-        }
-      }
-    })
-
-    // Add home bills
-    homeItems.forEach(item => {
-      const meta = item?.metadata || {}
-      if (String(meta?.itemType || '').toLowerCase() !== 'bill') return
-      const amount = parseFloat(String(meta?.amount || 0))
-      if (amount <= 0) return
-
-      const category = String(meta?.category || '').toLowerCase()
-      const entry = { title: item.title || 'Home Bill', amount, type: category }
-
-      if (category === 'mortgage' || category === 'rent' || category === 'tax') {
-        result.housing.push(entry)
-      } else if (category === 'utilities') {
-        result.utilities.push(entry)
-      } else if (category === 'insurance') {
-        result.insurance.push(entry)
-      } else {
-        result.other.push(entry)
-      }
-    })
-
-    // Add vehicle costs
-    vehicleItems.forEach(item => {
-      const meta = (item?.metadata || {}) as Record<string, unknown>
-      if (String(meta?.type || '').toLowerCase() !== 'cost') return
-      const amount = parseFloat(String(meta?.amount || 0))
-      if (amount <= 0) return
-
-      const dateValue = meta?.date || item?.createdAt
-      if (dateValue) {
-        const costDate = new Date(String(dateValue))
-        if (costDate < thirtyDaysAgo) return
-      }
-
-      result.transport.push({ title: item.title || 'Vehicle Cost', amount, type: String(meta?.costType || '') || undefined })
-    })
-
-    return result
-  }, [data.financial, data.insurance, data.digital, data.home, data.vehicles])
+  }, [crossDomainExpenses.byCategory])
 
   // Calculate asset items for the breakdown dialog
   const assetItems = useMemo(() => {
@@ -2580,7 +2525,7 @@ export function CommandCenterRedesigned() {
             <CategorizedAlertsDialog open={alertsDialogOpen} onClose={() => setAlertsDialogOpen(false)} />
           )}
           
-          {/* Financial Breakdown Dialog */}
+          {/* Financial Breakdown Dialog - Aggregates expenses from ALL domains */}
           <FinancialBreakdownDialog
             open={financialBreakdownOpen}
             onClose={() => setFinancialBreakdownOpen(false)}
@@ -2600,7 +2545,19 @@ export function CommandCenterRedesigned() {
                 cashIncome: financeNetWorth.income,
               }
             }}
-            monthlyExpenses={{ ...monthlyExpenses, pets: petsStats.totalCosts || 0 }}
+            monthlyExpenses={{
+              // Use cross-domain aggregated totals for accurate expense tracking
+              housing: crossDomainExpenses.totals.housing,
+              food: crossDomainExpenses.totals.food,
+              insurance: crossDomainExpenses.totals.insurance,
+              transport: crossDomainExpenses.totals.transport,
+              utilities: crossDomainExpenses.totals.utilities,
+              pets: crossDomainExpenses.totals.pets,
+              health: crossDomainExpenses.totals.health,
+              education: crossDomainExpenses.totals.education,
+              subscriptions: crossDomainExpenses.totals.subscriptions,
+              other: crossDomainExpenses.totals.other,
+            }}
             expenseItems={expenseItems}
             assetItems={assetItems}
             liabilityItems={liabilityItems}
@@ -2813,28 +2770,52 @@ export function CommandCenterRedesigned() {
           </Card>
         </div>
 
-        {/* Monthly Expenses Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Monthly Expenses Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-              {Object.entries({ ...monthlyExpenses, pets: petsStats.totalCosts || 0 }).map(([category, amount]) => (
-                <div 
-                  key={category} 
-                  className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-md transition-all hover:scale-105"
-                  onClick={() => openFinancialBreakdown(`expense-${category}` as BreakdownViewType)}
-                >
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400" suppressHydrationWarning>
-                    ${isClient ? amount : 0}
+        {/* Monthly Expenses Breakdown - Aggregated from ALL domains */}
+        <Card className="p-0">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
+              {/* Display all expense categories with their cross-domain totals */}
+              {[
+                { key: 'housing', icon: '🏠', color: 'text-orange-600 dark:text-orange-400' },
+                { key: 'food', icon: '🍽️', color: 'text-red-600 dark:text-red-400' },
+                { key: 'insurance', icon: '🛡️', color: 'text-purple-600 dark:text-purple-400' },
+                { key: 'transport', icon: '⛽', color: 'text-blue-600 dark:text-blue-400' },
+                { key: 'utilities', icon: '💡', color: 'text-yellow-600 dark:text-yellow-400' },
+                { key: 'pets', icon: '🐾', color: 'text-pink-600 dark:text-pink-400' },
+                { key: 'health', icon: '🏥', color: 'text-teal-600 dark:text-teal-400' },
+                { key: 'education', icon: '🎓', color: 'text-indigo-600 dark:text-indigo-400' },
+                { key: 'subscriptions', icon: '🔄', color: 'text-cyan-600 dark:text-cyan-400' },
+                { key: 'other', icon: '📋', color: 'text-gray-600 dark:text-gray-400' },
+              ].map(({ key, icon, color }) => {
+                const amount = crossDomainExpenses.totals[key as keyof typeof crossDomainExpenses.totals]
+                const itemCount = crossDomainExpenses.byCategory[key as keyof typeof crossDomainExpenses.byCategory]?.length || 0
+                
+                // Skip categories with no expenses
+                if (amount === 0 && itemCount === 0) return null
+                
+                return (
+                  <div 
+                    key={key} 
+                    className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-md transition-all hover:scale-105 relative group"
+                    onClick={() => openFinancialBreakdown(`expense-${key}` as BreakdownViewType)}
+                  >
+                    <div className="text-xl mb-1">{icon}</div>
+                    <div className={`text-xl font-bold ${color}`} suppressHydrationWarning>
+                      ${isClient ? Math.round(amount).toLocaleString() : 0}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 capitalize">
+                      {key}
+                    </div>
+                    {itemCount > 0 && (
+                      <div className="text-xs text-muted-foreground opacity-75">
+                        {itemCount} item{itemCount !== 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 capitalize">
-                    {category}
-                  </div>
-                </div>
-              ))}
+                )
+              }).filter(Boolean)}
             </div>
+            
           </CardContent>
         </Card>
 

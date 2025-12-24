@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../../auth/[...nextauth]/auth-options'
+import { createServerClient } from '@/lib/supabase/server'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const supabase = await createServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
   
-  console.log('🔍 DEBUG SESSION:', JSON.stringify(session, null, 2))
+  console.log('🔍 DEBUG SESSION:', user?.email || 'No user', error?.message || '')
   
   return NextResponse.json({
-    authenticated: !!session,
-    userId: session?.user?.id || null,
-    userEmail: session?.user?.email || null,
-    fullSession: session
+    authenticated: !!user,
+    userId: user?.id || null,
+    userEmail: user?.email || null,
+    authError: error?.message || null
   })
 }
 

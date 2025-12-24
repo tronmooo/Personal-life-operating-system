@@ -1,6 +1,84 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { getOpenAI } from '@/lib/openai/client'
+
+async function extractWithGemini(base64Image: string, mimeType: string, prompt: string): Promise<string | null> {
+  const geminiKey = process.env.GEMINI_API_KEY
+  if (!geminiKey) return null
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64Image
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 2000,
+            topP: 0.95,
+            topK: 40
+          }
+        }),
+        signal: AbortSignal.timeout(30000)
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || null
+    }
+    console.warn('⚠️ Gemini OCR failed:', response.status)
+  } catch (error) {
+    console.warn('⚠️ Gemini OCR request failed:', error)
+  }
+  return null
+}
+
+async function extractWithOpenAI(imageUrl: string, prompt: string): Promise<string | null> {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) return null
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: imageUrl } }
+          ]
+        }],
+        max_tokens: 1500
+      }),
+      signal: AbortSignal.timeout(30000)
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.choices?.[0]?.message?.content || null
+    }
+  } catch (error) {
+    console.warn('⚠️ OpenAI OCR request failed:', error)
+  }
+  return null
+}
 
 export async function POST(request: Request) {
   try {
@@ -23,32 +101,26 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64Image = buffer.toString('base64')
-    const imageUrl = `data:${file.type};base64,${base64Image}`
+    const mimeType = file.type || 'image/jpeg'
+    const imageUrl = `data:${mimeType};base64,${base64Image}`
 
-    // Use GPT-4 Vision to extract text and data from the image
-    const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: getPromptForDocumentType(documentType)
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageUrl
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 1000,
-    })
+    const prompt = getPromptForDocumentType(documentType)
 
-    const extractedText = response.choices[0]?.message?.content || ''
+    // Try Gemini first (better for OCR), then OpenAI as fallback
+    let extractedText = await extractWithGemini(base64Image, mimeType, prompt)
+    let source = 'gemini'
+    
+    if (!extractedText) {
+      extractedText = await extractWithOpenAI(imageUrl, prompt)
+      source = 'openai'
+    }
+
+    if (!extractedText) {
+      return NextResponse.json(
+        { error: 'No AI API keys configured. Please set GEMINI_API_KEY or OPENAI_API_KEY.' },
+        { status: 500 }
+      )
+    }
     
     // Try to parse JSON if the response is structured
     let extractedData = {}
@@ -66,6 +138,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       text: extractedText,
       data: extractedData,
+      source,
       success: true
     })
   } catch (error: any) {

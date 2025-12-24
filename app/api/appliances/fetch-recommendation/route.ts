@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getOpenAI } from '@/lib/openai/client'
+import * as AI from '@/lib/services/ai-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
+        { error: 'AI API key not configured' },
         { status: 500 }
       )
     }
@@ -52,23 +52,14 @@ Consider factors like:
 - Current condition
 - Energy efficiency improvements in newer models`
 
-    const completion = await getOpenAI().chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an appliance expert specializing in lifecycle management and cost-benefit analysis. Always respond with valid JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+    const aiResponse = await AI.requestAI({
+      prompt,
+      systemPrompt: 'You are an appliance expert specializing in lifecycle management and cost-benefit analysis. Always respond with valid JSON only.',
       temperature: 0.7,
-      max_tokens: 600
+      maxTokens: 600
     })
 
-    const responseText = completion.choices[0]?.message?.content?.trim() || ''
+    const responseText = aiResponse.content?.trim() || ''
     
     // Parse the JSON response
     let recommendation

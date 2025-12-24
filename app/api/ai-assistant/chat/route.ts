@@ -138,6 +138,101 @@ function formatCommandCatalogForUser(): string {
 }
 
 // ============================================
+// MULTI-INTENT DETECTION HELPER
+// ============================================
+/**
+ * Detects if a message contains multiple data logging intents.
+ * Examples:
+ * - "ran 5 miles, blood pressure 123/80, ate chicken sandwich 450 calories" → TRUE (3 intents)
+ * - "walked 30 minutes and drank 20oz water" → TRUE (2 intents)
+ * - "spent $50 at grocery store" → FALSE (1 intent)
+ * - "what's my net worth?" → FALSE (query, not data entry)
+ */
+function detectMultiIntentMessage(message: string): boolean {
+  const lowerMessage = message.toLowerCase()
+  
+  // Skip if it's clearly a query (starts with question words)
+  const queryStarters = ['what', 'how', 'when', 'where', 'why', 'show', 'tell', 'list', 'find', 'get', 'display']
+  if (queryStarters.some(q => lowerMessage.startsWith(q))) {
+    return false
+  }
+  
+  // Skip if it's a single-intent action command
+  const singleActionPrefixes = ['go to', 'open', 'navigate', 'create chart', 'add to calendar', 'schedule', 'delete', 'remove', 'update']
+  if (singleActionPrefixes.some(p => lowerMessage.startsWith(p))) {
+    return false
+  }
+  
+  // Count data-logging indicators (verbs/patterns that suggest data entry)
+  const dataPatterns = [
+    // Fitness
+    /\b(ran|walked|cycled|swam|worked out|exercised|jogged|hiked|biked)\b.*\b(\d+)\s*(miles?|km|minutes?|min|hours?|hr)\b/i,
+    // Health vitals
+    /\bblood\s*pressure\s*\d+[\/\-]\d+\b/i,
+    /\b(weigh|weight)\s*\d+\s*(lbs?|pounds?|kg)\b/i,
+    /\bheart\s*rate\s*\d+\b/i,
+    // Nutrition
+    /\b(ate|had|eaten|drank|drink)\b.*\b\d+\s*(calories?|cal|oz|ounces?)\b/i,
+    /\b\d+\s*(calories?|cal)\b/i,
+    /\b\d+\s*(oz|ounces?)\s*(of\s*)?(water|coffee|tea|milk)\b/i,
+    // Financial
+    /\b(spent|paid|bought|purchased|earned|received)\b.*\$?\d+/i,
+    // General metrics with numbers
+    /\b\d+\s*(steps?|reps?|sets?)\b/i,
+  ]
+  
+  // Count matches for different domains
+  let matchCount = 0
+  const matchedDomains = new Set<string>()
+  
+  // Check fitness activities
+  if (/\b(ran|walked|cycled|swam|worked out|exercised|jogged|hiked|biked)\b/i.test(lowerMessage)) {
+    matchCount++
+    matchedDomains.add('fitness')
+  }
+  
+  // Check health vitals - blood pressure (supports "BP 120/80" and "blood pressure 120/80")
+  if (/(?:blood\s*pressure|bp)\s*\d+[\/\-]\d+/i.test(lowerMessage)) {
+    matchCount++
+    matchedDomains.add('health_bp')
+  }
+  if (/\b(weigh|weight)\s*\d+/i.test(lowerMessage)) {
+    matchCount++
+    matchedDomains.add('health_weight')
+  }
+  
+  // Check nutrition
+  if (/\b(ate|had|eaten|eat)\b.*\d+\s*(calories?|cal)/i.test(lowerMessage) || 
+      /\b(breakfast|lunch|dinner|snack|meal)\b.*\d+\s*(calories?|cal)/i.test(lowerMessage) ||
+      /\b(chicken|beef|fish|salad|pizza|sandwich|burger|pasta|rice|soup|steak|eggs?)\b.*\d+\s*(cal|calories?)/i.test(lowerMessage)) {
+    matchCount++
+    matchedDomains.add('nutrition_meal')
+  }
+  if (/\b(drank|drink)\b.*\d+\s*(oz|ounces?)/i.test(lowerMessage) ||
+      /\b\d+\s*(oz|ounces?)\s*(of\s*)?(water)/i.test(lowerMessage)) {
+    matchCount++
+    matchedDomains.add('nutrition_water')
+  }
+  
+  // Check financial
+  if (/\b(spent|paid|bought|purchased)\b.*\$?\d+/i.test(lowerMessage)) {
+    matchCount++
+    matchedDomains.add('financial')
+  }
+  
+  // Check for separators that indicate multiple items
+  const separators = [',', ' and ', ';', ' also ', ' plus ']
+  const hasSeparators = separators.some(sep => lowerMessage.includes(sep))
+  
+  // Multi-intent if:
+  // 1. Has 2+ different domain matches, OR
+  // 2. Has separators AND at least one data pattern match
+  console.log(`🔍 Multi-intent detection: ${matchCount} patterns matched across ${matchedDomains.size} domains, hasSeparators: ${hasSeparators}`)
+  
+  return matchedDomains.size >= 2 || (hasSeparators && matchCount >= 2)
+}
+
+// ============================================
 // GOOGLE CALENDAR HELPER
 // ============================================
 async function createGoogleCalendarEvent(
@@ -727,25 +822,16 @@ async function intelligentCommandParser(
   cookieHeader: string
 ) {
   const openAIKey = process.env.OPENAI_API_KEY
-  if (!openAIKey) {
+  const geminiKey = process.env.GEMINI_API_KEY
+  
+  if (!openAIKey && !geminiKey) {
+    console.error('❌ No AI API keys configured (OpenAI or Gemini)')
     return { isCommand: false }
   }
 
-  console.log('🧠 Calling GPT-4 to parse command...')
+  console.log('🧠 Calling AI to parse command...')
   
-  // Call GPT-4 to analyze the message
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openAIKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-                  content: `You are an INTELLIGENT ACTION-ORIENTED ASSISTANT for a life management app with 21 domains:
+  const systemPromptContent = `You are an INTELLIGENT ACTION-ORIENTED ASSISTANT for a life management app with 21 domains:
 health, fitness, nutrition, financial, tasks, habits, goals, mindfulness, relationships, 
 career, education, legal, insurance, travel, vehicles, property, home, appliances, pets, 
 hobbies, collectibles, digital-life.
@@ -1043,30 +1129,105 @@ OUTPUT 3 SEPARATE COMMANDS:
 BUT return ONLY THE FIRST ONE. Process one command at a time.
 
 ONLY respond with valid JSON, nothing else.`
-        },
-        {
-          role: 'user',
-          content: message
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 500,
-    }),
+
+  let aiResponse: string | null = null
+  
+  console.log('🔑 [COMMAND-PARSER] API keys status:', {
+    openai: openAIKey ? 'configured' : 'missing',
+    gemini: geminiKey ? 'configured' : 'missing'
   })
+  
+  // Try Gemini FIRST if available (more reliable when OpenAI has quota issues)
+  if (geminiKey) {
+    try {
+      console.log('🧠 [COMMAND-PARSER] Trying Gemini first...')
+      const geminiPrompt = `${systemPromptContent}
 
-  if (!response.ok) {
-    console.error('❌ OpenAI API failed:', response.statusText)
-    return { isCommand: false }
+User message: ${message}
+
+Return ONLY valid JSON, no markdown or code blocks.`
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: geminiPrompt }] }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 500,
+            }
+          })
+        }
+      )
+      
+      if (response.ok) {
+        const data = await response.json()
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text
+        if (content) {
+          // Clean up Gemini response - sometimes wraps in markdown
+          aiResponse = content
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .trim()
+          console.log('✅ [COMMAND-PARSER] Gemini response received')
+        }
+      } else {
+        const error = await response.text()
+        console.warn(`⚠️ [COMMAND-PARSER] Gemini failed (${response.status}):`, error.substring(0, 200))
+      }
+    } catch (geminiError: any) {
+      console.warn('⚠️ [COMMAND-PARSER] Gemini error:', geminiError.message)
+    }
   }
-
-  const data = await response.json()
-  const aiResponse = data.choices[0]?.message?.content
+  
+  // Fallback to OpenAI if Gemini failed
+  if (!aiResponse && openAIKey) {
+    try {
+      console.log('🧠 [COMMAND-PARSER] Trying OpenAI as fallback...')
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openAIKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPromptContent },
+            { role: 'user', content: message }
+          ],
+          temperature: 0.1,
+          max_tokens: 500,
+        }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        aiResponse = data.choices[0]?.message?.content
+        console.log('✅ [COMMAND-PARSER] OpenAI response received')
+      } else {
+        const error = await response.text()
+        console.warn(`⚠️ [COMMAND-PARSER] OpenAI failed (${response.status}):`, error.substring(0, 200))
+        if (response.status === 429 || error.includes('quota')) {
+          console.error('❌ [COMMAND-PARSER] OpenAI quota exceeded! Using Gemini is recommended.')
+        }
+      }
+    } catch (openaiError: any) {
+      console.warn('⚠️ [COMMAND-PARSER] OpenAI error:', openaiError.message)
+    }
+  }
   
   if (!aiResponse) {
-    return { isCommand: false }
+    console.error('❌ [COMMAND-PARSER] Both Gemini and OpenAI failed - falling back to regex parser')
+    console.log('🔧 [COMMAND-PARSER] Attempting regex fallback for message:', message)
+    // Return isCommand: false to let the main handler try the regex fallback
+    return { isCommand: false, fallbackReason: 'ai_apis_failed' }
   }
 
-  console.log('🤖 GPT-4 response:', aiResponse)
+  console.log('🤖 [COMMAND-PARSER] AI response received:', aiResponse.substring(0, 200))
 
   // Parse the AI response
   try {
@@ -1136,10 +1297,17 @@ ONLY respond with valid JSON, nothing else.`
         const { name, icon = '⭐', frequency = 'daily', description } = actionParams
         if (!name) return { isCommand: false }
         
+        console.log('🏃 Creating habit:', { name, icon, frequency, description })
+        
         const habitId = randomUUID()
         const { error } = await supabase.from('habits').insert({
-          id: habitId, user_id: userId, name, icon, frequency,
-          streak: 0, completion_history: [],
+          id: habitId, 
+          user_id: userId, 
+          name, 
+          icon, 
+          frequency,
+          streak: 0, 
+          completion_history: [],
           metadata: { description, source: 'ai_assistant' },
           created_at: new Date().toISOString()
         })
@@ -1149,9 +1317,13 @@ ONLY respond with valid JSON, nothing else.`
           return { isCommand: false }
         }
         
+        console.log('✅ Habit created successfully:', habitId)
+        
         return {
-          isCommand: true, action: 'create_habit',
-          message: parsed.confirmationMessage || `✅ Habit created: "${name}" ${icon} (${frequency})`
+          isCommand: true, 
+          action: 'create_habit',
+          message: parsed.confirmationMessage || `✅ Habit created: "${name}" ${icon} (${frequency})`,
+          triggerReload: true
         }
       }
 
@@ -1162,11 +1334,17 @@ ONLY respond with valid JSON, nothing else.`
         
         const billId = randomUUID()
         const { error } = await supabase.from('bills').insert({
-          id: billId, user_id: userId, name, amount: parseFloat(amount),
-          due_date: dueDate || new Date().toISOString().split('T')[0],
-          paid: false, recurring, recurrence_period: recurrencePeriod || null,
+          id: billId, 
+          user_id: userId, 
+          title: name, // bills table uses 'title' not 'name'
+          amount: parseFloat(amount),
+          due_date: dueDate || new Date().toISOString(),
+          status: 'pending', // bills table uses 'status' not 'paid'
+          recurring, 
+          recurrence_period: recurrencePeriod || null,
           category: category || 'other',
-          metadata: { source: 'ai_assistant' }, created_at: new Date().toISOString()
+          metadata: { source: 'ai_assistant' }, 
+          created_at: new Date().toISOString()
         })
         
         if (error) {
@@ -1176,7 +1354,8 @@ ONLY respond with valid JSON, nothing else.`
         
         return {
           isCommand: true, action: 'create_bill',
-          message: parsed.confirmationMessage || `✅ Bill created: "${name}" - $${amount}`
+          message: parsed.confirmationMessage || `✅ Bill created: "${name}" - $${amount}`,
+          triggerReload: true
         }
       }
 
@@ -1185,13 +1364,26 @@ ONLY respond with valid JSON, nothing else.`
         const { title, date, time, location, description, allDay = false } = actionParams
         if (!title) return { isCommand: false }
         
+        // Build the event_date timestamp
+        let eventDate = new Date()
+        if (date) {
+          eventDate = new Date(date)
+        }
+        if (time) {
+          const [hours, minutes] = time.split(':').map(Number)
+          eventDate.setHours(hours || 9, minutes || 0, 0, 0)
+        }
+        
         const eventId = randomUUID()
         const { error } = await supabase.from('events').insert({
-          id: eventId, user_id: userId, title,
-          start_date: date || new Date().toISOString().split('T')[0],
-          start_time: time || null, location: location || null,
-          description: description || null, all_day: allDay,
-          metadata: { source: 'ai_assistant' }, created_at: new Date().toISOString()
+          id: eventId, 
+          user_id: userId, 
+          title,
+          event_date: eventDate.toISOString(), // events table uses 'event_date' not 'start_date'
+          location: location || null,
+          description: description || null,
+          metadata: { source: 'ai_assistant', allDay, time: time || null }, 
+          created_at: new Date().toISOString()
         })
         
         if (error) {
@@ -1201,7 +1393,8 @@ ONLY respond with valid JSON, nothing else.`
         
         return {
           isCommand: true, action: 'create_event',
-          message: parsed.confirmationMessage || `✅ Event created: "${title}"${date ? ` on ${date}` : ''}`
+          message: parsed.confirmationMessage || `✅ Event created: "${title}"${date ? ` on ${date}` : ''}`,
+          triggerReload: true
         }
       }
 
@@ -1437,7 +1630,6 @@ ONLY respond with valid JSON, nothing else.`
             .from('tasks')
             .update({ 
               completed: true, 
-              completed_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
             .eq('id', match.id)
@@ -1461,7 +1653,6 @@ ONLY respond with valid JSON, nothing else.`
           .from('tasks')
           .update({ 
             completed: true, 
-            completed_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
           .eq('id', task.id)
@@ -1727,6 +1918,8 @@ ONLY respond with valid JSON, nothing else.`
       const taskDueDate = commandData.due_date || commandData.dueDate || null
       const taskDescription = commandData.description || null
       
+      console.log('📋 Creating task:', { taskTitle, taskPriority, taskDueDate })
+      
       const { error: taskError } = await supabase
         .from('tasks')
         .insert({
@@ -1745,10 +1938,13 @@ ONLY respond with valid JSON, nothing else.`
         throw taskError
       }
 
+      console.log('✅ Task created successfully')
+
       return {
         isCommand: true,
         action: 'create_task',
-        message: confirmationMessage || `✅ Task created: "${taskTitle}"`
+        message: confirmationMessage || `✅ Task created: "${taskTitle}"`,
+        triggerReload: true
       }
     }
 
@@ -2784,10 +2980,61 @@ export async function POST(request: NextRequest) {
         })
       }
       
-      console.log('💬 Not an action, checking if it\'s a COMMAND...')
+      console.log('💬 Not an action, checking if it\'s a MULTI-ENTRY command...')
     } catch (actionError: any) {
       console.error('❌ Action handler error:', actionError)
       // Continue to command checking
+    }
+    
+    // STEP 1.75: Check if it's a MULTI-INTENT message (multiple data points)
+    // This handles cases like "ran 5 miles, blood pressure 123/80, ate chicken sandwich 450 calories"
+    console.log('🧠 Step 1.75: Checking if message contains MULTIPLE data points...')
+    
+    try {
+      const isMultiIntent = detectMultiIntentMessage(message)
+      
+      if (isMultiIntent) {
+        console.log('✅ Detected MULTI-INTENT message, routing to multi-entry endpoint...')
+        
+        // Call the multi-entry endpoint which uses extractMultipleEntities
+        const multiEntryResponse = await fetch(`${baseUrl}/api/ai-assistant/multi-entry`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': cookieHeader,
+          },
+          body: JSON.stringify({ message })
+        })
+        
+        if (multiEntryResponse.ok) {
+          const multiEntryResult = await multiEntryResponse.json()
+          
+          if (multiEntryResult.success && multiEntryResult.results?.length > 0) {
+            console.log(`✅ Multi-entry processed ${multiEntryResult.results.length} entries successfully!`)
+            return NextResponse.json({
+              response: multiEntryResult.message,
+              action: 'multi_entry',
+              multiResults: multiEntryResult.results,
+              saved: true,
+              triggerReload: true
+            })
+          } else if (multiEntryResult.results?.length === 0 && multiEntryResult.errors?.length > 0) {
+            console.log('⚠️ Multi-entry had errors, falling back to single command parser')
+            // Fall through to single command parser
+          } else if (!multiEntryResult.success) {
+            console.log('⚠️ Multi-entry returned no results, falling back to single command parser')
+            // Fall through to single command parser
+          }
+        } else {
+          console.error('❌ Multi-entry endpoint failed:', multiEntryResponse.status)
+          // Fall through to single command parser
+        }
+      } else {
+        console.log('💬 Not a multi-intent message, checking if it\'s a single COMMAND...')
+      }
+    } catch (multiEntryError: any) {
+      console.error('❌ Multi-entry handler error:', multiEntryError)
+      // Continue to single command checking
     }
     
     // STEP 2: Check if it's a COMMAND (create operation)
@@ -2810,36 +3057,44 @@ export async function POST(request: NextRequest) {
         })
       }
       
-      console.log('💬 AI said not a command, trying regex fallback...')
+      console.log('💬 AI said not a command, trying regex fallback with multi-command support...')
+      console.log('🔧 [FALLBACK] Original message for regex parsing:', message)
       // ALWAYS try regex fallback even if AI says it's not a command
-      // This ensures commands are NEVER missed
+      // Use handleMultipleVoiceCommands to process multiple commands separated by commas/and
       try {
-        const fallbackResult = await handleVoiceCommand(message, user.id, supabase)
+        const fallbackResult = await handleMultipleVoiceCommands(message, user.id, supabase)
+        console.log('🔧 [FALLBACK] Regex result:', { isCommand: fallbackResult.isCommand, action: fallbackResult.action })
         if (fallbackResult.isCommand) {
-          console.log('✅ Regex fallback caught command!')
+          console.log('✅ Regex fallback caught command! Action:', fallbackResult.action)
+          console.log('✅ Regex fallback message:', fallbackResult.message)
           return NextResponse.json({
             response: fallbackResult.message,
             action: fallbackResult.action,
+            multiResults: fallbackResult.results,
             saved: true,
             triggerReload: true
           })
+        } else {
+          console.log('⚠️ Regex fallback did NOT match any pattern')
         }
       } catch (fallbackError) {
-        console.error('❌ Regex fallback also failed:', fallbackError)
+        console.error('❌ Regex fallback threw error:', fallbackError)
       }
       
       console.log('💬 Not a command either, proceeding to conversational AI...')
     } catch (commandError: any) {
       console.error('❌ Error in intelligent command parser:', commandError)
       console.error('❌ Details:', commandError?.message)
-      // Try fallback regex parser on error too
+      // Try fallback regex parser on error too - with multi-command support
       try {
-        const fallbackResult = await handleVoiceCommand(message, user.id, supabase)
+        const fallbackResult = await handleMultipleVoiceCommands(message, user.id, supabase)
         if (fallbackResult.isCommand) {
           return NextResponse.json({
             response: fallbackResult.message,
             action: fallbackResult.action,
-            saved: true
+            multiResults: fallbackResult.results,
+            saved: true,
+            triggerReload: true
           })
         }
       } catch (fallbackError) {
@@ -3432,8 +3687,9 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
   }
   
   // Simple expense: "spent $X [anything]"
+  // FIX: Stop at comma or common separators to not capture multiple commands in description
   if (lowerMessage.match(/(?:spent|paid|bought)\s+\$?\d+/)) {
-    const simpleExpenseMatch = lowerMessage.match(/(?:spent|paid|bought)\s+\$?(\d+(?:\.\d+)?)\s*(.*)/)
+    const simpleExpenseMatch = lowerMessage.match(/(?:spent|paid|bought)\s+\$?(\d+(?:\.\d+)?)\s*([^,;]*?)(?:,|;|\s+and\s+|\s+also\s+|\s+plus\s+|$)/)
     if (simpleExpenseMatch) {
       const amount = parseFloat(simpleExpenseMatch[1])
       let description = simpleExpenseMatch[2].trim() || 'expense'
@@ -3742,12 +3998,12 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
     }
   }
   
-  // Blood pressure command
-  const bpMatch = lowerMessage.match(/blood\s+pressure\s+(\d+)\s*(?:over|\/)\s*(\d+)/)
+  // Blood pressure command - supports "BP 120/80", "blood pressure 120/80", "BP 120 over 80"
+  const bpMatch = lowerMessage.match(/(?:blood\s+pressure|bp)\s+(\d+)\s*(?:over|\/|-)\s*(\d+)/)
   if (bpMatch) {
     const systolic = parseInt(bpMatch[1])
     const diastolic = parseInt(bpMatch[2])
-    console.log(`✅ Blood Pressure: ${systolic}/${diastolic}`)
+    console.log(`✅ Blood Pressure: ${systolic}/${diastolic} (from regex fallback)`)
     
     await saveToSupabase(supabase, userId, 'health', {
       id: randomUUID(),
@@ -6036,6 +6292,78 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
   // Not a command
   return {
     isCommand: false
+  }
+}
+
+// ============================================
+// MULTI-COMMAND HANDLER (Split & Process Multiple Commands)
+// ============================================
+async function handleMultipleVoiceCommands(
+  message: string, 
+  userId: string, 
+  supabase: any
+): Promise<{ isCommand: boolean; action: string; message: string; results?: any[] }> {
+  // Split message by common separators (comma, "and", "also", "plus", semicolon)
+  // Be careful not to split "blood pressure 120/80" or "120 and 80"
+  const segments = message
+    .split(/,(?![^(]*\))|;|\s+and\s+(?!\d)|\s+also\s+|\s+plus\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 3) // Filter out very short segments
+
+  console.log(`🔄 [MULTI-COMMAND] Split message into ${segments.length} segments:`, segments)
+
+  // If only one segment, use the regular handler
+  if (segments.length <= 1) {
+    const result = await handleVoiceCommand(message, userId, supabase)
+    return result
+  }
+
+  // Process each segment
+  const results: any[] = []
+  const messages: string[] = []
+
+  for (const segment of segments) {
+    console.log(`🔄 [MULTI-COMMAND] Processing segment: "${segment}"`)
+    try {
+      const result = await handleVoiceCommand(segment.trim(), userId, supabase)
+      if (result.isCommand) {
+        results.push({
+          segment,
+          action: result.action,
+          message: result.message,
+          success: true
+        })
+        messages.push(result.message)
+        console.log(`✅ [MULTI-COMMAND] Segment processed successfully: ${result.action}`)
+      } else {
+        console.log(`⚠️ [MULTI-COMMAND] Segment did not match any pattern: "${segment}"`)
+      }
+    } catch (error: any) {
+      console.error(`❌ [MULTI-COMMAND] Error processing segment "${segment}":`, error.message)
+    }
+  }
+
+  // If at least one command was processed successfully
+  if (results.length > 0) {
+    const combinedMessage = results.length === 1 
+      ? messages[0] 
+      : `✅ Successfully logged ${results.length} entries:\n${messages.join('\n')}`
+    
+    console.log(`✅ [MULTI-COMMAND] Processed ${results.length} of ${segments.length} segments`)
+    
+    return {
+      isCommand: true,
+      action: 'multi_command',
+      message: combinedMessage,
+      results
+    }
+  }
+
+  // No commands matched
+  return {
+    isCommand: false,
+    action: '',
+    message: ''
   }
 }
 

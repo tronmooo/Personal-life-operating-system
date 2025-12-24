@@ -9,6 +9,7 @@ import { Plus, Trash2, CheckCircle, Loader2 } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { DomainData } from '@/types/domains'
+import { toast } from '@/lib/utils/toast'
 
 interface Medication {
   id: string
@@ -26,8 +27,16 @@ interface MedicationLog {
   taken: boolean
 }
 
+// Helper to convert medication frequency to habit frequency
+function getHabitFrequency(medFrequency: string): 'daily' | 'weekly' | 'monthly' {
+  const freq = medFrequency.toLowerCase()
+  if (freq.includes('weekly')) return 'weekly'
+  if (freq.includes('monthly')) return 'monthly'
+  return 'daily' // Most medications are daily
+}
+
 export function MedicationsTab() {
-  const { getData, addData, deleteData, updateData, reloadDomain } = useData()
+  const { getData, addData, deleteData, updateData, reloadDomain, addHabit } = useData()
   const [medications, setMedications] = useState<Medication[]>([])
   const [medicationLogs, setMedicationLogs] = useState<MedicationLog[]>([])
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
@@ -105,18 +114,40 @@ export function MedicationsTab() {
   const handleAdd = async () => {
     if (!formData.name || !formData.dosage) return
 
+    const medName = formData.name
+    const medDosage = formData.dosage
+    const medFrequency = formData.frequency || 'Daily'
+    const medTimes = formData.time || ['8:00 AM']
+
     await addData('health', {
-      title: `${formData.name} - ${formData.dosage}`,
-      description: `${formData.frequency || 'Daily'} at ${formData.time?.join(', ') || '8:00 AM'}`,
+      title: `${medName} - ${medDosage}`,
+      description: `${medFrequency} at ${medTimes.join(', ')}`,
       metadata: {
         type: 'medication',
-        name: formData.name,
-        dosage: formData.dosage,
-        frequency: formData.frequency || 'Daily',
-        time: formData.time || ['8:00 AM'],
+        name: medName,
+        dosage: medDosage,
+        frequency: medFrequency,
+        time: medTimes,
         status: formData.status || 'Active'
       }
     })
+    
+    // Automatically create habits for each medication time
+    if (medTimes.length > 0) {
+      for (const time of medTimes) {
+        const habitName = `Take ${medName} (${medDosage}) at ${time}`
+        await addHabit({
+          name: habitName,
+          icon: '💊',
+          frequency: getHabitFrequency(medFrequency),
+          completed: false,
+          streak: 0,
+        })
+      }
+      
+      const timesText = medTimes.length === 1 ? medTimes[0] : `${medTimes.length} times daily`
+      toast.success('Medication & Habits Created', `Added ${medName} and created habit reminder(s) for ${timesText}`)
+    }
     
     setFormData({ status: 'Active', time: ['8:00 AM'] })
     setShowAddForm(false)

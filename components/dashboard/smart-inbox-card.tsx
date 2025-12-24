@@ -193,26 +193,9 @@ export function SmartInboxCard() {
                            data.actualScopes !== undefined
       
       if (data.requiresReauth || isScopeError) {
-        // Automatically redirect to get Gmail permissions
-        console.log('🔄 Auto-redirecting to grant Gmail permissions...')
-        toast({
-          title: "Granting Gmail access...",
-          description: "Redirecting to Google to enable Smart Inbox.",
-        })
-        
-        // Auto-redirect to get Gmail permissions
-        try {
-          const response = await fetch('/api/auth/add-gmail-scopes')
-          const authData = await response.json()
-          if (authData.url) {
-            window.location.href = authData.url
-            return
-          }
-        } catch (e) {
-          console.error('Failed to get Gmail auth URL:', e)
-        }
-        
-        // Fallback if auto-redirect fails
+        // Don't auto-redirect - show a button instead so users who signed in
+        // with email/password aren't automatically sent to Google OAuth
+        console.log('📧 Gmail access not configured - showing prompt')
         setNeedsGmailAuth(true)
         setAuthError(errorMsg)
         return

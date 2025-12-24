@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import * as AI from '@/lib/services/ai-service'
 
 export const runtime = 'nodejs'
 
@@ -9,8 +9,6 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(transactions) || transactions.length === 0) {
       return NextResponse.json({ error: 'No transactions provided' }, { status: 400 })
     }
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const makePrompt = (tx: any) => `Analyze this transaction and respond with JSON fields: category, confidence, is_recurring, recurring_frequency, recurring_confidence, should_be_bill, bill_suggestion.
 Merchant: ${tx.merchant_name || 'Unknown'}
@@ -22,21 +20,16 @@ Current Category: ${tx.primary_category || 'None'}`
     const results: any[] = []
     for (const tx of transactions) {
       try {
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a financial transaction categorization assistant. Reply only with valid JSON.',
-            },
-            { role: 'user', content: makePrompt(tx) },
-          ],
+        const aiResponse = await AI.requestAI({
+          prompt: makePrompt(tx),
+          systemPrompt: 'You are a financial transaction categorization assistant. Reply only with valid JSON.',
           temperature: 0.2,
-          response_format: { type: 'json_object' },
+          maxTokens: 200
         })
 
-        const parsed = JSON.parse(completion.choices[0].message.content || '{}')
+        const content = aiResponse.content || '{}'
+        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
         results.push({ id: tx.id, ...parsed })
       } catch (err) {
         // Fallback minimal mapping
