@@ -4,6 +4,18 @@ const path = require('path')
 const nextConfig = {
   images: {
     domains: ['localhost', 'life-hub.me', 'www.life-hub.me'],
+    // Optimize images
+    formats: ['image/avif', 'image/webp'],
+  },
+  // Enable compression
+  compress: true,
+  // Optimize production builds
+  productionBrowserSourceMaps: false,
+  // Optimize bundle splitting
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
   },
   async headers() {
     return [
@@ -34,16 +46,9 @@ const nextConfig = {
       }
     ]
   },
-  // Request size limits
-  // api: {
-  //   bodyParser: {
-  //     sizeLimit: '1mb' // API routes limited to 1MB
-  //   },
-  //   responseLimit: '4mb' // Response size limit
-  // },
   experimental: {
     serverActions: {
-      bodySizeLimit: '2mb', // Server actions limited to 2MB
+      bodySizeLimit: '2mb',
       allowedOrigins: [
         'localhost:3000', 
         'localhost:3001',
@@ -56,10 +61,6 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
   webpack: (config, { isServer }) => {
@@ -67,6 +68,36 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname),
+    }
+    // Optimize chunks
+    if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          framework: {
+            chunks: 'all',
+            name: 'framework',
+            test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+            priority: 40,
+            enforce: true,
+          },
+          lib: {
+            test: /[\\/]node_modules[\\/]/,
+            priority: 30,
+            minChunks: 2,
+            reuseExistingChunk: true,
+          },
+          commons: {
+            name: 'commons',
+            minChunks: 2,
+            priority: 20,
+          },
+        },
+      }
     }
     return config
   },

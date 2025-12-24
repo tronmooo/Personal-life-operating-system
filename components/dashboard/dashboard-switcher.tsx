@@ -1,28 +1,42 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { LayoutGrid, LayoutDashboard } from 'lucide-react'
-import { CommandCenterRedesigned } from './command-center-redesigned'
-import { CustomizableCommandCenter } from './customizable-command-center'
 import { resetDashboardMode } from '@/lib/utils/dashboard-reset'
 import { getUserSettings, updateUserSettings } from '@/lib/supabase/user-settings'
+import { DashboardSkeleton } from './dashboard-skeleton'
+
+// Lazy load heavy components for faster initial render
+const CommandCenterRedesigned = lazy(() => import('./command-center-redesigned').then(mod => ({ default: mod.CommandCenterRedesigned })))
+const CustomizableCommandCenter = lazy(() => import('./customizable-command-center').then(mod => ({ default: mod.CustomizableCommandCenter })))
 
 export function DashboardSwitcher() {
   const [viewMode, setViewMode] = useState<'standard' | 'customizable'>('standard')
+  const [isReady, setIsReady] = useState(false)
 
   // Load view mode from Supabase user_settings (non-blocking)
   useEffect(() => {
-    (async () => {
+    let mounted = true
+    ;(async () => {
       try {
         const settings = await getUserSettings()
+        if (!mounted) return
         const savedMode = settings?.dashboardViewMode
         if (savedMode === 'customizable' || savedMode === 'standard') {
           setViewMode(savedMode)
         }
       } catch {
         // Silently fail - already defaults to 'standard'
+      } finally {
+        if (mounted) {
+          // Small delay to ensure smooth transition
+          requestAnimationFrame(() => {
+            setIsReady(true)
+          })
+        }
       }
     })()
+    return () => { mounted = false }
   }, [])
 
   // Listen for view mode changes from settings
@@ -40,14 +54,21 @@ export function DashboardSwitcher() {
     }
   }, [])
 
+  // Show skeleton while loading
+  if (!isReady) {
+    return <DashboardSkeleton />
+  }
+
   return (
     <div>
-      {/* Render Dashboard */}
-      {viewMode === 'standard' ? (
-        <CommandCenterRedesigned />
-      ) : (
-        <CustomizableCommandCenter />
-      )}
+      {/* Render Dashboard with Suspense for lazy loading */}
+      <Suspense fallback={<DashboardSkeleton />}>
+        {viewMode === 'standard' ? (
+          <CommandCenterRedesigned />
+        ) : (
+          <CustomizableCommandCenter />
+        )}
+      </Suspense>
     </div>
   )
 }

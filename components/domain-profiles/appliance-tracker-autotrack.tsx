@@ -1108,26 +1108,26 @@ export function ApplianceTrackerAutoTrack() {
                   className="bg-[#0f1419] border-gray-700 text-white"
                 />
               </div>
-              <div>
+              <div className="col-span-2">
                 <Label className="text-gray-300">
                   Purchase Price ($)
                   {aiValueEstimate && !fetchingAiValue && (
                     <span className="ml-2 text-xs text-green-400">✨ AI: ${aiValueEstimate.estimatedValue}</span>
                   )}
                 </Label>
-                <div className="flex gap-2">
+                <div className="flex gap-3 items-center">
                   <Input
                     type="number"
                     value={applianceForm.purchasePrice}
                     onChange={(e) => setApplianceForm({ ...applianceForm, purchasePrice: parseFloat(e.target.value) })}
-                    className="bg-[#0f1419] border-gray-700 text-white flex-1"
-                    placeholder="Enter price or use AI"
+                    className="bg-[#0f1419] border-gray-700 text-white min-w-[150px] w-full max-w-[300px]"
+                    placeholder="Enter price"
                   />
                   <Button
                     type="button"
                     onClick={handleEstimateValue}
                     disabled={fetchingAiValue || (!applianceForm.name && !applianceForm.brand && !applianceForm.category)}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed whitespace-nowrap"
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
                   >
                     {fetchingAiValue ? '🤖 Estimating...' : '✨ AI Estimate'}
                   </Button>
@@ -1953,26 +1953,26 @@ export function ApplianceTrackerAutoTrack() {
                 className="bg-[#0f1419] border-gray-700 text-white"
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <Label className="text-gray-300">
                 Purchase Price ($)
                 {aiValueEstimate && !fetchingAiValue && (
                   <span className="ml-2 text-xs text-green-400">✨ AI: ${aiValueEstimate.estimatedValue}</span>
                 )}
               </Label>
-              <div className="flex gap-2">
+              <div className="flex gap-3 items-center">
                 <Input
                   type="number"
                   value={applianceForm.purchasePrice}
                   onChange={(e) => setApplianceForm({ ...applianceForm, purchasePrice: parseFloat(e.target.value) })}
-                  className="bg-[#0f1419] border-gray-700 text-white flex-1"
-                  placeholder="Enter price or use AI"
+                  className="bg-[#0f1419] border-gray-700 text-white min-w-[150px] w-full max-w-[300px]"
+                  placeholder="Enter price"
                 />
                 <Button
                   type="button"
                   onClick={handleEstimateValue}
                   disabled={fetchingAiValue || (!applianceForm.name && !applianceForm.brand && !applianceForm.category)}
-                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
                 >
                   {fetchingAiValue ? '🤖 Estimating...' : '✨ AI Estimate'}
                 </Button>
