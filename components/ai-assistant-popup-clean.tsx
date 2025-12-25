@@ -466,7 +466,12 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
       lowerInput.includes('find') ||
       lowerInput.includes('open') ||
       lowerInput.includes('display') ||
-      (lowerInput.includes('get') && (lowerInput.includes('document') || lowerInput.includes('file')))
+      lowerInput.includes('retrieve') ||
+      lowerInput.includes('fetch') ||
+      lowerInput.includes('grab') ||
+      lowerInput.includes('bring up') ||
+      lowerInput.includes('look up') ||
+      (lowerInput.includes('get') && (lowerInput.includes('document') || lowerInput.includes('file') || lowerInput.includes('license') || lowerInput.includes('insurance') || lowerInput.includes('registration') || lowerInput.includes('card')))
     
     if (isDocumentRequest && !lowerInput.includes('data') && !lowerInput.includes('info')) {
       // Handle document retrieval
@@ -480,14 +485,21 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
           .replace(/could you /gi, '')
           .replace(/please /gi, '')
           .replace(/i need /gi, '')
+          .replace(/i want /gi, '')
           .replace(/pull up/gi, '')
           .replace(/show me/gi, '')
           .replace(/find/gi, '')
           .replace(/open/gi, '')
           .replace(/display/gi, '')
+          .replace(/retrieve/gi, '')
+          .replace(/fetch/gi, '')
+          .replace(/grab/gi, '')
+          .replace(/bring up/gi, '')
+          .replace(/look up/gi, '')
           .replace(/get/gi, '')
           .replace(/my /gi, '')
           .replace(/the /gi, '')
+          .replace(/for /gi, '')
           .replace(/\s+and\s+/gi, ', ') // Convert "and" to commas for better search
           .replace(/\s{2,}/g, ' ') // Clean up multiple spaces
           .trim()
@@ -842,11 +854,11 @@ export function AIAssistantPopupClean({ open, onOpenChange }: AIAssistantPopupPr
 
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder="Ask me anything..."
+                    placeholder="Ask me anything about your life data... (e.g., 'retrieve my license and insurance for my car')"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    className="flex-1 min-h-[60px] sm:min-h-[80px] max-h-[100px] sm:max-h-[120px] bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 resize-none text-sm"
+                    className="flex-1 min-h-[100px] sm:min-h-[140px] max-h-[180px] sm:max-h-[200px] bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 resize-none text-base"
                   />
                   <div className="flex flex-col gap-1.5 sm:gap-2">
                     <Button

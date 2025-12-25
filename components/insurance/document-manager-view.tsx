@@ -8,14 +8,14 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   Shield, CreditCard, Search, Plus, Eye, Edit, Trash2, 
-  Calendar, FileText, AlertCircle, CheckCircle, XCircle, Upload,
-  ChevronDown, ExternalLink
+  Calendar, FileText, AlertCircle, CheckCircle, XCircle,
+  ChevronDown, ExternalLink, Share2, MessageSquare, Mail
 } from 'lucide-react'
+import { DocumentShareButtons, DocumentQuickShareBar } from '@/components/documents/document-share-buttons'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { useGoogleDrive } from '@/hooks/use-google-drive'
 import { DocumentPreviewModal } from '@/components/document-preview-modal'
 import { BackButton } from '@/components/ui/back-button'
-import { SmartDocumentUploadDialog } from './smart-document-upload-dialog'
 
 interface Document {
   id: string
@@ -49,7 +49,6 @@ export function DocumentManagerView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [previewDoc, setPreviewDoc] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null)
@@ -524,23 +523,13 @@ export function DocumentManagerView() {
               <h1 className="text-2xl sm:text-3xl font-bold mb-1">Document Manager</h1>
               <p className="text-slate-300 text-sm">Organize and track all your important documents</p>
             </div>
-            <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
-              <Button
-                onClick={() => setShowUploadDialog(true)}
-                className="bg-blue-600 hover:bg-blue-700 h-12 sm:h-10 px-4 sm:px-6 w-full xs:w-auto"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                <span className="whitespace-nowrap">Upload & Scan</span>
-              </Button>
-              <Button
-                onClick={() => setShowAddDialog(true)}
-                variant="outline"
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 h-12 sm:h-10 px-4 sm:px-6 w-full xs:w-auto"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                <span className="whitespace-nowrap">Manual Entry</span>
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowAddDialog(true)}
+              className="bg-blue-600 hover:bg-blue-700 h-12 sm:h-10 px-4 sm:px-6 w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="whitespace-nowrap">Add Document</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -675,23 +664,13 @@ export function DocumentManagerView() {
               <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 text-slate-600" />
               <h3 className="text-base sm:text-lg font-semibold mb-1.5">No documents found</h3>
               <p className="text-slate-400 text-xs sm:text-sm mb-4">Get started by adding your first document</p>
-              <div className="flex flex-col xs:flex-row gap-2 justify-center">
-                <Button
-                  onClick={() => setShowUploadDialog(true)}
-                  className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload & Scan
-                </Button>
-                <Button
-                  onClick={() => setShowAddDialog(true)}
-                  variant="outline"
-                  className="border-slate-600 text-slate-300 min-h-[44px]"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Manual Entry
-                </Button>
-              </div>
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Document
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -777,6 +756,20 @@ export function DocumentManagerView() {
                       </div>
                       {/* Action buttons - always visible on mobile */}
                       <div className="flex gap-2 flex-shrink-0 justify-end sm:flex-col sm:gap-1.5">
+                        <DocumentShareButtons 
+                          document={{
+                            id: doc.id,
+                            name: doc.name,
+                            fileUrl: doc.fileUrl,
+                            extractedData: {
+                              documentType: doc.category,
+                              expirationDate: doc.expiryDate,
+                              policyNumber: doc.number
+                            }
+                          }}
+                          variant="compact"
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                        />
                         <Button
                           onClick={() => setExpandedDocId(isExpanded ? null : doc.id)}
                           size="sm"
@@ -818,7 +811,23 @@ export function DocumentManagerView() {
                               className="w-full max-h-96 object-contain rounded"
                             />
                           )}
-                          <div className="flex justify-end gap-2 mt-2">
+                          <div className="flex flex-col sm:flex-row justify-between gap-3 mt-3 pt-3 border-t border-slate-700">
+                            {/* Quick Share Buttons */}
+                            <div className="flex gap-2">
+                              <DocumentQuickShareBar 
+                                document={{
+                                  id: doc.id,
+                                  name: doc.name,
+                                  fileUrl: doc.fileUrl,
+                                  extractedData: {
+                                    documentType: doc.category,
+                                    expirationDate: doc.expiryDate,
+                                    policyNumber: doc.number
+                                  }
+                                }}
+                                className="[&>button]:border-slate-600 [&>button]:text-slate-300"
+                              />
+                            </div>
                             <Button
                               onClick={() => window.open(doc.fileUrl, '_blank')}
                               size="sm"

@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   FileText, Image as ImageIcon, Download, Trash2, Calendar, DollarSign,
-  Hash, Upload, Eye, Sparkles, Loader2,
+  Hash, Upload, Eye, Sparkles, Loader2, Share2,
 } from 'lucide-react'
+import { DocumentShareButtons, DocumentQuickShareBar } from '@/components/documents/document-share-buttons'
 import { format } from 'date-fns'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { DocumentPreviewModal } from '@/components/document-preview-modal'
@@ -348,6 +349,20 @@ function DocumentCard({ doc, onDelete, onDownload, onView }: {
         </div>
         {/* Action buttons - mobile-friendly */}
         <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:justify-start">
+          <DocumentShareButtons 
+            document={{
+              id: doc.id,
+              name: doc.name,
+              fileUrl: doc.driveLink || doc.base64Content,
+              extractedData: {
+                documentType: doc.documentType,
+                expirationDate: doc.expirationDate?.toISOString(),
+                policyNumber: doc.policyNumber,
+                amount: doc.amount
+              }
+            }}
+            variant="compact"
+          />
           <Button 
             variant="outline" 
             size="sm" 
@@ -425,6 +440,27 @@ function DocumentCard({ doc, onDelete, onDownload, onView }: {
               </div>
             </div>
           )}
+
+          {/* Quick Share Section */}
+          <div className="pt-3 mt-3 border-t">
+            <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+              <Share2 className="h-3 w-3" />
+              Share Document
+            </div>
+            <DocumentQuickShareBar 
+              document={{
+                id: doc.id,
+                name: doc.name,
+                fileUrl: doc.driveLink || doc.base64Content,
+                extractedData: {
+                  documentType: doc.documentType,
+                  expirationDate: doc.expirationDate?.toISOString(),
+                  policyNumber: doc.policyNumber,
+                  amount: doc.amount
+                }
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

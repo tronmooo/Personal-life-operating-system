@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   Send, Mic, Sparkles, Brain, MessageSquare, Settings, TrendingUp,
   AlertCircle, Target, DollarSign, Heart, BarChart3, Lightbulb, Phone
@@ -214,6 +215,7 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
   const [isTyping, setIsTyping] = useState(false)
   const [activeTab, setActiveTab] = useState('chat')
   const [conciergeData, setConciergeData] = useState<any>(null)
+  const [userDocuments, setUserDocuments] = useState<any[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
@@ -224,6 +226,36 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Fetch user documents when popup opens
+  useEffect(() => {
+    if (!open) return
+    
+    const fetchDocuments = async () => {
+      try {
+        const supabase = createClientComponentClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) return
+        
+        const { data: docs, error } = await supabase
+          .from('documents')
+          .select('id, document_name, document_type, file_url, file_path, expiration_date, domain, metadata, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50)
+        
+        if (!error && docs) {
+          console.log(`📄 Loaded ${docs.length} documents for AI assistant`)
+          setUserDocuments(docs)
+        }
+      } catch (error) {
+        console.error('Failed to fetch documents for AI:', error)
+      }
+    }
+    
+    fetchDocuments()
+  }, [open])
 
   const handleSendMessage = async () => {
     if (!input.trim()) return
@@ -244,7 +276,8 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage.content,
-          userData: data,
+          userData: { ...data, documents: userDocuments },
+          userDocuments: userDocuments,
           conversationHistory: messages.map(m => ({
             type: m.type,
             content: m.content
@@ -356,7 +389,8 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             message: command,
-            userData: data,
+            userData: { ...data, documents: userDocuments },
+            userDocuments: userDocuments,
             conversationHistory: messages.map(m => ({ type: m.type, content: m.content }))
         })
     }).then(res => res.json()).then(responseData => {
@@ -486,7 +520,8 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         message: question,
-                                        userData: data,
+                                        userData: { ...data, documents: userDocuments },
+                                        userDocuments: userDocuments,
                                         conversationHistory: messages.map(m => ({ type: m.type, content: m.content }))
                                     })
                                 }).then(res => res.json()).then(responseData => {
@@ -590,30 +625,43 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
                   </div>
                 )}
 
-                {/* Input Area */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Ask me anything about your life data..."
+                {/* Input Area - Large Chat Box */}
+                <div className="flex flex-col gap-2 mt-4">
+                  <Textarea
+                    placeholder="Ask me anything... For example: 'Retrieve my license and insurance for my car' or 'Show me my spending this month'"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1 bg-[#0f1729] border-purple-500/30 text-white placeholder:text-gray-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSendMessage()
+                      }
+                    }}
+                    className="min-h-[120px] bg-[#0f1729] border-purple-500/30 text-white placeholder:text-gray-500 resize-none text-base"
+                    rows={4}
                   />
-                  <Button 
-                    size="icon" 
-                    variant="outline"
-                    className="bg-[#0f1729] border-purple-500/30 hover:bg-purple-500/20"
-                  >
-                    <Mic className="h-4 w-4 text-purple-400" />
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    onClick={handleSendMessage} 
-                    disabled={!input.trim()}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">Press Enter to send, Shift+Enter for new line</span>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="bg-[#0f1729] border-purple-500/30 hover:bg-purple-500/20"
+                      >
+                        <Mic className="h-4 w-4 text-purple-400 mr-2" />
+                        Voice
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={handleSendMessage} 
+                        disabled={!input.trim()}
+                        className="bg-purple-600 hover:bg-purple-700 px-6"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Send
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 

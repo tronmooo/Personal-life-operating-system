@@ -1,13 +1,70 @@
-<!-- 66f40387-809b-452d-93c1-d4f94ece57f3 d9a6a430-d035-4c84-b099-ecd351089173 -->
-# Complete AI Assistant + DataProvider Integration
+---
+name: Complete AI Assistant + DataProvider Integration
+overview: ""
+todos:
+  - id: eca31eae-ac61-4d7b-8d70-e746f1ed0b87
+    content: Fix AI Assistant health vitals aggregation and save logic
+    status: pending
+  - id: 9c2c0f0e-019f-4c46-9a1c-613287d72e5b
+    content: Enhance DataProvider with domain-specific events and optimizations
+    status: pending
+  - id: c33ca92e-432b-4796-9949-03301090c1b2
+    content: Migrate all Health domain components (7 files) to DataProvider
+    status: pending
+  - id: 61f6292e-0a53-49eb-a782-9e244a16b609
+    content: Migrate Fitness domain components (2 files) to DataProvider
+    status: pending
+  - id: 6ac1f556-6f54-4c53-bc4a-4d7acdd69467
+    content: Migrate Nutrition domain components (3 files) to DataProvider
+    status: pending
+  - id: fae704a7-0c89-451f-a9bf-a2a402cbdd20
+    content: Migrate Financial domain components (3 files) to DataProvider
+    status: pending
+  - id: 5c147689-c38a-40e3-abab-2d66c50c9798
+    content: Comprehensive testing of Health, Fitness, Nutrition, Financial with manual + AI entry
+    status: pending
+  - id: 3c687ca6-885b-4819-8323-6bcb2b2c58de
+    content: Migrate Travel domain components (6 files) to DataProvider
+    status: pending
+  - id: bd197c5c-d335-44f9-b6a5-f17f1d90913d
+    content: Migrate Education domain components (3 files) to DataProvider
+    status: pending
+  - id: f9455d26-fcd3-49e5-ab24-2b9e799e71cf
+    content: Migrate Insurance domain components (7 files) to DataProvider
+    status: pending
+  - id: 4bb8ca34-88ee-4363-b677-2c8b8f2bc1a4
+    content: Migrate Pets domain components (5 files) to DataProvider
+    status: pending
+  - id: 21a7d307-3de7-4293-83a9-9fd8b83df8f4
+    content: Migrate Home/Property domain components (4 files) to DataProvider
+    status: pending
+  - id: 21c41f83-26af-4b42-98d0-91330539ecaf
+    content: Migrate Digital-Life domain components (3 files) to DataProvider
+    status: pending
+  - id: 01d7de76-fb21-4fae-aabf-c4eef5ad4573
+    content: Migrate Mindfulness domain component (1 file) to DataProvider
+    status: pending
+  - id: ec97f6f1-e9a7-4089-91fc-f6749e84209c
+    content: Update utility components (32 files) to read from DataProvider
+    status: pending
+  - id: 807de5ba-e997-481b-9ab3-1ab1ca7f8b46
+    content: Add CRUD operations (CREATE, READ, UPDATE, DELETE) to AI Assistant
+    status: pending
+  - id: 395d6073-c057-4118-9ae7-a63959eaa832
+    content: Comprehensive end-to-end testing of all domains with manual and AI entry
+    status: pending
+  - id: 80966c80-20f6-4f1b-8746-fa8231f85ec7
+    content: Create USER_GUIDE.md, DEVELOPER_GUIDE.md, and AI_COMMANDS.md
+    status: pending
+---
+
+# Play an emptyComplete AI Assistant + DataProvider Integration
 
 ## Phase 1: Core Infrastructure (Foundation)
 
 ### 1.1 Fix AI Assistant Command Parser
 
-**File:** `app/api/ai-assistant/chat/route.ts`
-
-**Problem:** Heart rate was saved but not showing because:
+**File:** `app/api/ai-assistant/chat/route.ts`**Problem:** Heart rate was saved but not showing because:
 
 - AI saves to `domains` table with specific structure
 - Dashboard reads from `metadata.type === 'vitals'`
@@ -28,11 +85,7 @@
 
 ### 1.2 Enhance DataProvider Event System
 
-**File:** `lib/providers/data-provider.tsx`
-
-**Current:** Listens for `ai-assistant-saved` event and reloads all data
-
-**Enhancement Needed:**
+**File:** `lib/providers/data-provider.tsx`**Current:** Listens for `ai-assistant-saved` event and reloads all data**Enhancement Needed:**
 
 - Add domain-specific reload events: `health-data-updated`, `fitness-data-updated`, etc.
 - Optimize reload to only fetch changed domains (reduce API calls)
@@ -47,13 +100,11 @@ window.dispatchEvent(new CustomEvent('health-data-updated'))
 window.dispatchEvent(new CustomEvent('fitness-data-updated'))
 ```
 
+
+
 ### 1.3 Fix API Routes for Consistency
 
-**File:** `app/api/domains/route.ts`
-
-**Current State:** Works correctly
-
-**Enhancement:**
+**File:** `app/api/domains/route.ts`**Current State:** Works correctly**Enhancement:**
 
 - Add batch operations endpoint (`POST /api/domains/batch`)
 - Add domain-specific GET endpoints (`GET /api/domains/:domain`)
@@ -126,6 +177,8 @@ const handleDelete = async (id) => {
   }
 }
 ```
+
+
 
 ### 2.1 Health Domain (6 components)
 
@@ -326,49 +379,41 @@ const handleDelete = async (id) => {
 - Offline manager
 - etc.
 
-**Strategy:** Update these to READ from DataProvider but keep their specific localStorage for UI preferences
-
----
+**Strategy:** Update these to READ from DataProvider but keep their specific localStorage for UI preferences---
 
 ## Phase 3: AI Assistant Enhancement
 
 ### 3.1 Expand Command Recognition
 
-**File:** `app/api/ai-assistant/chat/route.ts`
-
-**Current:** 450+ regex patterns + intelligent parser
-
-**Enhancements:**
+**File:** `app/api/ai-assistant/chat/route.ts`**Current:** 450+ regex patterns + intelligent parser**Enhancements:**
 
 1. Add CRUD operations:
 
-   - CREATE: "add expense $50 groceries"
-   - READ: "show my expenses this week"
-   - UPDATE: "change my weight to 180"
-   - DELETE: "remove last expense"
+- CREATE: "add expense $50 groceries"
+- READ: "show my expenses this week"
+- UPDATE: "change my weight to 180"
+- DELETE: "remove last expense"
 
 2. Add bulk operations:
 
-   - "log my weekly workout: mon cardio 30min, tue weights 45min..."
+- "log my weekly workout: mon cardio 30min, tue weights 45min..."
 
 3. Add scheduling:
 
-   - "remind me to take medication at 8am daily"
-   - "schedule interview next tuesday 2pm"
+- "remind me to take medication at 8am daily"
+- "schedule interview next tuesday 2pm"
 
 4. Add data queries:
 
-   - "how much did I spend on groceries?"
-   - "what's my average heart rate?"
-   - "show my workout streak"
+- "how much did I spend on groceries?"
+- "what's my average heart rate?"
+- "show my workout streak"
 
 ### 3.2 Improve Data Extraction
 
-**Enhancement:** Use GPT-4o-mini to extract ALL fields from natural language
+**Enhancement:** Use GPT-4o-mini to extract ALL fields from natural language**Example:**
 
-**Example:**
-
-```
+```javascript
 User: "oil change for my Honda at 50k miles cost $40"
 
 AI Extracts:
@@ -383,11 +428,13 @@ AI Extracts:
 }
 ```
 
+
+
 ### 3.3 Add Confirmation Messages
 
 **Show user exactly what was saved:**
 
-```
+```javascript
 ✅ Logged to Health domain:
 - Heart Rate: 99 bpm
 - Date: Oct 18, 2025
@@ -575,26 +622,3 @@ AI Extracts:
 - `AI_COMMANDS.md`
 
 **Total Effort:** 35-40 hours of focused work
-
-**Estimated Timeline:** 5 days (8 hours/day)
-
-### To-dos
-
-- [ ] Fix AI Assistant health vitals aggregation and save logic
-- [ ] Enhance DataProvider with domain-specific events and optimizations
-- [ ] Migrate all Health domain components (7 files) to DataProvider
-- [ ] Migrate Fitness domain components (2 files) to DataProvider
-- [ ] Migrate Nutrition domain components (3 files) to DataProvider
-- [ ] Migrate Financial domain components (3 files) to DataProvider
-- [ ] Comprehensive testing of Health, Fitness, Nutrition, Financial with manual + AI entry
-- [ ] Migrate Travel domain components (6 files) to DataProvider
-- [ ] Migrate Education domain components (3 files) to DataProvider
-- [ ] Migrate Insurance domain components (7 files) to DataProvider
-- [ ] Migrate Pets domain components (5 files) to DataProvider
-- [ ] Migrate Home/Property domain components (4 files) to DataProvider
-- [ ] Migrate Digital-Life domain components (3 files) to DataProvider
-- [ ] Migrate Mindfulness domain component (1 file) to DataProvider
-- [ ] Update utility components (32 files) to read from DataProvider
-- [ ] Add CRUD operations (CREATE, READ, UPDATE, DELETE) to AI Assistant
-- [ ] Comprehensive end-to-end testing of all domains with manual and AI entry
-- [ ] Create USER_GUIDE.md, DEVELOPER_GUIDE.md, and AI_COMMANDS.md

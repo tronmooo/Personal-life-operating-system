@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   FileText, Image, Download, Trash2, Calendar, DollarSign,
   Hash, Search, Filter, Eye, Sparkles, AlertCircle, CheckCircle,
-  Upload, File
+  Upload, File, Share2
 } from 'lucide-react'
+import { DocumentShareButtons, DocumentQuickShareBar } from './documents/document-share-buttons'
 import { SmartDocument } from '@/types/documents'
 import { SmartDocumentUploader } from './smart-document-uploader'
 import { SmartUploadDialog } from './documents/smart-upload-dialog'
@@ -367,6 +368,17 @@ function DocumentCard({
 
               {/* Actions */}
               <div className="flex gap-2 flex-shrink-0">
+                <DocumentShareButtons 
+                  document={{
+                    id: document.id,
+                    name: document.name,
+                    fileUrl: document.url,
+                    data: document.data,
+                    type: document.type,
+                    extractedData: document.extractedData
+                  }}
+                  variant="compact"
+                />
                 <Button variant="outline" size="sm" onClick={onView}>
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -495,6 +507,24 @@ function DocumentDetailView({
           </div>
         </div>
       )}
+
+      {/* Share Buttons */}
+      <div className="border-t pt-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <Share2 className="h-4 w-4" />
+          Share Document
+        </h3>
+        <DocumentQuickShareBar 
+          document={{
+            id: document.id,
+            name: document.name,
+            fileUrl: document.url,
+            data: document.data,
+            type: document.type,
+            extractedData: document.extractedData
+          }}
+        />
+      </div>
 
       {/* Actions */}
       <div className="flex gap-2">

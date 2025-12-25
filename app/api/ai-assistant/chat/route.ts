@@ -2170,25 +2170,44 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
         messages: [
           {
             role: 'system',
-            content: `You are a QUERY ANALYZER for a life management app with 21 domains.
+            content: `You are a CONVERSATIONAL QUERY ANALYZER for a life management app with 21 domains.
 
-**YOUR JOB:** Detect if user wants to RETRIEVE/VIEW/ANALYZE data (not create).
+**YOUR JOB:** Detect if user wants to RETRIEVE/VIEW/ANALYZE data (not create). Be SMART about understanding CONVERSATIONAL language - users don't always speak formally!
 
-**QUERY PATTERNS:**
+**🗣️ CONVERSATIONAL QUERY PATTERNS (understand natural speech!):**
+- "can I get..." / "can you get..." / "can you show..." / "could you pull up..."
+- "I need..." / "I want..." / "give me..." / "get me..."  
+- "pull up..." / "bring up..." / "let me see..." / "open..."
+- "where is..." / "where's..." / "do I have..." / "what about..."
 - "show me..." / "what is..." / "how much..." / "when did..."
 - "list my..." / "find..." / "search..." / "display..."
 - "what's my..." / "how many..." / "total..." / "average..."
 - "analyze..." / "compare..." / "trend..." / "visualize..."
-- "create chart..." / "graph..." / "dashboard..."
+
+**🎯 DOMAIN ALIASES (understand casual terms!):**
+- "auto insurance" / "car insurance" / "vehicle insurance" → domain: "insurance", filters.category: "auto"
+- "auto" / "car" / "vehicle" / "cars" → domain: "vehicles"
+- "health insurance" / "medical insurance" → domain: "insurance", filters.category: "health"  
+- "home insurance" / "house insurance" / "homeowners" → domain: "insurance", filters.category: "home"
+- "life insurance" → domain: "insurance", filters.category: "life"
+- "money" / "finances" / "spending" / "budget" → domain: "financial"
+- "gym" / "exercise" / "workouts" → domain: "fitness"
+- "food" / "diet" / "eating" / "meals" → domain: "nutrition"
+- "doctor" / "medical" / "meds" / "medication" → domain: "health"
+- "dog" / "cat" / "pet" → domain: "pets"
+- "house" / "apartment" / "property" / "mortgage" → domain: "home" or "property"
+- "subscription" / "subscriptions" → domain: "digital"
+- "documents" / "docs" / "papers" / "paperwork" → queryType: "retrieve"
 
 **QUERY TYPES:**
-1. **list** - Show individual entries
-2. **aggregate** - Calculate totals, averages, counts
-3. **trend** - Show changes over time
-4. **compare** - Compare periods or categories
-5. **visualization** - Generate charts/graphs
-6. **multi_domain** - Combine data from multiple domains
-7. **custom_visualization** - AI creates best chart for the data
+1. **retrieve** - Get specific documents/items (e.g., "can I get my auto insurance", "pull up my ID")
+2. **list** - Show individual entries
+3. **aggregate** - Calculate totals, averages, counts
+4. **trend** - Show changes over time
+5. **compare** - Compare periods or categories
+6. **visualization** - Generate charts/graphs
+7. **multi_domain** - Combine data from multiple domains
+8. **custom_visualization** - AI creates best chart for the data
 
 **MULTI-DOMAIN SUPPORT:**
 - User can request data across ALL domains
@@ -2198,13 +2217,14 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
 **RESPONSE FORMAT:**
 {
   "isQuery": true,
-  "domain": "financial|health|fitness|all|multiple",
+  "domain": "financial|health|fitness|insurance|vehicles|all|multiple",
   "domains": ["financial", "health"],  // For multi-domain queries
-  "queryType": "list|aggregate|trend|compare|visualization|multi_domain|custom_visualization",
+  "queryType": "retrieve|list|aggregate|trend|compare|visualization|multi_domain|custom_visualization",
+  "searchTerms": ["auto", "insurance"],  // For retrieve queries - keywords to search
   "filters": {
     "dateRange": "today|this_week|last_week|this_month|last_month|this_year|all",
     "metricType": "weight|expense|income|workout|etc",
-    "category": "specific category if mentioned"
+    "category": "auto|health|home|life|specific category if mentioned"
   },
   "visualization": {
     "type": "line|bar|pie|area|multi_line|stacked_bar|combo|scatter",
@@ -2218,15 +2238,69 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
         "metric": "weight"
       }
     ]
-  },
-  "customVisualization": {
-    "description": "What insight the AI wants to show",
-    "chartType": "auto-selected by AI",
-    "dataSources": ["domains to combine"]
   }
 }
 
-**EXAMPLES:**
+**🗣️ CONVERSATIONAL EXAMPLES:**
+
+"can I get my auto insurance"
+{
+  "isQuery": true,
+  "domain": "insurance",
+  "queryType": "retrieve",
+  "searchTerms": ["auto", "insurance", "car", "vehicle"],
+  "filters": { "category": "auto" }
+}
+
+"pull up my car insurance please"
+{
+  "isQuery": true,
+  "domain": "insurance",
+  "queryType": "retrieve",
+  "searchTerms": ["car", "insurance", "auto", "vehicle"],
+  "filters": { "category": "auto" }
+}
+
+"I need my health insurance card"
+{
+  "isQuery": true,
+  "domain": "insurance",
+  "queryType": "retrieve",
+  "searchTerms": ["health", "insurance", "card", "medical"],
+  "filters": { "category": "health" }
+}
+
+"where's my vehicle registration"
+{
+  "isQuery": true,
+  "domain": "vehicles",
+  "queryType": "retrieve",
+  "searchTerms": ["registration", "vehicle", "car", "dmv"]
+}
+
+"can you show me my ID"
+{
+  "isQuery": true,
+  "domain": "all",
+  "queryType": "retrieve",
+  "searchTerms": ["ID", "identification", "license", "card"]
+}
+
+"give me my pet's vet records"
+{
+  "isQuery": true,
+  "domain": "pets",
+  "queryType": "retrieve",
+  "searchTerms": ["vet", "records", "pet", "veterinary"]
+}
+
+"I want to see my finances"
+{
+  "isQuery": true,
+  "domain": "financial",
+  "queryType": "list",
+  "filters": { "dateRange": "this_month" }
+}
 
 "show me my expenses from last month"
 {
@@ -2261,13 +2335,36 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
   "filters": { "dateRange": "this_week", "metricType": "workout" }
 }
 
-"show all my data from this month"
+"what about my car stuff"
+{
+  "isQuery": true,
+  "domain": "vehicles",
+  "queryType": "list",
+  "filters": { "dateRange": "all" }
+}
+
+"do I have any insurance documents"
+{
+  "isQuery": true,
+  "domain": "insurance",
+  "queryType": "retrieve",
+  "searchTerms": ["insurance", "policy", "documents"]
+}
+
+"retrieve my license and insurance for my car"
 {
   "isQuery": true,
   "domain": "all",
-  "domains": ["financial", "health", "fitness", "nutrition"],
-  "queryType": "multi_domain",
-  "filters": { "dateRange": "this_month" }
+  "queryType": "retrieve",
+  "searchTerms": ["license", "insurance", "car", "vehicle", "auto", "registration", "policy", "driver"]
+}
+
+"can you get my license and insurance"
+{
+  "isQuery": true,
+  "domain": "all",
+  "queryType": "retrieve",
+  "searchTerms": ["license", "insurance", "driver", "vehicle", "policy", "id", "card"]
 }
 
 "compare my spending vs my income"
@@ -2285,36 +2382,16 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
   }
 }
 
-"create a dashboard showing my health and fitness progress"
-{
-  "isQuery": true,
-  "domain": "multiple",
-  "domains": ["health", "fitness"],
-  "queryType": "custom_visualization",
-  "visualization": {
-    "type": "combo",
-    "title": "Health & Fitness Dashboard",
-    "datasets": [
-      { "name": "Weight", "domain": "health", "metric": "weight" },
-      { "name": "Workouts", "domain": "fitness", "metric": "workout" }
-    ]
-  }
-}
+**🚨 CRITICAL RULES:**
+1. CONVERSATIONAL requests ARE queries! "can I get", "I need", "pull up", "retrieve", "find" = QUERY, not command
+2. Map casual domain names to correct domains (auto → vehicles, car insurance → insurance)
+3. For retrieve queries, always include searchTerms array with relevant keywords
+4. If unsure between retrieve and list, prefer retrieve for specific item requests
+5. Only return isQuery: false for CREATE/ADD/LOG commands (e.g., "add task", "log expense")
+6. **IMPORTANT**: When user asks for MULTIPLE document types (e.g., "license AND insurance"), use domain: "all" to search everywhere
+7. For "license and insurance for my car" → domain: "all", searchTerms: ["license", "insurance", "car", "vehicle", "auto", "registration", "policy"]
 
-"visualize my life data"
-{
-  "isQuery": true,
-  "domain": "all",
-  "domains": ["financial", "health", "fitness", "nutrition", "mindfulness"],
-  "queryType": "custom_visualization",
-  "customVisualization": {
-    "description": "Create comprehensive overview of all life domains",
-    "chartType": "multiple",
-    "dataSources": ["all_active_domains"]
-  }
-}
-
-If NOT a query (it's a command to CREATE data), respond:
+If NOT a query (it's a command to CREATE data like "add task" or "log expense"), respond:
 {
   "isQuery": false
 }
@@ -2365,9 +2442,9 @@ Only respond with valid JSON, nothing else.`
 // QUERY EXECUTOR - Fetch and format data
 // ============================================
 async function executeQuery(querySpec: any, userId: string, supabase: any) {
-  const { domain, domains, queryType, filters, visualization, customVisualization } = querySpec
+  const { domain, domains, queryType, filters, visualization, customVisualization, searchTerms } = querySpec
   
-  console.log('📊 Executing query:', { domain, domains, queryType, filters })
+  console.log('📊 Executing query:', { domain, domains, queryType, filters, searchTerms })
   
   try {
     // Handle multi-domain queries
@@ -2378,6 +2455,11 @@ async function executeQuery(querySpec: any, userId: string, supabase: any) {
     // Handle custom visualizations
     if (queryType === 'custom_visualization') {
       return await executeCustomVisualization(querySpec, userId, supabase)
+    }
+    
+    // Handle retrieve queries - search documents AND domain entries
+    if (queryType === 'retrieve') {
+      return await executeRetrieveQuery(querySpec, userId, supabase)
     }
     
     // Build Supabase query for single domain
@@ -2437,6 +2519,193 @@ async function executeQuery(querySpec: any, userId: string, supabase: any) {
     }
   } catch (error: any) {
     console.error('❌ Execute query error:', error)
+    throw error
+  }
+}
+
+// ============================================
+// RETRIEVE QUERY EXECUTOR - Search documents and entries
+// ============================================
+async function executeRetrieveQuery(querySpec: any, userId: string, supabase: any) {
+  const { domain, searchTerms, filters } = querySpec
+  
+  console.log('🔍 Executing retrieve query:', { domain, searchTerms, filters })
+  
+  // Determine if we should search across all domains
+  // If search terms include multiple document types (license + insurance), search everywhere
+  const searchTermsLower = (searchTerms || []).map((t: string) => t.toLowerCase())
+  const hasMultipleDocTypes = 
+    (searchTermsLower.some((t: string) => ['license', 'registration', 'id', 'identification'].includes(t)) &&
+     searchTermsLower.some((t: string) => ['insurance', 'policy', 'card'].includes(t))) ||
+    searchTermsLower.includes('documents') ||
+    searchTermsLower.includes('all')
+  
+  // If query involves multiple document types, search all domains
+  const shouldSearchAllDomains = domain === 'all' || hasMultipleDocTypes
+  
+  console.log('🔍 Search strategy:', { shouldSearchAllDomains, hasMultipleDocTypes, searchTermsLower })
+  
+  try {
+    const results: any[] = []
+    let documentsFound: any[] = []
+    let entriesFound: any[] = []
+    
+    // Search documents table - ALWAYS search all documents first, then filter by search terms
+    try {
+      const docQuery = supabase
+        .from('documents')
+        .select('id, document_name, document_type, file_url, file_path, expiration_date, domain, metadata, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50)  // Get more docs to filter from
+      
+      const { data: docs, error: docError } = await docQuery
+      
+      console.log('📄 Documents query result:', { count: docs?.length, error: docError?.message })
+      
+      if (!docError && docs) {
+        // Filter by search terms using fuzzy matching
+        if (searchTerms && searchTerms.length > 0) {
+          documentsFound = docs.filter((doc: any) => {
+            const searchableText = [
+              doc.document_name || '',
+              doc.document_type || '',
+              doc.domain || '',
+              JSON.stringify(doc.metadata || {})
+            ].join(' ').toLowerCase()
+            
+            // Match if ANY search term is found
+            const matches = searchTerms.some((term: string) => 
+              searchableText.includes(term.toLowerCase())
+            )
+            
+            // Also filter by domain if specified (but not if shouldSearchAllDomains)
+            if (!shouldSearchAllDomains && domain && domain !== 'all') {
+              return matches && doc.domain === domain
+            }
+            
+            return matches
+          })
+        } else if (!shouldSearchAllDomains && domain && domain !== 'all') {
+          // Only filter by domain if no search terms
+          documentsFound = docs.filter((doc: any) => doc.domain === domain)
+        } else {
+          documentsFound = docs
+        }
+        
+        console.log('📄 Documents filtered:', { found: documentsFound.length })
+      }
+    } catch (docErr) {
+      console.log('📄 Document search error:', docErr)
+    }
+    
+    // Search domain_entries table
+    try {
+      let entryQuery = supabase
+        .from('domain_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      
+      // Only filter by domain if not searching all
+      if (!shouldSearchAllDomains && domain && domain !== 'all') {
+        entryQuery = entryQuery.eq('domain', domain)
+      }
+      
+      // Apply category filter if present
+      if (filters?.category) {
+        entryQuery = entryQuery.contains('metadata', { category: filters.category })
+      }
+      
+      const { data: entries, error: entryError } = await entryQuery
+      
+      console.log('📋 Entries query result:', { count: entries?.length, error: entryError?.message })
+      
+      if (!entryError && entries) {
+        // Filter by search terms using fuzzy matching
+        if (searchTerms && searchTerms.length > 0) {
+          entriesFound = entries.filter((entry: any) => {
+            const searchableText = [
+              entry.title || '',
+              entry.description || '',
+              entry.domain || '',
+              JSON.stringify(entry.metadata || {})
+            ].join(' ').toLowerCase()
+            
+            // Match if ANY search term is found
+            return searchTerms.some((term: string) => 
+              searchableText.includes(term.toLowerCase())
+            )
+          })
+        } else {
+          entriesFound = entries
+        }
+        
+        console.log('📋 Entries filtered:', { found: entriesFound.length })
+      }
+    } catch (entryErr) {
+      console.log('📋 Entry search error:', entryErr)
+    }
+    
+    // Combine and format results
+    const totalFound = documentsFound.length + entriesFound.length
+    
+    let message = ''
+    
+    if (totalFound === 0) {
+      message = `🔍 I couldn't find any matching items for "${searchTerms?.join(', ') || domain}".\n\n`
+      message += `**Tips:**\n`
+      message += `• Try different keywords\n`
+      message += `• Check if the document/item has been uploaded\n`
+      message += `• Use the Documents page to browse all your files`
+    } else {
+      message = `📋 **Found ${totalFound} matching item${totalFound !== 1 ? 's' : ''}**\n\n`
+      
+      // Show documents first
+      if (documentsFound.length > 0) {
+        message += `📄 **Documents (${documentsFound.length})**\n`
+        documentsFound.slice(0, 5).forEach((doc: any, i: number) => {
+          message += `${i + 1}. **${doc.document_name || 'Untitled'}**\n`
+          if (doc.document_type) message += `   Type: ${doc.document_type}\n`
+          if (doc.domain) message += `   Domain: ${doc.domain}\n`
+          if (doc.file_url) message += `   📎 [View Document](${doc.file_url})\n`
+          message += '\n'
+        })
+        if (documentsFound.length > 5) {
+          message += `   _...and ${documentsFound.length - 5} more documents_\n\n`
+        }
+      }
+      
+      // Show domain entries
+      if (entriesFound.length > 0) {
+        message += `📝 **Entries (${entriesFound.length})**\n`
+        entriesFound.slice(0, 5).forEach((entry: any, i: number) => {
+          message += `${i + 1}. **${entry.title || 'Untitled'}**\n`
+          if (entry.domain) message += `   Domain: ${entry.domain}\n`
+          if (entry.metadata?.amount) message += `   💰 $${entry.metadata.amount}\n`
+          if (entry.metadata?.type) message += `   Type: ${entry.metadata.type}\n`
+          const date = new Date(entry.created_at).toLocaleDateString()
+          message += `   📅 ${date}\n`
+          message += '\n'
+        })
+        if (entriesFound.length > 5) {
+          message += `   _...and ${entriesFound.length - 5} more entries_\n`
+        }
+      }
+    }
+    
+    return {
+      data: {
+        documents: documentsFound,
+        entries: entriesFound,
+        totalCount: totalFound
+      },
+      message,
+      visualization: null
+    }
+  } catch (error: any) {
+    console.error('❌ Retrieve query error:', error)
     throw error
   }
 }
