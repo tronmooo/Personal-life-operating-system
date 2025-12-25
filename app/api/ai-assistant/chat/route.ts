@@ -3327,14 +3327,14 @@ Don't force mindfulness references, but use this context when it adds value.`
 
       if (functionName === 'search_documents') {
         // Search documents
-        const searchQuery = supabase
+        let searchQuery = supabase
           .from('documents')
           .select('id, document_name, document_type, file_url, file_path, expiration_date, domain, metadata')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
         
         if (functionArgs.category && functionArgs.category !== 'all') {
-          searchQuery.eq('domain', functionArgs.category)
+          searchQuery = searchQuery.eq('domain', functionArgs.category)
         }
         
         const { data: docs, error: docError } = await searchQuery.limit(20)
