@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Fingerprint } from 'lucide-react'
+import { PasskeySignInButton } from '@/components/auth/passkey-signin-button'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -226,8 +227,15 @@ export default function SignInPage() {
             </Alert>
           )}
 
-          {/* OAuth Buttons */}
+          {/* OAuth & Passkey Buttons */}
           <div className="space-y-2">
+            {/* Face ID / Touch ID Sign In */}
+            <PasskeySignInButton 
+              className="w-full"
+              onError={(err) => setError(err)}
+              onSuccess={() => console.log('✅ Passkey sign-in successful')}
+            />
+
             <Button
               type="button"
               variant="outline"

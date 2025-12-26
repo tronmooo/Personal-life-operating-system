@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useData } from '@/lib/providers/data-provider'
 import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
 import { DOMAIN_CONFIGS, Domain } from '@/types/domains'
-import { Plus, Edit, Trash2, ChevronLeft, BarChart3, FileText, Zap, Home as HomeIcon, Car as CarIcon, Layers, Settings, Brain, BookOpen, Heart, Loader2 } from 'lucide-react'
+import { Plus, Edit, Trash2, ChevronLeft, BarChart3, FileText, Zap, Home as HomeIcon, Car as CarIcon, Layers, Settings, Brain, BookOpen, Heart, Loader2, Clock } from 'lucide-react'
+import { UniversalEntriesView } from '@/components/domains/universal-entries-view'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { DomainVisualizations } from '@/components/domains/domain-visualizations'
@@ -376,81 +377,36 @@ export function DomainDetailPageClient({ domainId }: { domainId: Domain }) {
         )}
 
         <TabsContent value="items" className="mt-6">
-          {isLoading ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground">Loading {domain.name.toLowerCase()} items...</p>
-              </CardContent>
-            </Card>
-          ) : items.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {items.map((item) => (
-                <Card key={item.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{item.title}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {item.description || 'No description'}
-                        </CardDescription>
-                      </div>
-                      <div className="flex space-x-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deletingIds.has(item.id)}
-                        >
-                          {deletingIds.has(item.id) ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      {Object.entries(item.metadata).slice(0, 3).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-muted-foreground capitalize">{key}:</span>
-                          <span className="font-medium">{String(value)}</span>
-                        </div>
-                      ))}
-                      <div className="text-xs text-muted-foreground pt-2 border-t">
-                        Updated {formatDate(item.updatedAt)}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className={`h-16 w-16 rounded-xl ${domain.color} opacity-20 mb-4`} />
-                <h3 className="text-lg font-semibold mb-2">No items yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Get started by adding your first {domain.name.toLowerCase()} item
-                </p>
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Item
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <UniversalEntriesView
+            entries={items.map(item => ({
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              metadata: item.metadata || {},
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+            }))}
+            isLoading={isLoading}
+            domainName={domain.name}
+            domainColor={domain.color}
+            onAdd={() => setIsAddDialogOpen(true)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            deletingIds={deletingIds}
+            addButtonLabel={`Add ${domain.name}`}
+            emptyStateMessage={`Get started by adding your first ${domain.name.toLowerCase()} entry to track and organize your data.`}
+            additionalFilters={
+              // Generate filters from select-type domain fields
+              domain.fields
+                .filter(f => f.type === 'select' && f.options && f.options.length > 0)
+                .slice(0, 3) // Max 3 filters
+                .map(f => ({
+                  key: f.name,
+                  label: f.label,
+                  options: f.options || []
+                }))
+            }
+          />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">

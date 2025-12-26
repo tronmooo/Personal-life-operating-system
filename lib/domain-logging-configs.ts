@@ -37,13 +37,13 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'red',
         quickAdd: true,
         fields: [
-          { name: 'amount', label: 'Amount', type: 'number', required: true, unit: '$' },
-          { name: 'category', label: 'Category', type: 'select', required: true, options: [
+          { name: 'amount', label: 'Amount', type: 'number', unit: '$' },
+          { name: 'category', label: 'Category', type: 'select', options: [
             'Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 'Bills & Utilities',
             'Healthcare', 'Housing', 'Personal Care', 'Education', 'Other'
           ]},
           { name: 'merchant', label: 'Merchant', type: 'text', placeholder: 'Where did you spend?' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Additional details...' },
         ]
       },
@@ -54,11 +54,11 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'green',
         quickAdd: true,
         fields: [
-          { name: 'amount', label: 'Amount', type: 'number', required: true, unit: '$' },
-          { name: 'source', label: 'Source', type: 'select', required: true, options: [
+          { name: 'amount', label: 'Amount', type: 'number', unit: '$' },
+          { name: 'source', label: 'Source', type: 'select', options: [
             'Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Other'
           ]},
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'Notes', type: 'textarea' },
         ]
       },
@@ -76,8 +76,8 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'blue',
         quickAdd: true,
         fields: [
-          { name: 'weight', label: 'Weight', type: 'number', required: true, unit: 'lbs' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'weight', label: 'Weight', type: 'number', unit: 'lbs' },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'time', label: 'Time', type: 'time' },
           { name: 'notes', label: 'Notes', type: 'text', placeholder: 'Morning, after workout, etc.' },
         ]
@@ -89,10 +89,10 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'red',
         quickAdd: true,
         fields: [
-          { name: 'systolic', label: 'Systolic', type: 'number', required: true, placeholder: '120' },
-          { name: 'diastolic', label: 'Diastolic', type: 'number', required: true, placeholder: '80' },
+          { name: 'systolic', label: 'Systolic', type: 'number', placeholder: '120' },
+          { name: 'diastolic', label: 'Diastolic', type: 'number', placeholder: '80' },
           { name: 'pulse', label: 'Pulse', type: 'number', placeholder: 'BPM' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'time', label: 'Time', type: 'time' },
         ]
       },
@@ -103,7 +103,7 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'blue',
         quickAdd: true,
         fields: [
-          { name: 'amount', label: 'Amount', type: 'number', required: true, unit: 'oz' },
+          { name: 'amount', label: 'Amount', type: 'number', unit: 'oz' },
           { name: 'time', label: 'Time', type: 'time' },
         ]
       },
@@ -113,9 +113,9 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         icon: '🤒',
         color: 'orange',
         fields: [
-          { name: 'symptom', label: 'Symptom', type: 'text', required: true },
+          { name: 'symptom', label: 'Symptom', type: 'text' },
           { name: 'severity', label: 'Severity', type: 'select', options: ['Mild', 'Moderate', 'Severe'] },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'Description', type: 'textarea' },
         ]
       },
@@ -133,10 +133,10 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'green',
         quickAdd: true,
         fields: [
-          { name: 'mealType', label: 'Meal Type', type: 'select', required: true, options: [
+          { name: 'mealType', label: 'Meal Type', type: 'select', options: [
             'Breakfast', 'Lunch', 'Dinner', 'Snack'
           ]},
-          { name: 'description', label: 'What did you eat?', type: 'textarea', required: true },
+          { name: 'description', label: 'What did you eat?', type: 'textarea' },
           { name: 'calories', label: 'Calories', type: 'number', unit: 'cal' },
           { name: 'protein', label: 'Protein', type: 'number', unit: 'g' },
           { name: 'carbs', label: 'Carbs', type: 'number', unit: 'g' },
@@ -151,7 +151,7 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'blue',
         quickAdd: true,
         fields: [
-          { name: 'amount', label: 'Amount', type: 'number', required: true, unit: 'oz' },
+          { name: 'amount', label: 'Amount', type: 'number', unit: 'oz' },
           { name: 'time', label: 'Time', type: 'time' },
         ]
       },
@@ -169,13 +169,13 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'purple',
         quickAdd: true,
         fields: [
-          { name: 'type', label: 'Workout Type', type: 'select', required: true, options: [
+          { name: 'type', label: 'Workout Type', type: 'select', options: [
             'Cardio', 'Strength', 'Yoga', 'Sports', 'Walking', 'Running', 'Cycling', 'Swimming', 'Other'
           ]},
-          { name: 'duration', label: 'Duration', type: 'number', required: true, unit: 'min' },
+          { name: 'duration', label: 'Duration', type: 'number', unit: 'min' },
           { name: 'intensity', label: 'Intensity', type: 'select', options: ['Light', 'Moderate', 'Intense'] },
           { name: 'calories', label: 'Calories Burned', type: 'number', unit: 'cal' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Exercises, sets, reps...' },
         ]
       },
@@ -186,9 +186,9 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'blue',
         quickAdd: true,
         fields: [
-          { name: 'steps', label: 'Steps', type: 'number', required: true },
+          { name: 'steps', label: 'Steps', type: 'number' },
           { name: 'distance', label: 'Distance', type: 'number', unit: 'miles' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
         ]
       },
     ]
@@ -205,11 +205,11 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'orange',
         quickAdd: true,
         fields: [
-          { name: 'vehicle', label: 'Vehicle', type: 'text', required: true },
-          { name: 'gallons', label: 'Gallons', type: 'number', required: true, unit: 'gal' },
-          { name: 'cost', label: 'Total Cost', type: 'number', required: true, unit: '$' },
-          { name: 'mileage', label: 'Current Mileage', type: 'number', required: true },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'vehicle', label: 'Vehicle', type: 'text' },
+          { name: 'gallons', label: 'Gallons', type: 'number', unit: 'gal' },
+          { name: 'cost', label: 'Total Cost', type: 'number', unit: '$' },
+          { name: 'mileage', label: 'Current Mileage', type: 'number' },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'station', label: 'Gas Station', type: 'text' },
         ]
       },
@@ -219,13 +219,13 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         icon: '🔧',
         color: 'blue',
         fields: [
-          { name: 'vehicle', label: 'Vehicle', type: 'text', required: true },
-          { name: 'type', label: 'Service Type', type: 'select', required: true, options: [
+          { name: 'vehicle', label: 'Vehicle', type: 'text' },
+          { name: 'type', label: 'Service Type', type: 'select', options: [
             'Oil Change', 'Tire Rotation', 'Brake Service', 'Inspection', 'Repair', 'Other'
           ]},
           { name: 'cost', label: 'Cost', type: 'number', unit: '$' },
           { name: 'mileage', label: 'Mileage', type: 'number' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'provider', label: 'Service Provider', type: 'text' },
           { name: 'notes', label: 'Notes', type: 'textarea' },
         ]
@@ -245,7 +245,7 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'orange',
         quickAdd: true,
         fields: [
-          { name: 'pet', label: 'Pet Name', type: 'text', required: true },
+          { name: 'pet', label: 'Pet Name', type: 'text' },
           { name: 'food', label: 'Food Type', type: 'text' },
           { name: 'amount', label: 'Amount', type: 'text', placeholder: 'e.g., 1 cup' },
           { name: 'time', label: 'Time', type: 'time' },
@@ -257,9 +257,9 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         icon: '⚖️',
         color: 'blue',
         fields: [
-          { name: 'pet', label: 'Pet Name', type: 'text', required: true },
-          { name: 'weight', label: 'Weight', type: 'number', required: true, unit: 'lbs' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'pet', label: 'Pet Name', type: 'text' },
+          { name: 'weight', label: 'Weight', type: 'number', unit: 'lbs' },
+          { name: 'date', label: 'Date', type: 'date' },
         ]
       },
       {
@@ -268,9 +268,9 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         icon: '🏥',
         color: 'red',
         fields: [
-          { name: 'pet', label: 'Pet Name', type: 'text', required: true },
-          { name: 'reason', label: 'Reason', type: 'text', required: true },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'pet', label: 'Pet Name', type: 'text' },
+          { name: 'reason', label: 'Reason', type: 'text' },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'cost', label: 'Cost', type: 'number', unit: '$' },
           { name: 'notes', label: 'Notes', type: 'textarea' },
         ]
@@ -290,11 +290,11 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'pink',
         quickAdd: true,
         fields: [
-          { name: 'person', label: 'Person', type: 'text', required: true },
+          { name: 'person', label: 'Person', type: 'text' },
           { name: 'type', label: 'Type', type: 'select', options: [
             'In-Person', 'Phone Call', 'Video Call', 'Text/Message', 'Email'
           ]},
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'What did you talk about?' },
         ]
       },
@@ -312,11 +312,11 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'orange',
         quickAdd: true,
         fields: [
-          { name: 'task', label: 'Task', type: 'text', required: true },
+          { name: 'task', label: 'Task', type: 'text' },
           { name: 'area', label: 'Area', type: 'select', options: [
             'Kitchen', 'Bathroom', 'Bedroom', 'Living Room', 'Exterior', 'Garage', 'Yard', 'Other'
           ]},
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'cost', label: 'Cost', type: 'number', unit: '$' },
           { name: 'notes', label: 'Notes', type: 'textarea' },
         ]
@@ -335,9 +335,9 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'green',
         quickAdd: true,
         fields: [
-          { name: 'goal', label: 'Goal', type: 'text', required: true },
-          { name: 'progress', label: 'Progress %', type: 'number', required: true, unit: '%' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'goal', label: 'Goal', type: 'text' },
+          { name: 'progress', label: 'Progress %', type: 'number', unit: '%' },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'What did you achieve?', type: 'textarea' },
         ]
       },
@@ -355,13 +355,13 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'pink',
         quickAdd: true,
         fields: [
-          { name: 'item', label: 'Item', type: 'text', required: true },
-          { name: 'amount', label: 'Amount', type: 'number', required: true, unit: '$' },
+          { name: 'item', label: 'Item', type: 'text' },
+          { name: 'amount', label: 'Amount', type: 'number', unit: '$' },
           { name: 'store', label: 'Store', type: 'text' },
           { name: 'category', label: 'Category', type: 'select', options: [
             'Clothing', 'Electronics', 'Home Goods', 'Books', 'Hobbies', 'Gifts', 'Other'
           ]},
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
         ]
       },
     ]
@@ -378,10 +378,10 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'purple',
         quickAdd: true,
         fields: [
-          { name: 'title', label: 'Title', type: 'text', required: true },
+          { name: 'title', label: 'Title', type: 'text' },
           { name: 'type', label: 'Type', type: 'select', options: ['Movie', 'TV Show', 'Documentary', 'Other'] },
           { name: 'rating', label: 'Your Rating', type: 'select', options: ['⭐⭐⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐', '⭐⭐', '⭐'] },
-          { name: 'date', label: 'Date Watched', type: 'date', required: true },
+          { name: 'date', label: 'Date Watched', type: 'date' },
           { name: 'notes', label: 'Notes', type: 'textarea' },
         ]
       },
@@ -400,13 +400,13 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         quickAdd: true,
         fields: [
           { name: 'title', label: 'Title', type: 'text', placeholder: 'Today was...' },
-          { name: 'entry', label: 'Journal Entry', type: 'textarea', required: true, placeholder: 'What\'s on your mind?' },
-          { name: 'mood', label: 'Mood', type: 'select', required: true, options: [
+          { name: 'entry', label: 'Journal Entry', type: 'textarea', placeholder: 'What\'s on your mind?' },
+          { name: 'mood', label: 'Mood', type: 'select', options: [
             '😊 Amazing', '😄 Happy', '😌 Content', '😐 Neutral', '😔 Sad', '😢 Very Sad', '😠 Angry', '😰 Anxious', '😴 Tired', '🤒 Unwell'
           ]},
           { name: 'energy', label: 'Energy Level', type: 'select', options: ['High', 'Medium', 'Low'] },
           { name: 'gratitude', label: 'Grateful For', type: 'textarea', placeholder: 'What are you grateful for today?' },
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
         ]
       },
       {
@@ -416,7 +416,7 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'blue',
         quickAdd: true,
         fields: [
-          { name: 'duration', label: 'Duration', type: 'number', required: true, unit: 'min' },
+          { name: 'duration', label: 'Duration', type: 'number', unit: 'min' },
           { name: 'type', label: 'Type', type: 'select', options: [
             'Mindfulness', 'Breathing', 'Guided', 'Body Scan', 'Loving-Kindness', 'Transcendental', 'Other'
           ]},
@@ -426,7 +426,7 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
           { name: 'mood_after', label: 'Mood After', type: 'select', options: [
             '😊 Amazing', '😄 Happy', '😌 Content', '😐 Neutral', '😔 Sad', '😰 Anxious', '😴 Tired'
           ]},
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'How was the session?' },
         ]
       },
@@ -436,7 +436,7 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         icon: '💭',
         color: 'pink',
         fields: [
-          { name: 'affirmation', label: 'Affirmation', type: 'textarea', required: true, placeholder: 'I am...' },
+          { name: 'affirmation', label: 'Affirmation', type: 'textarea', placeholder: 'I am...' },
           { name: 'category', label: 'Category', type: 'select', options: [
             'Self-Love', 'Confidence', 'Success', 'Health', 'Peace', 'Gratitude', 'Abundance', 'Other'
           ]},
@@ -457,11 +457,11 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         color: 'orange',
         quickAdd: true,
         fields: [
-          { name: 'appliance', label: 'Appliance', type: 'text', required: true, placeholder: 'e.g., Refrigerator, Washer' },
-          { name: 'type', label: 'Maintenance Type', type: 'select', required: true, options: [
+          { name: 'appliance', label: 'Appliance', type: 'text', placeholder: 'e.g., Refrigerator, Washer' },
+          { name: 'type', label: 'Maintenance Type', type: 'select', options: [
             'Cleaning', 'Filter Change', 'Repair', 'Inspection', 'Calibration', 'Other'
           ]},
-          { name: 'date', label: 'Date', type: 'date', required: true },
+          { name: 'date', label: 'Date', type: 'date' },
           { name: 'cost', label: 'Cost', type: 'number', unit: '$' },
           { name: 'technician', label: 'Technician/Service', type: 'text' },
           { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'What was done?' },
@@ -473,10 +473,10 @@ export const DOMAIN_LOGGING_CONFIGS: Record<string, DomainLoggingConfig> = {
         icon: '⚠️',
         color: 'red',
         fields: [
-          { name: 'appliance', label: 'Appliance', type: 'text', required: true },
-          { name: 'issue', label: 'Issue Description', type: 'textarea', required: true, placeholder: 'What\'s wrong?' },
+          { name: 'appliance', label: 'Appliance', type: 'text' },
+          { name: 'issue', label: 'Issue Description', type: 'textarea', placeholder: 'What\'s wrong?' },
           { name: 'severity', label: 'Severity', type: 'select', options: ['Critical', 'High', 'Medium', 'Low'] },
-          { name: 'date', label: 'Date Noticed', type: 'date', required: true },
+          { name: 'date', label: 'Date Noticed', type: 'date' },
           { name: 'status', label: 'Status', type: 'select', options: ['Reported', 'In Progress', 'Resolved', 'Needs Replacement'] },
         ]
       },
@@ -507,9 +507,9 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
     color: 'red',
     quickAdd: true,
     fields: [
-      { name: 'bpm', label: 'Heart Rate', type: 'number', required: true, unit: 'BPM' },
+      { name: 'bpm', label: 'Heart Rate', type: 'number', unit: 'BPM' },
       { name: 'type', label: 'Type', type: 'select', options: ['Resting', 'Active', 'Post-Exercise'] },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'time', label: 'Time', type: 'time' },
     ]
   },
@@ -519,9 +519,9 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
     icon: '🩸',
     color: 'red',
     fields: [
-      { name: 'level', label: 'Blood Sugar', type: 'number', required: true, unit: 'mg/dL' },
+      { name: 'level', label: 'Blood Sugar', type: 'number', unit: 'mg/dL' },
       { name: 'time_of_day', label: 'When', type: 'select', options: ['Fasting', 'Before Meal', 'After Meal', 'Bedtime'] },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'time', label: 'Time', type: 'time' },
     ]
   },
@@ -532,11 +532,11 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
     color: 'purple',
     quickAdd: true,
     fields: [
-      { name: 'hours', label: 'Hours Slept', type: 'number', required: true, unit: 'hrs' },
-      { name: 'quality', label: 'Sleep Quality', type: 'select', required: true, options: [
+      { name: 'hours', label: 'Hours Slept', type: 'number', unit: 'hrs' },
+      { name: 'quality', label: 'Sleep Quality', type: 'select', options: [
         'Excellent', 'Good', 'Fair', 'Poor', 'Very Poor'
       ]},
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Dreams, wake-ups, etc.' },
     ]
   },
@@ -547,13 +547,13 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
     color: 'yellow',
     quickAdd: true,
     fields: [
-      { name: 'mood', label: 'Mood', type: 'select', required: true, options: [
+      { name: 'mood', label: 'Mood', type: 'select', options: [
         '10 - Euphoric', '9 - Very Happy', '8 - Happy', '7 - Good', '6 - Okay',
         '5 - Neutral', '4 - Low', '3 - Sad', '2 - Very Sad', '1 - Depressed'
       ]},
       { name: 'energy', label: 'Energy', type: 'select', options: ['High', 'Medium', 'Low'] },
       { name: 'stress', label: 'Stress Level', type: 'select', options: ['None', 'Low', 'Moderate', 'High', 'Very High'] },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'time', label: 'Time', type: 'time' },
     ]
   },
@@ -568,7 +568,7 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
       { name: 'arms', label: 'Arms', type: 'number', unit: 'inches' },
       { name: 'hips', label: 'Hips', type: 'number', unit: 'inches' },
       { name: 'thighs', label: 'Thighs', type: 'number', unit: 'inches' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
     ]
   },
   {
@@ -578,10 +578,10 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
     color: 'green',
     quickAdd: true,
     fields: [
-      { name: 'medication', label: 'Medication Name', type: 'text', required: true },
+      { name: 'medication', label: 'Medication Name', type: 'text' },
       { name: 'dosage', label: 'Dosage', type: 'text', placeholder: 'e.g., 10mg' },
-      { name: 'taken', label: 'Taken?', type: 'select', required: true, options: ['Yes', 'No', 'Forgot'] },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'taken', label: 'Taken?', type: 'select', options: ['Yes', 'No', 'Forgot'] },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'time', label: 'Time', type: 'time' },
     ]
   },
@@ -591,12 +591,12 @@ DOMAIN_LOGGING_CONFIGS.health.logTypes.push(
     icon: '🤕',
     color: 'red',
     fields: [
-      { name: 'location', label: 'Location', type: 'text', required: true, placeholder: 'e.g., Lower back' },
-      { name: 'severity', label: 'Severity (1-10)', type: 'number', required: true },
+      { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g., Lower back' },
+      { name: 'severity', label: 'Severity (1-10)', type: 'number' },
       { name: 'type', label: 'Pain Type', type: 'select', options: [
         'Sharp', 'Dull', 'Throbbing', 'Burning', 'Stabbing', 'Aching'
       ]},
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'notes', label: 'Notes', type: 'textarea' },
     ]
   }
@@ -611,9 +611,9 @@ DOMAIN_LOGGING_CONFIGS.nutrition.logTypes.push(
     color: 'green',
     quickAdd: true,
     fields: [
-      { name: 'supplement', label: 'Supplement Name', type: 'text', required: true },
+      { name: 'supplement', label: 'Supplement Name', type: 'text' },
       { name: 'dosage', label: 'Dosage', type: 'text', placeholder: 'e.g., 1000mg' },
-      { name: 'time', label: 'Time', type: 'time', required: true },
+      { name: 'time', label: 'Time', type: 'time' },
     ]
   },
   {
@@ -622,10 +622,10 @@ DOMAIN_LOGGING_CONFIGS.nutrition.logTypes.push(
     icon: '🍫',
     color: 'orange',
     fields: [
-      { name: 'food', label: 'Food Craved', type: 'text', required: true },
+      { name: 'food', label: 'Food Craved', type: 'text' },
       { name: 'intensity', label: 'Intensity', type: 'select', options: ['Mild', 'Moderate', 'Strong', 'Irresistible'] },
       { name: 'satisfied', label: 'Did you eat it?', type: 'select', options: ['Yes', 'No', 'Partially'] },
-      { name: 'time', label: 'Time', type: 'time', required: true },
+      { name: 'time', label: 'Time', type: 'time' },
       { name: 'notes', label: 'Trigger/Context', type: 'textarea' },
     ]
   },
@@ -636,8 +636,8 @@ DOMAIN_LOGGING_CONFIGS.nutrition.logTypes.push(
     color: 'blue',
     quickAdd: true,
     fields: [
-      { name: 'weight', label: 'Weight', type: 'number', required: true, unit: 'lbs' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'weight', label: 'Weight', type: 'number', unit: 'lbs' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'time', label: 'Time', type: 'time' },
     ]
   }
@@ -652,11 +652,11 @@ DOMAIN_LOGGING_CONFIGS.hobbies.logTypes.push(
     color: 'red',
     quickAdd: true,
     fields: [
-      { name: 'exercise', label: 'Exercise', type: 'text', required: true, placeholder: 'e.g., Bench Press' },
-      { name: 'weight', label: 'Weight', type: 'number', required: true, unit: 'lbs' },
-      { name: 'reps', label: 'Reps', type: 'number', required: true },
+      { name: 'exercise', label: 'Exercise', type: 'text', placeholder: 'e.g., Bench Press' },
+      { name: 'weight', label: 'Weight', type: 'number', unit: 'lbs' },
+      { name: 'reps', label: 'Reps', type: 'number' },
       { name: 'sets', label: 'Sets', type: 'number' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'notes', label: 'Notes', type: 'text', placeholder: 'Form, difficulty, etc.' },
     ]
   },
@@ -666,9 +666,9 @@ DOMAIN_LOGGING_CONFIGS.hobbies.logTypes.push(
     icon: '🧘‍♀️',
     color: 'purple',
     fields: [
-      { name: 'test', label: 'Flexibility Test', type: 'text', required: true, placeholder: 'e.g., Sit and Reach' },
-      { name: 'score', label: 'Score/Distance', type: 'number', required: true, unit: 'inches' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'test', label: 'Flexibility Test', type: 'text', placeholder: 'e.g., Sit and Reach' },
+      { name: 'score', label: 'Score/Distance', type: 'number', unit: 'inches' },
+      { name: 'date', label: 'Date', type: 'date' },
     ]
   },
   {
@@ -678,14 +678,14 @@ DOMAIN_LOGGING_CONFIGS.hobbies.logTypes.push(
     color: 'orange',
     quickAdd: true,
     fields: [
-      { name: 'activity', label: 'Activity', type: 'select', required: true, options: [
+      { name: 'activity', label: 'Activity', type: 'select', options: [
         'Running', 'Cycling', 'Swimming', 'Rowing', 'Elliptical', 'Stairs', 'Jump Rope', 'Other'
       ]},
       { name: 'distance', label: 'Distance', type: 'number', unit: 'miles' },
-      { name: 'duration', label: 'Duration', type: 'number', required: true, unit: 'min' },
+      { name: 'duration', label: 'Duration', type: 'number', unit: 'min' },
       { name: 'avg_heart_rate', label: 'Avg Heart Rate', type: 'number', unit: 'BPM' },
       { name: 'calories', label: 'Calories', type: 'number', unit: 'cal' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
     ]
   }
 )
@@ -699,10 +699,10 @@ DOMAIN_LOGGING_CONFIGS.financial.logTypes.push(
     color: 'green',
     quickAdd: true,
     fields: [
-      { name: 'account', label: 'Account', type: 'text', required: true },
-      { name: 'value', label: 'Current Value', type: 'number', required: true, unit: '$' },
+      { name: 'account', label: 'Account', type: 'text' },
+      { name: 'value', label: 'Current Value', type: 'number', unit: '$' },
       { name: 'contribution', label: 'Contribution', type: 'number', unit: '$' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
     ]
   },
   {
@@ -711,10 +711,10 @@ DOMAIN_LOGGING_CONFIGS.financial.logTypes.push(
     icon: '💰',
     color: 'purple',
     fields: [
-      { name: 'assets', label: 'Total Assets', type: 'number', required: true, unit: '$' },
-      { name: 'liabilities', label: 'Total Liabilities', type: 'number', required: true, unit: '$' },
-      { name: 'net_worth', label: 'Net Worth', type: 'number', required: true, unit: '$' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'assets', label: 'Total Assets', type: 'number', unit: '$' },
+      { name: 'liabilities', label: 'Total Liabilities', type: 'number', unit: '$' },
+      { name: 'net_worth', label: 'Net Worth', type: 'number', unit: '$' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Major changes, etc.' },
     ]
   },
@@ -724,10 +724,10 @@ DOMAIN_LOGGING_CONFIGS.financial.logTypes.push(
     icon: '🐷',
     color: 'pink',
     fields: [
-      { name: 'saved', label: 'Amount Saved', type: 'number', required: true, unit: '$' },
-      { name: 'income', label: 'Total Income', type: 'number', required: true, unit: '$' },
+      { name: 'saved', label: 'Amount Saved', type: 'number', unit: '$' },
+      { name: 'income', label: 'Total Income', type: 'number', unit: '$' },
       { name: 'rate', label: 'Savings Rate %', type: 'number', unit: '%' },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date' },
     ]
   }
 )

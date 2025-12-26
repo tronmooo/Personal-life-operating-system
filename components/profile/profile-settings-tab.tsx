@@ -14,8 +14,9 @@ import {
   Palette, Download, Trash2, Lock, Eye, EyeOff, Save, 
   CheckCircle2, AlertCircle, Moon, Sun, Monitor, FileDown,
   Database, Key, Calendar, Clock, Link as LinkIcon, Upload,
-  Loader2, Github, Linkedin
+  Loader2, Github, Linkedin, Fingerprint
 } from 'lucide-react'
+import { PasskeySettings } from '@/components/auth/passkey-settings'
 import { useTheme } from 'next-themes'
 import { 
   useUserProfile, 
@@ -663,6 +664,11 @@ export function ProfileSettingsTab() {
             />
           </div>
           
+          {/* Face ID / Touch ID */}
+          <div className="pt-4 border-t">
+            <PasskeySettings />
+          </div>
+
           {/* Password Change */}
           <div className="pt-4 border-t">
             <Button variant="outline" onClick={() => setChangePasswordOpen(true)} className="w-full sm:w-auto">

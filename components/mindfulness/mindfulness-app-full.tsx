@@ -7,12 +7,14 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase/client'
-import { BookOpen, MessageCircle, Dumbbell, Smile, Sparkles, Send, Save, History, ChevronDown, ChevronUp, RotateCcw, Lightbulb, Trash2, Loader2, Brain } from 'lucide-react'
+import { BookOpen, MessageCircle, Dumbbell, Smile, Sparkles, Send, Save, History, ChevronDown, ChevronUp, RotateCcw, Lightbulb, Trash2, Loader2, Brain, Search, Filter, List, LayoutGrid, Calendar, X } from 'lucide-react'
 import { BreathingExercises } from '@/components/mindfulness/breathing-exercises'
 import { GuidedMeditations } from '@/components/mindfulness/guided-meditations'
 import { DomainBackButton } from '@/components/ui/domain-back-button'
-import { format } from 'date-fns'
+import { format, isToday, isYesterday, isThisWeek, isThisMonth, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 
 type Tab = 'journal' | 'chat' | 'exercise' | 'mood' | 'history'
@@ -56,6 +58,12 @@ export function MindfulnessAppFull() {
   const [loadingPrompts, setLoadingPrompts] = useState(false)
   const [quickReplyRotation, setQuickReplyRotation] = useState(0)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  
+  // History filtering state
+  const [historyTimeFilter, setHistoryTimeFilter] = useState<'today' | 'yesterday' | 'week' | 'month' | 'all'>('all')
+  const [historySearchQuery, setHistorySearchQuery] = useState('')
+  const [historyViewMode, setHistoryViewMode] = useState<'list' | 'cards'>('list')
+  const [historySortDirection, setHistorySortDirection] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     // Initial load with force reload to get fresh data
@@ -1147,104 +1155,301 @@ export function MindfulnessAppFull() {
         {/* History Tab */}
         {activeTab === 'history' && (
           <div className="space-y-6">
+            {/* Filtering Controls */}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">View:</span>
+                {[
+                  { value: 'today' as const, label: 'Today' },
+                  { value: 'yesterday' as const, label: 'Yesterday' },
+                  { value: 'week' as const, label: 'This Week' },
+                  { value: 'month' as const, label: 'This Month' },
+                  { value: 'all' as const, label: 'All Time' },
+                ].map(filter => (
+                  <Button
+                    key={filter.value}
+                    variant={historyTimeFilter === filter.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setHistoryTimeFilter(filter.value)}
+                    className={cn(
+                      "transition-all rounded-xl",
+                      historyTimeFilter === filter.value && "bg-purple-600 hover:bg-purple-700"
+                    )}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search journal entries..."
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    className="pl-10 rounded-xl"
+                  />
+                  {historySearchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setHistorySearchQuery('')}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant={historyViewMode === 'list' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setHistoryViewMode('list')}
+                    className="p-2 rounded-xl"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={historyViewMode === 'cards' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setHistoryViewMode('cards')}
+                    className="p-2 rounded-xl"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHistorySortDirection(historySortDirection === 'desc' ? 'asc' : 'desc')}
+                  className="rounded-xl"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {historySortDirection === 'desc' ? 'Newest First' : 'Oldest First'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            {journalHistory.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl">
+                  <p className="text-sm text-muted-foreground">Total Entries</p>
+                  <p className="text-2xl font-bold text-purple-600">{journalHistory.length}</p>
+                </Card>
+                <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl">
+                  <p className="text-sm text-muted-foreground">This Week</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {journalHistory.filter(e => isThisWeek(new Date(e.timestamp))).length}
+                  </p>
+                </Card>
+                <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl">
+                  <p className="text-sm text-muted-foreground">This Month</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {journalHistory.filter(e => isThisMonth(new Date(e.timestamp))).length}
+                  </p>
+                </Card>
+                <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl">
+                  <p className="text-sm text-muted-foreground">Avg Words</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {Math.round(journalHistory.reduce((sum, e) => sum + (e.journalEntry?.split(/\s+/).length || 0), 0) / Math.max(journalHistory.length, 1))}
+                  </p>
+                </Card>
+              </div>
+            )}
+
             <Card className="bg-white dark:bg-gray-800 rounded-3xl p-4 md:p-8 shadow-lg">
               <h2 className="text-2xl md:text-3xl font-bold mb-6">Journal History</h2>
-              {journalHistory.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No journal entries yet. Start writing in the Journal tab!
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {journalHistory.map((entry) => {
-                    const isExpanded = expandedEntryId === entry.id
-                    const date = new Date(entry.timestamp)
-                    const formattedDate = date.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })
-                    const formattedTime = date.toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })
+              {(() => {
+                // Filter journal entries
+                const filteredEntries = journalHistory
+                  .filter(entry => {
+                    const entryDate = new Date(entry.timestamp)
+                    
+                    // Time filter
+                    switch (historyTimeFilter) {
+                      case 'today':
+                        if (!isToday(entryDate)) return false
+                        break
+                      case 'yesterday':
+                        if (!isYesterday(entryDate)) return false
+                        break
+                      case 'week':
+                        if (!isThisWeek(entryDate)) return false
+                        break
+                      case 'month':
+                        if (!isThisMonth(entryDate)) return false
+                        break
+                    }
+                    
+                    // Search filter
+                    if (historySearchQuery) {
+                      const query = historySearchQuery.toLowerCase()
+                      const content = (entry.journalEntry || '').toLowerCase()
+                      const insight = (entry.aiInsight || '').toLowerCase()
+                      if (!content.includes(query) && !insight.includes(query)) return false
+                    }
+                    
+                    return true
+                  })
+                  .sort((a, b) => {
+                    const dateA = new Date(a.timestamp).getTime()
+                    const dateB = new Date(b.timestamp).getTime()
+                    return historySortDirection === 'desc' ? dateB - dateA : dateA - dateB
+                  })
 
-                    return (
-                      <Card key={entry.id} className="bg-gray-50 dark:bg-gray-900">
-                        <div 
-                          className="p-4 md:p-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                          onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-semibold text-lg">{formattedDate}</h3>
-                                {entry.moodScore && (
-                                  <span className="text-2xl">{getMoodEmoji(entry.moodScore)}</span>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{formattedTime}</p>
+                if (filteredEntries.length === 0) {
+                  return (
+                    <p className="text-center text-muted-foreground py-8">
+                      {historySearchQuery || historyTimeFilter !== 'all'
+                        ? 'No entries match your filters. Try adjusting your search.'
+                        : 'No journal entries yet. Start writing in the Journal tab!'}
+                    </p>
+                  )
+                }
+
+                return historyViewMode === 'cards' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredEntries.map((entry) => {
+                      const date = new Date(entry.timestamp)
+                      const formattedDate = date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                      })
+
+                      return (
+                        <Card key={entry.id} className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-purple-950/30 overflow-hidden">
+                          <div className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <Badge variant="secondary" className="text-xs">
+                                {formattedDate}
+                              </Badge>
+                              {entry.moodScore && (
+                                <span className="text-2xl">{getMoodEmoji(entry.moodScore)}</span>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-4 mb-3">
+                              {entry.journalEntry?.substring(0, 200)}
+                              {(entry.journalEntry?.length || 0) > 200 && '...'}
+                            </p>
+                            {entry.aiInsight && (
+                              <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
+                                <Sparkles className="w-3 h-3" />
+                                <span>Has AI insight</span>
+                              </div>
+                            )}
+                            <div className="flex justify-end mt-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  deleteJournalEntry(entry.id)
-                                }}
+                                onClick={() => deleteJournalEntry(entry.id)}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                title="Delete entry"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
-                              {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                              ) : (
-                                <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                              )}
                             </div>
                           </div>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredEntries.map((entry) => {
+                      const isExpanded = expandedEntryId === entry.id
+                      const date = new Date(entry.timestamp)
+                      const formattedDate = date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })
+                      const formattedTime = date.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })
 
-                          {!isExpanded && entry.journalEntry && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-3">
-                              {entry.journalEntry.substring(0, 150)}
-                              {entry.journalEntry.length > 150 && '...'}
-                            </p>
-                          )}
-                        </div>
-
-                        {isExpanded && (
-                          <div className="px-4 md:px-6 pb-4 md:pb-6">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4">
-                              <h4 className="font-semibold mb-2 text-purple-600 dark:text-purple-400">Journal Entry</h4>
-                              <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                {entry.journalEntry}
-                              </p>
+                      return (
+                        <Card key={entry.id} className="bg-gray-50 dark:bg-gray-900">
+                          <div 
+                            className="p-4 md:p-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="font-semibold text-lg">{formattedDate}</h3>
+                                  {entry.moodScore && (
+                                    <span className="text-2xl">{getMoodEmoji(entry.moodScore)}</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">{formattedTime}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    deleteJournalEntry(entry.id)
+                                  }}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                  title="Delete entry"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                                {isExpanded ? (
+                                  <ChevronUp className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                                )}
+                              </div>
                             </div>
 
-                            {entry.aiInsight && (
-                              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-2xl p-4 border border-purple-200 dark:border-purple-900">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
-                                    <Sparkles className="w-4 h-4 text-white" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">AI Insight</h4>
-                                    <p className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">
-                                      {entry.aiInsight}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
+                            {!isExpanded && entry.journalEntry && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-3">
+                                {entry.journalEntry.substring(0, 150)}
+                                {entry.journalEntry.length > 150 && '...'}
+                              </p>
                             )}
                           </div>
-                        )}
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
+
+                          {isExpanded && (
+                            <div className="px-4 md:px-6 pb-4 md:pb-6">
+                              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4">
+                                <h4 className="font-semibold mb-2 text-purple-600 dark:text-purple-400">Journal Entry</h4>
+                                <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                  {entry.journalEntry}
+                                </p>
+                              </div>
+
+                              {entry.aiInsight && (
+                                <div className="bg-purple-50 dark:bg-purple-950/30 rounded-2xl p-4 border border-purple-200 dark:border-purple-900">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                      <Sparkles className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">AI Insight</h4>
+                                      <p className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">
+                                        {entry.aiInsight}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </Card>
           </div>
         )}

@@ -11,17 +11,36 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useDomainCRUD } from '@/lib/hooks/use-domain-crud'
-import { Activity, Heart, Droplet, Weight, TrendingUp, TrendingDown, Minus, Trash2 } from 'lucide-react'
+import { Activity, Heart, Droplet, Weight, TrendingUp, TrendingDown, Minus, Trash2, Search, List, LayoutGrid, X, Calendar } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { format, subDays, isAfter } from 'date-fns'
+import { format, subDays, isAfter, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 type MetricType = 'blood_pressure' | 'weight' | 'heart_rate' | 'glucose'
+type EntryTimeFilter = 'today' | 'yesterday' | 'week' | 'month' | 'all'
+type ViewMode = 'list' | 'cards'
+
+const ENTRY_TIME_FILTERS: { value: EntryTimeFilter; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'all', label: 'All Time' },
+]
 
 export function VitalsLabsTab() {
   const { items: healthEntries, remove } = useDomainCRUD('health')
   const [timeRange, setTimeRange] = useState<TimeRange>('7d')
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('blood_pressure')
+  
+  // New filtering state for Recent Entries
+  const [entryTimeFilter, setEntryTimeFilter] = useState<EntryTimeFilter>('all')
+  const [entrySearchQuery, setEntrySearchQuery] = useState('')
+  const [entryTypeFilter, setEntryTypeFilter] = useState<MetricType | 'all'>('all')
+  const [entryViewMode, setEntryViewMode] = useState<ViewMode>('list')
+  const [entrySortDirection, setEntrySortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Filter and process data FOR CHART (filtered by selected metric)
   const filteredData = useMemo(() => {
@@ -71,12 +90,12 @@ export function VitalsLabsTab() {
     }
   })
 
-  // Recent entries list - show ALL vital types, not just selected metric
+  // Recent entries list - show ALL vital types with filtering
   const recentEntries = useMemo(() => {
     return healthEntries
       .filter(e => {
         // Include entries with specific logType, recordType, OR old 'vitals' type
-        return e.metadata?.logType === 'blood_pressure' ||
+        const isVital = e.metadata?.logType === 'blood_pressure' ||
                e.metadata?.logType === 'weight' ||
                e.metadata?.logType === 'heart_rate' ||
                e.metadata?.logType === 'glucose' ||
@@ -85,10 +104,54 @@ export function VitalsLabsTab() {
                e.metadata?.recordType === 'heart_rate' ||
                e.metadata?.recordType === 'glucose' ||
                e.metadata?.type === 'vitals'
+        
+        if (!isVital) return false
+        
+        // Time filter
+        const entryDate = new Date(e.createdAt)
+        switch (entryTimeFilter) {
+          case 'today':
+            if (!isToday(entryDate)) return false
+            break
+          case 'yesterday':
+            if (!isYesterday(entryDate)) return false
+            break
+          case 'week':
+            if (!isThisWeek(entryDate)) return false
+            break
+          case 'month':
+            if (!isThisMonth(entryDate)) return false
+            break
+        }
+        
+        // Type filter
+        if (entryTypeFilter !== 'all') {
+          const entryType = e.metadata?.logType || e.metadata?.recordType
+          if (entryType !== entryTypeFilter) return false
+        }
+        
+        // Search filter
+        if (entrySearchQuery) {
+          const query = entrySearchQuery.toLowerCase()
+          const title = (e.title || '').toLowerCase()
+          const bp = e.metadata?.systolic ? `${e.metadata.systolic}/${e.metadata.diastolic}` : ''
+          const weight = e.metadata?.weight ? `${e.metadata.weight}` : ''
+          const hr = e.metadata?.heartRate || e.metadata?.bpm ? `${e.metadata.heartRate || e.metadata.bpm}` : ''
+          const glucose = e.metadata?.glucose ? `${e.metadata.glucose}` : ''
+          
+          if (!title.includes(query) && !bp.includes(query) && !weight.includes(query) && !hr.includes(query) && !glucose.includes(query)) {
+            return false
+          }
+        }
+        
+        return true
       })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 10)
-  }, [healthEntries])
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime()
+        const dateB = new Date(b.createdAt).getTime()
+        return entrySortDirection === 'desc' ? dateB - dateA : dateA - dateB
+      })
+  }, [healthEntries, entryTimeFilter, entryTypeFilter, entrySearchQuery, entrySortDirection])
 
   // Check if there's any vital data at all
   const hasAnyVitals = latestBP || latestWeight || latestHR || latestGlucose
@@ -338,11 +401,120 @@ export function VitalsLabsTab() {
             </CardTitle>
             <CardDescription>Quick access to delete recent entries</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            {/* Time Filter Bar */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">View:</span>
+              {ENTRY_TIME_FILTERS.map(filter => (
+                <Button
+                  key={filter.value}
+                  variant={entryTimeFilter === filter.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setEntryTimeFilter(filter.value)}
+                  className={cn(
+                    "transition-all",
+                    entryTimeFilter === filter.value && "bg-red-600 hover:bg-red-700"
+                  )}
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search vitals..."
+                  value={entrySearchQuery}
+                  onChange={(e) => setEntrySearchQuery(e.target.value)}
+                  className="pl-10 bg-white dark:bg-gray-800"
+                />
+                {entrySearchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setEntrySearchQuery('')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant={entryViewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setEntryViewMode('list')}
+                  className="p-2"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={entryViewMode === 'cards' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setEntryViewMode('cards')}
+                  className="p-2"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <Select value={entryTypeFilter} onValueChange={(v) => setEntryTypeFilter(v as MetricType | 'all')}>
+                <SelectTrigger className="w-[150px] bg-white dark:bg-gray-800">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="blood_pressure">Blood Pressure</SelectItem>
+                  <SelectItem value="weight">Weight</SelectItem>
+                  <SelectItem value="heart_rate">Heart Rate</SelectItem>
+                  <SelectItem value="glucose">Glucose</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEntrySortDirection(entrySortDirection === 'desc' ? 'asc' : 'desc')}
+                className="bg-white dark:bg-gray-800"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {entrySortDirection === 'desc' ? 'Newest' : 'Oldest'}
+              </Button>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-lg font-bold">{recentEntries.length}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Blood Pressure</p>
+                <p className="text-lg font-bold text-red-600">{recentEntries.filter(e => (e.metadata?.logType || e.metadata?.recordType) === 'blood_pressure').length}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Weight</p>
+                <p className="text-lg font-bold text-green-600">{recentEntries.filter(e => (e.metadata?.logType || e.metadata?.recordType) === 'weight').length}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Heart Rate</p>
+                <p className="text-lg font-bold text-pink-600">{recentEntries.filter(e => (e.metadata?.logType || e.metadata?.recordType) === 'heart_rate').length}</p>
+              </div>
+            </div>
+
+            {/* Entries Display */}
             {recentEntries.length === 0 ? (
-              <p className="text-center py-4 text-gray-500">No entries found</p>
-            ) : (
-              <>
+              <p className="text-center py-8 text-gray-500">
+                {entrySearchQuery || entryTimeFilter !== 'all' || entryTypeFilter !== 'all'
+                  ? 'No entries match your filters. Try adjusting your search.'
+                  : 'No entries found'}
+              </p>
+            ) : entryViewMode === 'list' ? (
+              <div className="space-y-3">
                 {recentEntries.map(entry => {
                   const entryType = entry.metadata?.logType || entry.metadata?.recordType
                   return (
@@ -376,7 +548,48 @@ export function VitalsLabsTab() {
                     </div>
                   )
                 })}
-              </>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentEntries.map(entry => {
+                  const entryType = entry.metadata?.logType || entry.metadata?.recordType
+                  return (
+                    <Card key={entry.id} className="bg-white dark:bg-gray-900">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          {entryType === 'blood_pressure' && <Activity className="w-6 h-6 text-red-600" />}
+                          {entryType === 'weight' && <Weight className="w-6 h-6 text-green-600" />}
+                          {entryType === 'heart_rate' && <Heart className="w-6 h-6 text-pink-600" />}
+                          {entryType === 'glucose' && <Droplet className="w-6 h-6 text-yellow-600" />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-100 -mt-1 -mr-2"
+                            onClick={() => remove(entry.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xl font-bold mb-1">
+                          {entryType === 'blood_pressure' && `${entry.metadata.systolic || (entry.metadata.bloodPressure as any)?.systolic}/${entry.metadata.diastolic || (entry.metadata.bloodPressure as any)?.diastolic}`}
+                          {entryType === 'weight' && `${entry.metadata.weight} lbs`}
+                          {entryType === 'heart_rate' && `${entry.metadata.heartRate || entry.metadata.bpm} bpm`}
+                          {entryType === 'glucose' && `${entry.metadata.glucose} mg/dL`}
+                        </p>
+                        <Badge variant="secondary" className="mb-2">
+                          {entryType === 'blood_pressure' && 'Blood Pressure'}
+                          {entryType === 'weight' && 'Weight'}
+                          {entryType === 'heart_rate' && 'Heart Rate'}
+                          {entryType === 'glucose' && 'Glucose'}
+                        </Badge>
+                        <p className="text-sm text-gray-500">
+                          {format(new Date(entry.createdAt), 'MMM d, yyyy')}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
             )}
           </CardContent>
         </Card>

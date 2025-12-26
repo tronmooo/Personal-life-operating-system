@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, Camera, Edit, Trash2, Loader2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Camera, Edit, Trash2, Loader2, Calendar, ChevronDown, ChevronUp, Filter, LayoutGrid, List, Search, X } from 'lucide-react'
+import { format, isToday, isYesterday, isThisWeek, isThisMonth, startOfDay, startOfWeek, startOfMonth, parseISO, isSameDay } from 'date-fns'
 
 interface Meal {
   id: string
@@ -22,6 +24,27 @@ interface Meal {
   fats: number
   fiber: number
   photo?: string | null
+  createdAt: string
+}
+
+type TimeFilter = 'all' | 'today' | 'yesterday' | 'week' | 'month'
+type ViewMode = 'cards' | 'table' | 'timeline'
+type SortBy = 'newest' | 'oldest' | 'calories-high' | 'calories-low' | 'protein-high'
+
+const MEAL_TYPE_COLORS: Record<string, string> = {
+  'Breakfast': 'bg-amber-500',
+  'Lunch': 'bg-blue-500',
+  'Dinner': 'bg-purple-500',
+  'Snack': 'bg-green-500',
+  'Other': 'bg-gray-500',
+}
+
+const MEAL_TYPE_ICONS: Record<string, string> = {
+  'Breakfast': '🌅',
+  'Lunch': '☀️',
+  'Dinner': '🌙',
+  'Snack': '🍎',
+  'Other': '🍽️',
 }
 
 export function MealsView() {
@@ -34,6 +57,16 @@ export function MealsView() {
   const [showScanner, setShowScanner] = useState(false)
   const [scannerAutoCamera, setScannerAutoCamera] = useState(false)
   const [scannerAutoPicker, setScannerAutoPicker] = useState(false)
+  
+  // Filter & View State
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('today')
+  const [viewMode, setViewMode] = useState<ViewMode>('cards')
+  const [sortBy, setSortBy] = useState<SortBy>('newest')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [mealTypeFilter, setMealTypeFilter] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
+  
   const [formData, setFormData] = useState({
     name: '',
     mealType: 'Lunch',
@@ -70,16 +103,10 @@ export function MealsView() {
 
   // Get meals data from DataProvider (automatically reactive to data changes)
   const nutritionData = getData('nutrition')
-  const meals = useMemo(() => {
-    console.log('🥗 MEALS VIEW: Loading meals from nutrition domain...')
-    console.log('🥗 MEALS VIEW: Raw nutrition data count:', nutritionData.length)
-    
+  const allMeals = useMemo(() => {
     const mealData = nutritionData
       .filter(item => {
         const isMeal = item.metadata?.type === 'meal' || item.metadata?.logType === 'meal'
-        if (!isMeal && nutritionData.length < 20) {
-          console.log('🥗 MEALS VIEW: Filtering out non-meal item:', item.id, 'type:', item.metadata?.type, 'logType:', item.metadata?.logType)
-        }
         return isMeal
       })
       .map(item => ({
@@ -92,19 +119,106 @@ export function MealsView() {
         carbs: Number(item.metadata?.carbs || 0),
         fats: Number(item.metadata?.fats || 0),
         fiber: Number(item.metadata?.fiber || 0),
-        photo: (item.metadata?.attachedDocument as any)?.url || item.metadata?.imageUrl || null
+        photo: (item.metadata?.attachedDocument as any)?.url || item.metadata?.imageUrl || null,
+        createdAt: item.createdAt
       }))
-      .sort((a, b) => b.id.localeCompare(a.id)) // Sort by newest first
-    
-    console.log('✅ MEALS VIEW: Loaded', mealData.length, 'meals')
     return mealData
   }, [nutritionData])
 
+  // Apply filters
+  const filteredMeals = useMemo(() => {
+    let meals = [...allMeals]
+    
+    // Time filter
+    const now = new Date()
+    switch (timeFilter) {
+      case 'today':
+        meals = meals.filter(m => isToday(new Date(m.createdAt)))
+        break
+      case 'yesterday':
+        meals = meals.filter(m => isYesterday(new Date(m.createdAt)))
+        break
+      case 'week':
+        meals = meals.filter(m => isThisWeek(new Date(m.createdAt), { weekStartsOn: 0 }))
+        break
+      case 'month':
+        meals = meals.filter(m => isThisMonth(new Date(m.createdAt)))
+        break
+    }
+    
+    // Meal type filter
+    if (mealTypeFilter) {
+      meals = meals.filter(m => m.mealType === mealTypeFilter)
+    }
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      meals = meals.filter(m => 
+        m.name.toLowerCase().includes(query) ||
+        m.mealType.toLowerCase().includes(query)
+      )
+    }
+    
+    // Sort
+    switch (sortBy) {
+      case 'newest':
+        meals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        break
+      case 'oldest':
+        meals.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        break
+      case 'calories-high':
+        meals.sort((a, b) => b.calories - a.calories)
+        break
+      case 'calories-low':
+        meals.sort((a, b) => a.calories - b.calories)
+        break
+      case 'protein-high':
+        meals.sort((a, b) => b.protein - a.protein)
+        break
+    }
+    
+    return meals
+  }, [allMeals, timeFilter, mealTypeFilter, searchQuery, sortBy])
+
+  // Group meals by day for timeline view
+  const mealsByDay = useMemo(() => {
+    const grouped: Record<string, Meal[]> = {}
+    filteredMeals.forEach(meal => {
+      const dateKey = format(new Date(meal.createdAt), 'yyyy-MM-dd')
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = []
+      }
+      grouped[dateKey].push(meal)
+    })
+    return grouped
+  }, [filteredMeals])
+
+  // Calculate totals for filtered meals
+  const totals = useMemo(() => {
+    return filteredMeals.reduce((acc, meal) => ({
+      calories: acc.calories + meal.calories,
+      protein: acc.protein + meal.protein,
+      carbs: acc.carbs + meal.carbs,
+      fats: acc.fats + meal.fats,
+      fiber: acc.fiber + meal.fiber,
+      count: acc.count + 1
+    }), { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, count: 0 })
+  }, [filteredMeals])
+
+  const toggleDayExpansion = (dateKey: string) => {
+    const newExpanded = new Set(expandedDays)
+    if (newExpanded.has(dateKey)) {
+      newExpanded.delete(dateKey)
+    } else {
+      newExpanded.add(dateKey)
+    }
+    setExpandedDays(newExpanded)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🥗 MEALS VIEW: Starting meal submission...')
-
-    // Validation: name and numeric macros
     if (!formData.name.trim()) {
       alert('Please enter a meal name')
       return
@@ -133,20 +247,11 @@ export function MealsView() {
       protein: isNaN(protein) ? 0 : protein,
       carbs: isNaN(carbs) ? 0 : carbs,
       fats: isNaN(fats) ? 0 : fats,
-      fiber: isNaN(fiber) ? 0 : fiber
+      fiber: isNaN(fiber) ? 0 : fiber,
+      createdAt: new Date().toISOString()
     }
 
-    console.log('🥗 MEALS VIEW: Meal object created:', {
-      id: newMeal.id,
-      name: newMeal.name,
-      mealType: newMeal.mealType,
-      calories: newMeal.calories,
-      domain: 'nutrition'
-    })
-
     try {
-      console.log('🥗 MEALS VIEW: Calling addData("nutrition", ...)')
-      // Save to DataProvider (nutrition domain)
       await addData('nutrition', {
         title: `${newMeal.mealType}: ${newMeal.name}`,
         description: `${newMeal.calories} cal | P ${newMeal.protein} / C ${newMeal.carbs} / F ${newMeal.fats}`,
@@ -163,14 +268,9 @@ export function MealsView() {
           logType: 'meal'
         }
       })
-      console.log('✅ MEALS VIEW: Meal saved successfully!')
-
-      // UI will auto-update via useMemo dependency on nutritionData
       setFormData({ name: '', mealType: 'Lunch', calories: '', protein: '', carbs: '', fats: '', fiber: '' })
       setShowAddDialog(false)
       setShowMethodDialog(false)
-      
-      console.log('🎉 MEALS VIEW: Dialog closed, form reset complete')
     } catch (error) {
       console.error('❌ MEALS VIEW: Failed to save meal:', error)
       alert(`Failed to save meal: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -179,18 +279,13 @@ export function MealsView() {
 
   const deleteMeal = async (id: string) => {
     if (!confirm('Delete this meal?')) return
-    
-    // Mark as deleting (UI feedback)
     setDeletingIds(prev => new Set(prev).add(id))
-    
     try {
       await deleteData('nutrition', id)
-      // UI will auto-update via useMemo dependency on nutritionData
     } catch (error) {
       console.error('Failed to delete meal:', error)
       alert('Failed to delete meal. Please try again.')
     } finally {
-      // Clear disabled state
       setDeletingIds(prev => {
         const next = new Set(prev)
         next.delete(id)
@@ -199,7 +294,6 @@ export function MealsView() {
     }
   }
 
-  // Open edit dialog for a meal
   const openEditDialog = (meal: Meal) => {
     setEditingMeal(meal)
     setEditFormData({
@@ -214,12 +308,9 @@ export function MealsView() {
     setShowEditDialog(true)
   }
 
-  // Save edited meal
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingMeal) return
-    
-    console.log('✏️ MEALS VIEW: Updating meal:', editingMeal.id)
     
     try {
       await updateData('nutrition', editingMeal.id, {
@@ -237,8 +328,6 @@ export function MealsView() {
           fiber: Number(editFormData.fiber) || 0
         }
       })
-      
-      console.log('✅ MEALS VIEW: Meal updated successfully!')
       setShowEditDialog(false)
       setEditingMeal(null)
     } catch (error) {
@@ -247,9 +336,7 @@ export function MealsView() {
     }
   }
 
-  // Save meal from a scanned/uploaded document
   const handleDocumentSaved = async (doc: UploadedDocument) => {
-    // Prefer structured nutrition returned by scanner -> /api/analyze-food-vision
     const ai = (doc.metadata as any)?.nutritionData
     const parsed = parseMacros(doc.extractedText || '')
     const calories = ai?.nutrition?.calories ?? parsed.calories ?? 0
@@ -257,7 +344,6 @@ export function MealsView() {
     const carbs = ai?.nutrition?.carbs ?? parsed.carbs ?? 0
     const fats = ai?.nutrition?.fat ?? parsed.fats ?? 0
     const fiber = ai?.nutrition?.fiber ?? parsed.fiber ?? 0
-    // Prefer detected foods as the displayed meal name/title instead of the raw filename
     const foods = Array.isArray(ai?.foods) && ai.foods.length > 0
       ? ai.foods.map((f: any) => f.name).join(', ')
       : (doc.extractedText?.split('\n')[0] || doc.name)
@@ -286,10 +372,195 @@ export function MealsView() {
         }
       }
     })
-
-    // Close scanner - UI will auto-update via useMemo dependency on nutritionData
     setShowScanner(false)
   }
+
+  const getDateLabel = (dateKey: string) => {
+    const date = parseISO(dateKey)
+    if (isToday(date)) return 'Today'
+    if (isYesterday(date)) return 'Yesterday'
+    return format(date, 'EEEE, MMMM d')
+  }
+
+  const renderMealCard = (meal: Meal, compact = false) => (
+    <Card key={meal.id} className={`bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all ${compact ? 'p-4' : 'p-6'}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-3">
+          {meal.photo && (
+            <img
+              src={meal.photo}
+              alt={meal.name}
+              className={`object-cover rounded-lg border ${compact ? 'w-14 h-14' : 'w-20 h-20'}`}
+            />
+          )}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Badge className={`${MEAL_TYPE_COLORS[meal.mealType] || 'bg-gray-500'} text-white`}>
+                {MEAL_TYPE_ICONS[meal.mealType] || '🍽️'} {meal.mealType}
+              </Badge>
+              <span className="text-sm text-muted-foreground">{meal.time}</span>
+            </div>
+            <h4 className={`font-semibold ${compact ? 'text-base' : 'text-xl'}`}>{meal.name}</h4>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`font-bold text-emerald-600 ${compact ? 'text-lg' : 'text-2xl'}`}>{meal.calories}</span>
+          <span className="text-sm text-muted-foreground">cal</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => openEditDialog(meal)}
+            className="text-blue-600 hover:text-blue-700 ml-2"
+          >
+            <Edit className={compact ? 'h-4 w-4' : 'h-5 w-5'} />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => deleteMeal(meal.id)} 
+            disabled={deletingIds.has(meal.id)}
+            className="text-red-600"
+          >
+            {deletingIds.has(meal.id) ? (
+              <Loader2 className={`animate-spin ${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
+            ) : (
+              <Trash2 className={compact ? 'h-4 w-4' : 'h-5 w-5'} />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className={`grid grid-cols-4 gap-2 ${compact ? 'text-sm' : ''}`}>
+        <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+          <p className={`font-bold text-blue-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.protein}g</p>
+          <p className="text-xs text-muted-foreground">Protein</p>
+        </div>
+        <div className="text-center p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
+          <p className={`font-bold text-green-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.carbs}g</p>
+          <p className="text-xs text-muted-foreground">Carbs</p>
+        </div>
+        <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg">
+          <p className={`font-bold text-orange-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.fats}g</p>
+          <p className="text-xs text-muted-foreground">Fats</p>
+        </div>
+        <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+          <p className={`font-bold text-purple-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.fiber}g</p>
+          <p className="text-xs text-muted-foreground">Fiber</p>
+        </div>
+      </div>
+    </Card>
+  )
+
+  const renderTableView = () => (
+    <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-md">
+      <table className="w-full">
+        <thead className="bg-slate-100 dark:bg-slate-700">
+          <tr>
+            <th className="text-left p-4 font-semibold">Meal</th>
+            <th className="text-left p-4 font-semibold">Type</th>
+            <th className="text-right p-4 font-semibold">Cal</th>
+            <th className="text-right p-4 font-semibold">Protein</th>
+            <th className="text-right p-4 font-semibold">Carbs</th>
+            <th className="text-right p-4 font-semibold">Fats</th>
+            <th className="text-right p-4 font-semibold">Fiber</th>
+            <th className="text-center p-4 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredMeals.map((meal, idx) => (
+            <tr key={meal.id} className={`border-t border-slate-200 dark:border-slate-700 ${idx % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+              <td className="p-4">
+                <div className="flex items-center gap-3">
+                  {meal.photo && (
+                    <img src={meal.photo} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                  )}
+                  <div>
+                    <p className="font-medium">{meal.name}</p>
+                    <p className="text-sm text-muted-foreground">{meal.time}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="p-4">
+                <Badge className={`${MEAL_TYPE_COLORS[meal.mealType] || 'bg-gray-500'} text-white`}>
+                  {meal.mealType}
+                </Badge>
+              </td>
+              <td className="p-4 text-right font-bold text-emerald-600">{meal.calories}</td>
+              <td className="p-4 text-right text-blue-600">{meal.protein}g</td>
+              <td className="p-4 text-right text-green-600">{meal.carbs}g</td>
+              <td className="p-4 text-right text-orange-600">{meal.fats}g</td>
+              <td className="p-4 text-right text-purple-600">{meal.fiber}g</td>
+              <td className="p-4 text-center">
+                <Button variant="ghost" size="icon" onClick={() => openEditDialog(meal)} className="text-blue-600">
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteMeal(meal.id)} className="text-red-600">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="bg-slate-100 dark:bg-slate-700 font-semibold">
+          <tr>
+            <td className="p-4" colSpan={2}>Total ({totals.count} meals)</td>
+            <td className="p-4 text-right text-emerald-600">{totals.calories}</td>
+            <td className="p-4 text-right text-blue-600">{totals.protein}g</td>
+            <td className="p-4 text-right text-green-600">{totals.carbs}g</td>
+            <td className="p-4 text-right text-orange-600">{totals.fats}g</td>
+            <td className="p-4 text-right text-purple-600">{totals.fiber}g</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  )
+
+  const renderTimelineView = () => (
+    <div className="space-y-4">
+      {Object.keys(mealsByDay).sort((a, b) => b.localeCompare(a)).map(dateKey => {
+        const dayMeals = mealsByDay[dateKey]
+        const dayTotals = dayMeals.reduce((acc, m) => ({
+          calories: acc.calories + m.calories,
+          protein: acc.protein + m.protein,
+          carbs: acc.carbs + m.carbs,
+          fats: acc.fats + m.fats,
+        }), { calories: 0, protein: 0, carbs: 0, fats: 0 })
+        const isExpanded = expandedDays.has(dateKey) || Object.keys(mealsByDay).length === 1
+        
+        return (
+          <Card key={dateKey} className="overflow-hidden bg-white/90 dark:bg-slate-800/90">
+            <button
+              onClick={() => toggleDayExpansion(dateKey)}
+              className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <Calendar className="h-5 w-5 text-emerald-600" />
+                <div className="text-left">
+                  <h3 className="font-bold text-lg">{getDateLabel(dateKey)}</h3>
+                  <p className="text-sm text-muted-foreground">{dayMeals.length} meal{dayMeals.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="flex gap-4 text-sm">
+                  <span className="text-emerald-600 font-bold">{dayTotals.calories} cal</span>
+                  <span className="text-blue-600">{dayTotals.protein}g P</span>
+                  <span className="text-green-600">{dayTotals.carbs}g C</span>
+                  <span className="text-orange-600">{dayTotals.fats}g F</span>
+                </div>
+                {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </div>
+            </button>
+            {isExpanded && (
+              <div className="border-t dark:border-slate-700 p-4 space-y-3">
+                {dayMeals.map(meal => renderMealCard(meal, true))}
+              </div>
+            )}
+          </Card>
+        )
+      })}
+    </div>
+  )
 
   return (
     <>
@@ -304,6 +575,8 @@ export function MealsView() {
         autoStartCamera={scannerAutoCamera}
         autoOpenFilePicker={scannerAutoPicker}
       />
+      
+      {/* Method Selection Dialog */}
       <Dialog open={showMethodDialog} onOpenChange={setShowMethodDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -319,7 +592,6 @@ export function MealsView() {
                 setScannerAutoCamera(true)
                 setScannerAutoPicker(false)
                 setShowScanner(true)
-                // reset flags after open so subsequent opens work as expected
                 setTimeout(() => { setScannerAutoCamera(false) }, 0)
               }}
               className="w-full h-24 bg-gradient-to-r from-green-600 to-teal-600 text-white text-xl"
@@ -362,6 +634,7 @@ export function MealsView() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -386,7 +659,7 @@ export function MealsView() {
               <select
                 value={formData.mealType}
                 onChange={(e) => setFormData({ ...formData, mealType: e.target.value })}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md bg-background"
               >
                 <option>Breakfast</option>
                 <option>Lunch</option>
@@ -403,7 +676,6 @@ export function MealsView() {
                   value={formData.calories}
                   onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
                   placeholder="450"
-                  required
                 />
               </div>
 
@@ -550,89 +822,219 @@ export function MealsView() {
       </Dialog>
 
       <div className="space-y-6">
+        {/* Add Meal Button */}
         <Button
           onClick={() => setShowMethodDialog(true)}
-          className="w-full h-16 bg-gradient-to-r from-green-600 to-teal-600 text-white text-lg"
+          className="w-full h-16 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-lg shadow-lg hover:shadow-xl transition-all"
         >
           <Plus className="h-6 w-6 mr-2" />
-          Add Meal
+          Log Meal
         </Button>
-        {/* Removed duplicate button that did the same action as the method dialog */}
 
-        {meals.length === 0 ? (
-          <Card className="p-12 text-center bg-white/80 dark:bg-slate-800/80">
-            <p className="text-muted-foreground">No meals logged yet</p>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {meals.map((meal) => (
-              <Card key={meal.id} className="p-6 bg-white/80 dark:bg-slate-800/80">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-4">
-                    {meal.photo && (
-                      <img
-                        src={meal.photo}
-                        alt={meal.name}
-                        className="w-20 h-20 object-cover rounded-md border"
-                      />
-                    )}
-                    <div>
-                      <h3 className="text-2xl font-bold">{meal.mealType}</h3>
-                      <h4 className="text-xl font-semibold mt-1">{meal.name}</h4>
-                      <p className="text-sm text-muted-foreground">{meal.time}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-green-600">{meal.calories} cal</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => openEditDialog(meal)}
-                      className="text-blue-600 hover:text-blue-700"
-                      title="Edit meal"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => deleteMeal(meal.id)} 
-                      disabled={deletingIds.has(meal.id)}
-                      className="text-red-600"
-                    >
-                      {deletingIds.has(meal.id) ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-blue-600">{meal.protein}g</p>
-                    <p className="text-sm text-muted-foreground">Protein</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-green-600">{meal.carbs}g</p>
-                    <p className="text-sm text-muted-foreground">Carbs</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-orange-600">{meal.fats}g</p>
-                    <p className="text-sm text-muted-foreground">Fats</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-purple-600">{meal.fiber}g</p>
-                    <p className="text-sm text-muted-foreground">Fiber</p>
-                  </div>
-                </div>
-              </Card>
+        {/* Filter & View Controls */}
+        <Card className="p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm">
+          {/* Time Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className="text-sm font-medium text-muted-foreground mr-2">View:</span>
+            {[
+              { id: 'today', label: 'Today' },
+              { id: 'yesterday', label: 'Yesterday' },
+              { id: 'week', label: 'This Week' },
+              { id: 'month', label: 'This Month' },
+              { id: 'all', label: 'All Time' },
+            ].map(opt => (
+              <Button
+                key={opt.id}
+                variant={timeFilter === opt.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTimeFilter(opt.id as TimeFilter)}
+                className={timeFilter === opt.id ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              >
+                {opt.label}
+              </Button>
             ))}
           </div>
+
+          {/* Search & Advanced Filters Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search meals..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className={viewMode === 'cards' ? 'bg-white dark:bg-slate-600 shadow-sm' : ''}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className={viewMode === 'table' ? 'bg-white dark:bg-slate-600 shadow-sm' : ''}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'timeline' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('timeline')}
+                className={viewMode === 'timeline' ? 'bg-white dark:bg-slate-600 shadow-sm' : ''}
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* More Filters Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className={showFilters ? 'bg-emerald-50 border-emerald-300' : ''}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {(mealTypeFilter || sortBy !== 'newest') && (
+                <Badge className="ml-2 bg-emerald-600 text-white">
+                  {[mealTypeFilter, sortBy !== 'newest' ? 1 : 0].filter(Boolean).length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
+          {/* Expanded Filters Panel */}
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Meal Type</Label>
+                <div className="flex gap-1">
+                  {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map(type => (
+                    <Button
+                      key={type}
+                      variant={mealTypeFilter === type ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setMealTypeFilter(mealTypeFilter === type ? null : type)}
+                      className={mealTypeFilter === type ? MEAL_TYPE_COLORS[type] : ''}
+                    >
+                      {MEAL_TYPE_ICONS[type]} {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Sort By</Label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortBy)}
+                  className="p-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="calories-high">Highest Calories</option>
+                  <option value="calories-low">Lowest Calories</option>
+                  <option value="protein-high">Highest Protein</option>
+                </select>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setMealTypeFilter(null)
+                  setSortBy('newest')
+                  setSearchQuery('')
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        {/* Summary Card */}
+        <Card className="p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium opacity-90">
+                {timeFilter === 'today' ? "Today's" : timeFilter === 'yesterday' ? "Yesterday's" : timeFilter === 'week' ? "This Week's" : timeFilter === 'month' ? "This Month's" : "Total"} Summary
+              </h3>
+              <p className="text-3xl font-bold">{totals.count} meal{totals.count !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="bg-white/20 rounded-lg p-3">
+                <p className="text-2xl font-bold">{totals.calories}</p>
+                <p className="text-xs opacity-80">Calories</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <p className="text-2xl font-bold">{totals.protein}g</p>
+                <p className="text-xs opacity-80">Protein</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <p className="text-2xl font-bold">{totals.carbs}g</p>
+                <p className="text-xs opacity-80">Carbs</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <p className="text-2xl font-bold">{totals.fats}g</p>
+                <p className="text-xs opacity-80">Fats</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Meal List */}
+        {filteredMeals.length === 0 ? (
+          <Card className="p-12 text-center bg-white/80 dark:bg-slate-800/80">
+            <p className="text-muted-foreground text-lg">
+              {searchQuery || mealTypeFilter 
+                ? 'No meals match your filters' 
+                : timeFilter === 'today' 
+                  ? "No meals logged today. Start by adding your first meal!" 
+                  : "No meals found for this time period"}
+            </p>
+            {(searchQuery || mealTypeFilter) && (
+              <Button 
+                variant="link" 
+                onClick={() => {
+                  setSearchQuery('')
+                  setMealTypeFilter(null)
+                }}
+                className="mt-2"
+              >
+                Clear filters
+              </Button>
+            )}
+          </Card>
+        ) : (
+          <>
+            {viewMode === 'cards' && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {filteredMeals.map(meal => renderMealCard(meal))}
+              </div>
+            )}
+            {viewMode === 'table' && renderTableView()}
+            {viewMode === 'timeline' && renderTimelineView()}
+          </>
         )}
       </div>
     </>
   )
 }
-

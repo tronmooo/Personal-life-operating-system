@@ -63,31 +63,37 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a document search term expander. Given a user's document search query, generate a comprehensive list of related search terms that would match relevant documents.
+            content: `You are a PRECISE document search term expander. Given a user's document search query, generate a FOCUSED list of related search terms.
+
+**CRITICAL RULE**: DO NOT include overly generic terms that would cause false matches!
+- "driver's license" should NOT include "driver" alone (would match "driver registration")  
+- "registration" should NOT include generic "vehicle" (would match unrelated vehicle documents)
+- Keep expansions SPECIFIC to the document type being searched for
 
 DOCUMENT CATEGORIES:
-- Insurance (auto, home, life, health, disability, umbrella)
-- ID & Licenses (driver's license, passport, birth certificate, social security card, marriage certificate)
-- Vehicle (registration, title, loan agreement, maintenance records, warranty)
-- Medical (immunization records, prescriptions, test results, health records)
-- Financial & Tax (tax returns, W-2, 1099, bank statements, investment statements)
-- Legal (contracts, wills, trusts, power of attorney)
+- ID & Licenses (driver's license, passport, birth certificate, social security card, state ID)
+- Vehicle Documents (registration, title, vehicle registration)  
+- Insurance (auto insurance, car insurance, home insurance, health insurance, policy)
+- Medical (immunization records, prescriptions, health records)
+- Financial & Tax (tax returns, W-2, 1099, bank statements)
+- Legal (contracts, wills, trusts)
 - Property (deeds, mortgages, HOA documents)
 - Education (diplomas, degrees, transcripts, certifications)
 
 INSTRUCTIONS:
-1. Understand what type of document the user is asking for
-2. Generate ALL possible variations, abbreviations, and related terms
-3. Include common misspellings and informal names
-4. Include category names that might match
-5. Return ONLY a JSON array of search terms, nothing else
-6. Keep each term SHORT (1-3 words max)
-7. Return 5-15 terms total
+1. Understand what SPECIFIC document type the user is asking for
+2. Generate ONLY directly related variations and abbreviations
+3. DO NOT include generic single words that might cause over-matching
+4. Return ONLY a JSON array of search terms, nothing else
+5. Keep each term SHORT (1-3 words max)
+6. Return 4-10 PRECISE terms
 
-EXAMPLES:
-Query: "ID" → ["id", "driver", "license", "drivers license", "driver's license", "identification", "state id", "id card", "id & licenses"]
-Query: "insurance" → ["insurance", "policy", "coverage", "auto insurance", "car insurance", "home insurance", "declarations"]
-Query: "registration" → ["registration", "vehicle registration", "car registration", "auto registration", "reg"]
+EXAMPLES (note: NO generic single-word terms):
+Query: "driver's license" → ["driver's license", "drivers license", "driver license", "dl"]
+Query: "registration" → ["registration", "vehicle registration", "car registration", "auto registration"]
+Query: "ID" → ["id", "identification", "id card", "state id"]
+Query: "insurance" → ["insurance", "policy", "coverage"]
+Query: "auto insurance" → ["auto insurance", "car insurance", "vehicle insurance"]
 Query: "SSN" → ["ssn", "social security", "social security card", "social security number"]`
           },
           {
@@ -185,37 +191,55 @@ Query: "SSN" → ["ssn", "social security", "social security card", "social secu
 
 /**
  * Fallback expansion using hardcoded rules (when AI is unavailable)
+ * 
+ * CRITICAL: We use PRECISE expansions to avoid over-matching
+ * "driver's license" should NOT include generic "driver" - would match "driver registration"
  */
 function getFallbackExpansion(query: string): string[] {
   const termExpansions: Record<string, string[]> = {
-    'id': ['id', 'driver', 'license', 'drivers license', "driver's license", 'id & licenses', 'identification', 'state id'],
-    'dl': ['driver', 'license', 'drivers license', "driver's license", 'dl'],
-    'insurance': ['insurance', 'policy', 'coverage'],
-    'auto insurance': ['auto insurance', 'car insurance', 'vehicle insurance', 'auto policy'],
+    // ID/License - SPECIFIC variations only, no generic "driver" or "license"
+    'id': ['id', 'identification', 'id card', 'state id'],
+    'dl': ['dl', 'drivers license', 'driver license', "driver's license"],
+    'driver license': ['driver license', 'drivers license', "driver's license", 'dl'],
+    'drivers license': ['drivers license', 'driver license', "driver's license", 'dl'],
+    "driver's license": ["driver's license", 'drivers license', 'driver license', 'dl'],
+    
+    // Registration - SPECIFIC to registration documents
     'registration': ['registration', 'vehicle registration', 'car registration', 'auto registration'],
+    'vehicle registration': ['vehicle registration', 'registration', 'car registration'],
+    'driver registration': ['driver registration', 'registration'],
+    
+    // Insurance variants
+    'insurance': ['insurance', 'policy', 'coverage'],
+    'auto insurance': ['auto insurance', 'car insurance', 'vehicle insurance'],
+    'car insurance': ['car insurance', 'auto insurance', 'vehicle insurance'],
+    'health insurance': ['health insurance', 'medical insurance'],
+    
+    // Other documents
     'passport': ['passport', 'travel document'],
     'ssn': ['ssn', 'social security', 'social security card', 'social security number'],
     'birth certificate': ['birth certificate', 'birth cert'],
-    'medical': ['medical', 'health', 'prescription', 'health records'],
+    'medical': ['medical', 'health', 'medical records', 'health records'],
     'tax': ['tax', 'w-2', 'w2', '1099', 'tax return', 'tax document'],
     'deed': ['deed', 'property deed', 'title deed', 'house deed'],
     'will': ['will', 'last will', 'testament'],
     'bank': ['bank', 'bank statement', 'banking'],
   }
 
-  // Check direct match
+  // Check exact match first (most precise)
   if (termExpansions[query]) {
     return termExpansions[query]
   }
 
-  // Check partial matches
+  // For partial matches, be CONSERVATIVE - only match if it's clearly the same concept
   for (const [key, expansions] of Object.entries(termExpansions)) {
-    if (query.includes(key) || key.includes(query)) {
+    // Only expand if the query IS the key or contains the full key
+    if (query === key || query.includes(key + ' ') || query.endsWith(key)) {
       return expansions
     }
   }
 
-  // Default: return original query
+  // Default: return only the original query - don't over-expand unknown terms
   return [query]
 }
 

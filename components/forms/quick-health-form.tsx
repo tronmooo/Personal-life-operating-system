@@ -53,7 +53,6 @@ export function QuickHealthForm({ open, onClose }: QuickHealthFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!value && logType !== 'general') return
 
     setIsSaving(true)
 
@@ -143,32 +142,30 @@ export function QuickHealthForm({ open, onClose }: QuickHealthFormProps) {
               {logType === 'blood_pressure' ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="systolic">Systolic (Top) *</Label>
+                    <Label htmlFor="systolic">Systolic (Top)</Label>
                     <Input
                       id="systolic"
                       type="number"
                       placeholder="120"
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
-                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="diastolic">Diastolic (Bottom) *</Label>
+                    <Label htmlFor="diastolic">Diastolic (Bottom)</Label>
                     <Input
                       id="diastolic"
                       type="number"
                       placeholder="80"
                       value={secondaryValue}
                       onChange={(e) => setSecondaryValue(e.target.value)}
-                      required
                     />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor="value">
-                    Value * {selectedType?.unit && `(${selectedType.unit})`}
+                    Value {selectedType?.unit && `(${selectedType.unit})`}
                   </Label>
                   <Input
                     id="value"
@@ -177,7 +174,6 @@ export function QuickHealthForm({ open, onClose }: QuickHealthFormProps) {
                     placeholder={logType === 'weight' ? '150.5' : ''}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    required
                   />
                 </div>
               )}
@@ -186,23 +182,21 @@ export function QuickHealthForm({ open, onClose }: QuickHealthFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Date *</Label>
+              <Label htmlFor="date">Date</Label>
               <Input
                 id="date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="time">Time *</Label>
+              <Label htmlFor="time">Time</Label>
               <Input
                 id="time"
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                required
               />
             </div>
           </div>
@@ -222,7 +216,7 @@ export function QuickHealthForm({ open, onClose }: QuickHealthFormProps) {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSaving || (!value && logType !== 'general')}>
+            <Button type="submit" disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Health Data'}
             </Button>
           </DialogFooter>

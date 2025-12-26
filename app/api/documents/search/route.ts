@@ -8,65 +8,76 @@ export const dynamic = 'force-dynamic'
 
 /**
  * Local term expansion fallback (when AI is unavailable or fails)
- * This provides comprehensive expansion with plural/singular variations
+ * This provides PRECISE expansion - avoiding over-broad terms that cause false matches
+ * 
+ * KEY CHANGE: "driver's license" should NOT match "driver registration"
+ * We use EXACT phrase matching priority and avoid single-word generic terms
  */
 function getLocalExpansion(term: string): string[] {
   const termLower = term.toLowerCase().trim()
   
-  // Comprehensive static expansions
+  // PRECISE expansions - avoid generic single words that cause over-matching
+  // For specific document types, we expand to RELATED document names, not generic words
   const expansions: Record<string, string[]> = {
-    'id': ['id', 'driver', 'license', 'drivers license', 'driver license', "driver's license", 'dl', 'identification', 'state id', 'id card', 'id & licenses', 'identity'],
-    'dl': ['dl', 'driver', 'license', 'drivers license', 'driver license', "driver's license", 'drivers', 'id'],
-    'driver license': ['driver license', 'drivers license', "driver's license", 'dl', 'license', 'driver', 'id'],
-    'drivers license': ['drivers license', 'driver license', "driver's license", 'dl', 'license', 'driver', 'id'],
-    "driver's license": ['drivers license', 'driver license', "driver's license", 'dl', 'license', 'driver', 'id'],
-    'license': ['license', 'licence', 'driver license', 'drivers license', "driver's license", 'dl'],
-    'registration': ['registration', 'vehicle registration', 'car registration', 'auto registration', 'reg', 'vehicle', 'car'],
+    // ID documents - SPECIFIC to identification cards, NOT vehicle registration
+    'id': ['id', 'identification', 'id card', 'state id', 'id & licenses'],
+    'dl': ['dl', 'drivers license', 'driver license', "driver's license"],
+    'driver license': ['driver license', 'drivers license', "driver's license", 'dl'],
+    'drivers license': ['drivers license', 'driver license', "driver's license", 'dl'],
+    "driver's license": ["driver's license", 'drivers license', 'driver license', 'dl'],
+    // NOTE: We intentionally DON'T include 'driver' or 'license' alone - too broad!
+    
+    // Registration - SPECIFIC to vehicle registration documents
+    'registration': ['registration', 'vehicle registration', 'car registration', 'auto registration', 'reg'],
     'vehicle registration': ['vehicle registration', 'registration', 'car registration', 'auto registration', 'reg'],
     'car registration': ['car registration', 'vehicle registration', 'registration', 'auto registration', 'reg'],
-    'insurance': ['insurance', 'policy', 'coverage', 'insured'],
-    'auto insurance': ['auto insurance', 'car insurance', 'vehicle insurance', 'insurance', 'auto', 'car'],
-    'car insurance': ['car insurance', 'auto insurance', 'vehicle insurance', 'insurance', 'auto', 'car'],
-    'passport': ['passport', 'travel document', 'id'],
+    'driver registration': ['driver registration', 'registration'],
+    // NOTE: We don't include generic 'vehicle' or 'car' - too broad!
+    
+    // Insurance - keep specific
+    'insurance': ['insurance', 'policy', 'coverage'],
+    'auto insurance': ['auto insurance', 'car insurance', 'vehicle insurance'],
+    'car insurance': ['car insurance', 'auto insurance', 'vehicle insurance'],
+    'health insurance': ['health insurance', 'medical insurance'],
+    'home insurance': ['home insurance', 'homeowners insurance', 'property insurance'],
+    
+    // Other documents - specific expansions only
+    'passport': ['passport', 'travel document'],
     'ssn': ['ssn', 'social security', 'social security card', 'social security number', 'ss card'],
     'social security': ['social security', 'social security card', 'ssn', 'social security number', 'ss card'],
     'birth certificate': ['birth certificate', 'birth cert', 'certificate of birth'],
-    'medical': ['medical', 'health', 'prescription', 'health records', 'medical records'],
-    'health': ['health', 'medical', 'prescription', 'health records', 'medical records'],
-    'tax': ['tax', 'w-2', 'w2', '1099', 'tax return', 'tax document', 'irs'],
-    'deed': ['deed', 'property deed', 'title deed', 'house deed', 'title'],
-    'title': ['title', 'deed', 'property title', 'car title', 'vehicle title'],
+    'medical': ['medical', 'health', 'medical records', 'health records'],
+    'health': ['health', 'medical', 'health records', 'medical records'],
+    'tax': ['tax', 'w-2', 'w2', '1099', 'tax return', 'tax document'],
+    'deed': ['deed', 'property deed', 'title deed', 'house deed'],
+    'title': ['title', 'car title', 'vehicle title', 'property title'],
     'will': ['will', 'last will', 'testament', 'last will and testament'],
-    'bank': ['bank', 'bank statement', 'banking', 'statement'],
-    'vehicle': ['vehicle', 'car', 'auto', 'automobile'],
-    'car': ['car', 'vehicle', 'auto', 'automobile'],
+    'bank': ['bank', 'bank statement', 'banking'],
   }
   
-  // Direct match
+  // Direct match - return precise expansions only
   if (expansions[termLower]) {
     return [...expansions[termLower], termLower]
   }
   
-  // Check if term contains any known keys
-  for (const [key, values] of Object.entries(expansions)) {
-    if (termLower.includes(key) || key.includes(termLower)) {
-      return [...values, termLower]
+  // Check for multi-word phrases that match a key exactly
+  for (const key of Object.keys(expansions)) {
+    if (termLower === key) {
+      return [...expansions[key], termLower]
     }
   }
   
-  // Smart variations for unknown terms
+  // For unknown terms, be CONSERVATIVE - don't over-expand
+  // Just return the original term and close variations
   const variations = [termLower]
   
-  // Add singular/plural variations
-  if (termLower.endsWith('s') && termLower.length > 2) {
-    variations.push(termLower.slice(0, -1)) // Remove 's'
-  } else {
-    variations.push(termLower + 's') // Add 's'
-  }
-  
-  // Add common possessive variations
-  if (!termLower.includes("'")) {
-    variations.push(termLower.replace(/s$/, "'s"))
+  // Only add singular/plural for simple, specific terms
+  if (termLower.length > 3 && !termLower.includes(' ')) {
+    if (termLower.endsWith('s')) {
+      variations.push(termLower.slice(0, -1))
+    } else {
+      variations.push(termLower + 's')
+    }
   }
   
   return [...new Set(variations)]
@@ -208,9 +219,12 @@ export async function GET(request: NextRequest) {
       console.log(`🔍 Expanded terms (${uniqueTerms.length}): [${uniqueTerms.join(', ')}]`)
       console.log(`🔍 Expansion ${expansionSucceeded ? 'succeeded ✅' : 'fell back to local'}`)
       
-      // If multiple terms, match ANY term (OR logic)
-      // If single term, match normally
-      results = results.filter(doc => {
+      // SCORING-BASED MATCHING: Prioritize EXACT phrase matches over partial term matches
+      // This prevents "driver's license" from matching "driver registration"
+      const originalQuery = query.toLowerCase().trim()
+      
+      // Score each document based on match quality
+      const scoredResults = results.map(doc => {
         const docName = doc.document_name?.toLowerCase() || ''
         const docType = doc.document_type?.toLowerCase() || ''
         const docDomain = doc.domain?.toLowerCase() || ''
@@ -218,31 +232,63 @@ export async function GET(request: NextRequest) {
         const docSubtype = doc.metadata?.subtype?.toLowerCase() || ''
         const docText = doc.ocr_text?.toLowerCase() || ''
         
-        // Check if ANY search term matches
-        const matched = uniqueTerms.some(term =>
-          docName.includes(term) ||
-          docType.includes(term) ||
-          docDomain.includes(term) ||
-          docCategory.includes(term) ||
-          docSubtype.includes(term) ||
-          docText.includes(term)
-        )
+        let score = 0
+        const matchedTerms: string[] = []
         
-        // Debug logging for each document
-        if (matched) {
-          const matchedTerms = uniqueTerms.filter(term =>
-            docName.includes(term) ||
-            docType.includes(term) ||
-            docDomain.includes(term) ||
-            docCategory.includes(term) ||
-            docSubtype.includes(term) ||
-            docText.includes(term)
-          )
-          console.log(`✅ MATCHED: "${doc.document_name}" (${doc.metadata?.category || doc.domain}) - matched terms: [${matchedTerms.join(', ')}]`)
+        // HIGHEST PRIORITY: Exact phrase match in document name (100 points)
+        if (docName.includes(originalQuery)) {
+          score += 100
+          matchedTerms.push(`EXACT:"${originalQuery}"`)
         }
         
-        return matched
+        // HIGH PRIORITY: Exact phrase match in type/category (80 points)
+        if (docType.includes(originalQuery) || docCategory.includes(originalQuery)) {
+          score += 80
+          matchedTerms.push(`TYPE:"${originalQuery}"`)
+        }
+        
+        // MEDIUM PRIORITY: Individual term matches in name (10 points each)
+        uniqueTerms.forEach(term => {
+          if (docName.includes(term)) {
+            score += 10
+            matchedTerms.push(term)
+          } else if (docType.includes(term) || docCategory.includes(term) || docSubtype.includes(term)) {
+            score += 5
+            matchedTerms.push(term)
+          } else if (docDomain.includes(term)) {
+            score += 3
+            matchedTerms.push(term)
+          } else if (docText.includes(term)) {
+            score += 1
+            matchedTerms.push(term)
+          }
+        })
+        
+        return { doc, score, matchedTerms: [...new Set(matchedTerms)] }
       })
+      
+      // Filter to only documents with positive scores
+      const matchedResults = scoredResults.filter(r => r.score > 0)
+      
+      // Sort by score (highest first)
+      matchedResults.sort((a, b) => b.score - a.score)
+      
+      // Log matches for debugging
+      matchedResults.forEach(r => {
+        console.log(`✅ MATCHED (score=${r.score}): "${r.doc.document_name}" - terms: [${r.matchedTerms.join(', ')}]`)
+      })
+      
+      // If there's a clear winner (score >= 100), only return exact matches
+      // This prevents "driver's license" from also returning "driver registration"
+      const hasExactMatch = matchedResults.some(r => r.score >= 100)
+      if (hasExactMatch) {
+        console.log('🎯 Found exact match(es) - filtering to high-confidence results only')
+        results = matchedResults
+          .filter(r => r.score >= 50) // Only keep high-confidence matches
+          .map(r => r.doc)
+      } else {
+        results = matchedResults.map(r => r.doc)
+      }
     }
 
     console.log(`✅ Found ${results.length} document(s) matching query "${query}"`)

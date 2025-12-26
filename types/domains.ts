@@ -54,9 +54,9 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-green-500',
     category: 'core',
     fields: [
-      { name: 'accountName', label: 'Account Name', type: 'text', required: true },
-      { name: 'accountType', label: 'Account Type', type: 'select', options: ['Checking', 'Savings', 'Investment', 'Credit Card', 'Loan'], required: true },
-      { name: 'balance', label: 'Balance', type: 'currency', required: true },
+      { name: 'accountName', label: 'Account Name', type: 'text' },
+      { name: 'accountType', label: 'Account Type', type: 'select', options: ['Checking', 'Savings', 'Investment', 'Credit Card', 'Loan'] },
+      { name: 'balance', label: 'Balance', type: 'currency' },
       { name: 'institution', label: 'Institution', type: 'text' },
     ],
   },
@@ -68,9 +68,9 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-red-500',
     category: 'core',
     fields: [
-      { name: 'recordType', label: 'Record Type', type: 'select', options: ['Medical', 'Fitness', 'Medication', 'Lab Result'], required: true },
-      { name: 'title', label: 'Title', type: 'text', required: true },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'recordType', label: 'Record Type', type: 'select', options: ['Medical', 'Fitness', 'Medication', 'Lab Result'] },
+      { name: 'title', label: 'Title', type: 'text' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'provider', label: 'Provider', type: 'text' },
       { name: 'notes', label: 'Notes', type: 'textarea' },
     ],
@@ -84,7 +84,7 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     category: 'core',
     fields: [
       // Item Type
-      { name: 'itemType', label: 'Item Type', type: 'select', required: true, 
+      { name: 'itemType', label: 'Item Type', type: 'select', 
         options: ['Insurance Policy', 'Legal Document', 'Contract', 'License', 'Certificate'] },
       
       // Insurance Fields
@@ -126,9 +126,9 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     category: 'assets',
     fields: [
       // Item Classification
-      { name: 'itemType', label: 'Item Type', type: 'select', required: true,
+      { name: 'itemType', label: 'Item Type', type: 'select',
         options: ['Maintenance Task', 'Asset/Warranty', 'Project', 'Property', 'Document', 'Service Provider'] },
-      { name: 'title', label: 'Title/Name', type: 'text', required: true, placeholder: 'HVAC Filter Change' },
+      { name: 'title', label: 'Title/Name', type: 'text', placeholder: 'HVAC Filter Change' },
       { name: 'category', label: 'Category', type: 'select',
         options: ['HVAC', 'Plumbing', 'Electrical', 'Appliances', 'Structure', 'Landscaping', 'Security', 'Other'] },
       { name: 'location', label: 'Location/Room', type: 'text', placeholder: 'Basement, Kitchen, etc.' },
@@ -209,9 +209,9 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-indigo-500',
     category: 'assets',
     fields: [
-      { name: 'make', label: 'Make', type: 'text', required: true },
-      { name: 'model', label: 'Model', type: 'text', required: true },
-      { name: 'year', label: 'Year', type: 'number', required: true },
+      { name: 'make', label: 'Make', type: 'text' },
+      { name: 'model', label: 'Model', type: 'text' },
+      { name: 'year', label: 'Year', type: 'number' },
       { name: 'mileage', label: 'Mileage', type: 'number' },
       { name: 'serviceType', label: 'Service Type', type: 'select', options: ['Oil Change', 'Tire Rotation', 'Inspection', 'Repair', 'Other'] },
     ],
@@ -224,7 +224,7 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-teal-500',
     category: 'assets',
     fields: [
-      { name: 'name', label: 'Asset Name', type: 'text', required: true },
+      { name: 'name', label: 'Asset Name', type: 'text' },
       { name: 'brand', label: 'Brand', type: 'text' },
       { name: 'model', label: 'Model', type: 'text' },
       { name: 'serialNumber', label: 'Serial Number', type: 'text' },
@@ -248,8 +248,8 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-amber-500',
     category: 'personal',
     fields: [
-      { name: 'petName', label: 'Pet Name', type: 'text', required: true },
-      { name: 'species', label: 'Species', type: 'select', options: ['Dog', 'Cat', 'Bird', 'Fish', 'Other'], required: true },
+      { name: 'petName', label: 'Pet Name', type: 'text' },
+      { name: 'species', label: 'Species', type: 'select', options: ['Dog', 'Cat', 'Bird', 'Fish', 'Other'] },
       { name: 'breed', label: 'Breed', type: 'text' },
       { name: 'birthDate', label: 'Birth Date', type: 'date' },
       { name: 'vetName', label: 'Vet Name', type: 'text' },
@@ -264,8 +264,8 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     category: 'personal',
     fields: [
       // Core Person Info
-      { name: 'name', label: 'Full Name', type: 'text', required: true, placeholder: 'John Doe' },
-      { name: 'relationshipType', label: 'Relationship Type', type: 'select', required: true, 
+      { name: 'name', label: 'Full Name', type: 'text', placeholder: 'John Doe' },
+      { name: 'relationshipType', label: 'Relationship Type', type: 'select', 
         options: ['Family', 'Partner/Spouse', 'Close Friend', 'Friend', 'Colleague', 'Mentor', 'Acquaintance', 'Other'] },
       { name: 'photo', label: 'Photo URL', type: 'text', placeholder: 'https://...' },
       
@@ -313,7 +313,7 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-gray-500',
     category: 'lifestyle',
     fields: [
-      { name: 'serviceName', label: 'Service Name', type: 'text', required: true },
+      { name: 'serviceName', label: 'Service Name', type: 'text' },
       { name: 'category', label: 'Category', type: 'select', options: ['Subscription', 'Software', 'Domain', 'Cloud Storage', 'Other'] },
       { name: 'monthlyCost', label: 'Monthly Cost', type: 'currency' },
       { name: 'renewalDate', label: 'Renewal Date', type: 'date' },
@@ -328,8 +328,8 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-emerald-500',
     category: 'lifestyle',
     fields: [
-      { name: 'entryType', label: 'Entry Type', type: 'select', options: ['Meditation', 'Journal', 'Gratitude', 'Reflection'], required: true },
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'entryType', label: 'Entry Type', type: 'select', options: ['Meditation', 'Journal', 'Gratitude', 'Reflection'] },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'duration', label: 'Duration (minutes)', type: 'number' },
       { name: 'mood', label: 'Mood', type: 'select', options: ['Great', 'Good', 'Okay', 'Low', 'Poor'] },
       { name: 'entry', label: 'Entry', type: 'textarea' },
@@ -343,8 +343,8 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-indigo-600',
     category: 'lifestyle',
     fields: [
-      { name: 'activityType', label: 'Activity Type', type: 'select', options: ['Running', 'Cycling', 'Swimming', 'Yoga', 'Strength Training', 'Walking', 'Other'], required: true },
-      { name: 'duration', label: 'Duration (minutes)', type: 'number', required: true },
+      { name: 'activityType', label: 'Activity Type', type: 'select', options: ['Running', 'Cycling', 'Swimming', 'Yoga', 'Strength Training', 'Walking', 'Other'] },
+      { name: 'duration', label: 'Duration (minutes)', type: 'number' },
       { name: 'calories', label: 'Calories Burned', type: 'number' },
       { name: 'steps', label: 'Steps', type: 'number' },
       { name: 'distance', label: 'Distance (miles)', type: 'number' },
@@ -360,8 +360,8 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-orange-600',
     category: 'lifestyle',
     fields: [
-      { name: 'mealName', label: 'Meal Name', type: 'text', required: true },
-      { name: 'mealType', label: 'Meal Type', type: 'select', options: ['Breakfast', 'Lunch', 'Dinner', 'Snack'], required: true },
+      { name: 'mealName', label: 'Meal Name', type: 'text' },
+      { name: 'mealType', label: 'Meal Type', type: 'select', options: ['Breakfast', 'Lunch', 'Dinner', 'Snack'] },
       { name: 'calories', label: 'Calories', type: 'number' },
       { name: 'protein', label: 'Protein (g)', type: 'number' },
       { name: 'carbs', label: 'Carbs (g)', type: 'number' },
@@ -376,13 +376,13 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-cyan-500',
     category: 'core',
     fields: [
-      { name: 'serviceType', label: 'Service Type', type: 'select', required: true,
+      { name: 'serviceType', label: 'Service Type', type: 'select',
         options: ['Auto Insurance', 'Home Insurance', 'Health Insurance', 'Life Insurance', 'Pet Insurance', 
                   'Electric Utility', 'Gas Utility', 'Water Utility', 'Internet', 'Mobile Phone', 
                   'Streaming', 'Security', 'Lawn Care', 'Cleaning', 'Other'] },
-      { name: 'providerName', label: 'Provider Name', type: 'text', required: true },
+      { name: 'providerName', label: 'Provider Name', type: 'text' },
       { name: 'accountNumber', label: 'Account Number', type: 'text' },
-      { name: 'monthlyCost', label: 'Monthly Cost', type: 'currency', required: true },
+      { name: 'monthlyCost', label: 'Monthly Cost', type: 'currency' },
       { name: 'annualCost', label: 'Annual Cost', type: 'currency' },
       { name: 'contractStart', label: 'Contract Start Date', type: 'date' },
       { name: 'contractEnd', label: 'Contract End Date', type: 'date' },
@@ -408,8 +408,8 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
     color: 'bg-violet-500',
     category: 'assets',
     fields: [
-      { name: 'itemName', label: 'Item Name', type: 'text', required: true },
-      { name: 'category', label: 'Category', type: 'select', options: ['Boat', 'Jewelry', 'Collectibles', 'Electronics', 'Art', 'Other'], required: true },
+      { name: 'itemName', label: 'Item Name', type: 'text' },
+      { name: 'category', label: 'Category', type: 'select', options: ['Boat', 'Jewelry', 'Collectibles', 'Electronics', 'Art', 'Other'] },
       { name: 'estimatedValue', label: 'Estimated Value', type: 'currency' },
       { name: 'condition', label: 'Condition', type: 'select', options: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'] },
       { name: 'purchaseDate', label: 'Purchase Date', type: 'date' },

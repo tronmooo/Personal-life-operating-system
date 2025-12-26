@@ -140,6 +140,82 @@ function formatCommandCatalogForUser(): string {
 // ============================================
 // MULTI-INTENT DETECTION HELPER
 // ============================================
+
+/**
+ * Intent types that can be mixed in a single message
+ */
+type IntentType = 'retrieval' | 'data_log' | 'query' | 'action' | 'unknown'
+
+interface DetectedIntent {
+  type: IntentType
+  segment: string
+  domain?: string
+}
+
+/**
+ * Detects if a message contains MULTIPLE intents of ANY type.
+ * This now handles MIXED intent types like:
+ * - "pull up my driver's license and I weigh 120 pounds" → retrieval + data_log
+ * - "ran 5 miles, blood pressure 123/80" → data_log + data_log
+ * 
+ * Returns: { isMulti: boolean, intents: DetectedIntent[] }
+ */
+function detectMixedIntents(message: string): { isMulti: boolean; intents: DetectedIntent[] } {
+  const lowerMessage = message.toLowerCase()
+  const intents: DetectedIntent[] = []
+  
+  // Pattern matchers for different intent types
+  const retrievalPatterns = [
+    /\b(pull\s*up|show\s*me|get\s*my|retrieve|find|display|open)\b.*\b(license|registration|insurance|id|card|document|passport|certificate|record)\b/gi,
+    /\b(pull\s*up|show\s*me|get|retrieve)\b.*\b(my|the)\b/gi,
+  ]
+  
+  const dataLogPatterns = [
+    // Health - weight specifically (must have "weigh" or "weight" with a number)
+    { pattern: /\b(i\s+weigh|weigh|weight\s+is|my\s+weight)\s*\d+\s*(lbs?|pounds?|kg|kilos?)?\b/gi, domain: 'health' },
+    { pattern: /(?:blood\s*pressure|bp)\s*\d+[\/\-]\d+/gi, domain: 'health' },
+    { pattern: /\bheart\s*rate\s*\d+/gi, domain: 'health' },
+    // Fitness
+    { pattern: /\b(ran|walked|cycled|swam|worked out|exercised|jogged|hiked|biked)\b.*\d+\s*(miles?|km|min|minutes?|hours?)/gi, domain: 'fitness' },
+    { pattern: /\b\d+\s*(steps?|reps?|sets?)\b/gi, domain: 'fitness' },
+    // Nutrition
+    { pattern: /\b(ate|had|eaten|eat)\b.*\d+\s*(calories?|cal)/gi, domain: 'nutrition' },
+    { pattern: /\b(drank|drink|had)\b.*\d+\s*(oz|ounces?)\b.*\b(water|coffee|tea)/gi, domain: 'nutrition' },
+    // Financial
+    { pattern: /\b(spent|paid|bought|purchased|earned|received)\b.*\$?\d+/gi, domain: 'financial' },
+  ]
+  
+  // Check for retrieval intents
+  for (const pattern of retrievalPatterns) {
+    const matches = lowerMessage.match(pattern)
+    if (matches) {
+      for (const match of matches) {
+        intents.push({ type: 'retrieval', segment: match.trim() })
+      }
+    }
+  }
+  
+  // Check for data logging intents
+  for (const { pattern, domain } of dataLogPatterns) {
+    const matches = lowerMessage.match(pattern)
+    if (matches) {
+      for (const match of matches) {
+        // Avoid duplicates
+        if (!intents.some(i => i.segment.includes(match.trim()) || match.includes(i.segment))) {
+          intents.push({ type: 'data_log', segment: match.trim(), domain })
+        }
+      }
+    }
+  }
+  
+  console.log(`🔍 Mixed intent detection found ${intents.length} intents:`, intents.map(i => `${i.type}:"${i.segment}"`).join(', '))
+  
+  return {
+    isMulti: intents.length >= 2,
+    intents
+  }
+}
+
 /**
  * Detects if a message contains multiple data logging intents.
  * Examples:
@@ -151,35 +227,28 @@ function formatCommandCatalogForUser(): string {
 function detectMultiIntentMessage(message: string): boolean {
   const lowerMessage = message.toLowerCase()
   
-  // Skip if it's clearly a query (starts with question words)
-  const queryStarters = ['what', 'how', 'when', 'where', 'why', 'show', 'tell', 'list', 'find', 'get', 'display']
-  if (queryStarters.some(q => lowerMessage.startsWith(q))) {
+  // FIRST: Check for MIXED intent types (retrieval + data logging)
+  // This handles cases like "pull up my driver's license and I weigh 120 pounds"
+  const mixedResult = detectMixedIntents(message)
+  if (mixedResult.isMulti) {
+    console.log('🎯 Detected MIXED intents (e.g., retrieval + data logging)')
+    return true
+  }
+  
+  // Skip if it's clearly a PURE query (starts with question words AND has no data logging)
+  const queryStarters = ['what', 'how', 'when', 'where', 'why']
+  const hasQueryStart = queryStarters.some(q => lowerMessage.startsWith(q))
+  const hasDataPattern = /\b(weigh|weight|blood\s*pressure|bp|spent|paid|ran|walked|ate|drank)\b.*\d+/i.test(lowerMessage)
+  
+  if (hasQueryStart && !hasDataPattern) {
     return false
   }
   
-  // Skip if it's a single-intent action command
+  // Skip if it's a single-intent action command (no "and" with data logging)
   const singleActionPrefixes = ['go to', 'open', 'navigate', 'create chart', 'add to calendar', 'schedule', 'delete', 'remove', 'update']
-  if (singleActionPrefixes.some(p => lowerMessage.startsWith(p))) {
+  if (singleActionPrefixes.some(p => lowerMessage.startsWith(p)) && !/ and /i.test(lowerMessage)) {
     return false
   }
-  
-  // Count data-logging indicators (verbs/patterns that suggest data entry)
-  const dataPatterns = [
-    // Fitness
-    /\b(ran|walked|cycled|swam|worked out|exercised|jogged|hiked|biked)\b.*\b(\d+)\s*(miles?|km|minutes?|min|hours?|hr)\b/i,
-    // Health vitals
-    /\bblood\s*pressure\s*\d+[\/\-]\d+\b/i,
-    /\b(weigh|weight)\s*\d+\s*(lbs?|pounds?|kg)\b/i,
-    /\bheart\s*rate\s*\d+\b/i,
-    // Nutrition
-    /\b(ate|had|eaten|drank|drink)\b.*\b\d+\s*(calories?|cal|oz|ounces?)\b/i,
-    /\b\d+\s*(calories?|cal)\b/i,
-    /\b\d+\s*(oz|ounces?)\s*(of\s*)?(water|coffee|tea|milk)\b/i,
-    // Financial
-    /\b(spent|paid|bought|purchased|earned|received)\b.*\$?\d+/i,
-    // General metrics with numbers
-    /\b\d+\s*(steps?|reps?|sets?)\b/i,
-  ]
   
   // Count matches for different domains
   let matchCount = 0
@@ -196,7 +265,7 @@ function detectMultiIntentMessage(message: string): boolean {
     matchCount++
     matchedDomains.add('health_bp')
   }
-  if (/\b(weigh|weight)\s*\d+/i.test(lowerMessage)) {
+  if (/\b(weigh|weight|i\s+weigh)\s*\d+/i.test(lowerMessage)) {
     matchCount++
     matchedDomains.add('health_weight')
   }
@@ -4429,6 +4498,71 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
       isCommand: true,
       action: 'save_meal',
       message: `✅ Logged meal: "${description}" (${calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fats}g fat) in Nutrition domain`
+    }
+  }
+  
+  // 🍽️ Meal WITHOUT calories - AI estimates full nutrition (calories, protein, carbs, fats, fiber)
+  // Matches: "log a chicken sandwich", "ate pizza", "had a burger", "I ate spaghetti for dinner"
+  const mealNoCalMatch = lowerMessage.match(/(?:ate|eat|had|log|consumed|eating|i\s+ate|i\s+had|i\s+just\s+ate|i\s+just\s+had)\s+(?:a\s+|an\s+|some\s+)?(.+?)(?:\s+for\s+(?:breakfast|lunch|dinner|snack|brunch))?$/i)
+  if (mealNoCalMatch && !mealMatch) {
+    let description = mealNoCalMatch[1].trim()
+    
+    // Clean up the description - remove trailing punctuation, filler words
+    description = description.replace(/[.!?]+$/, '').trim()
+    description = description.replace(/^(just|only|quickly)\s+/i, '').trim()
+    
+    // Skip if description looks like it's not food (too short or generic)
+    if (description.length < 2 || /^(it|that|this|something|nothing)$/i.test(description)) {
+      // Don't match, let it fall through to other handlers
+    } else {
+      console.log(`🍽️ [VOICE] Meal without calories: "${description}" - estimating full nutrition...`)
+      
+      // Determine meal type based on time of day OR from the message
+      const hour = new Date().getHours()
+      let mealType = 'Other'
+      if (lowerMessage.includes('breakfast') || lowerMessage.includes('brunch')) {
+        mealType = 'Breakfast'
+      } else if (lowerMessage.includes('lunch')) {
+        mealType = 'Lunch'
+      } else if (lowerMessage.includes('dinner') || lowerMessage.includes('supper')) {
+        mealType = 'Dinner'
+      } else if (lowerMessage.includes('snack')) {
+        mealType = 'Snack'
+      } else {
+        // Auto-detect from time
+        if (hour >= 5 && hour < 11) mealType = 'Breakfast'
+        else if (hour >= 11 && hour < 15) mealType = 'Lunch'
+        else if (hour >= 15 && hour < 22) mealType = 'Dinner'
+        else mealType = 'Snack'
+      }
+      
+      // Use AI to estimate FULL nutrition (calories + all macros)
+      const estimated = await estimateFullNutrition(description)
+      console.log(`✅ [VOICE] AI Estimated: ${estimated.calories} cal, ${estimated.protein}g P, ${estimated.carbs}g C, ${estimated.fats}g F, ${estimated.fiber}g fiber`)
+      
+      await saveToSupabase(supabase, userId, 'nutrition', {
+        id: randomUUID(),
+        type: 'meal',
+        logType: 'meal',
+        name: description,
+        description,
+        mealType,
+        calories: estimated.calories,
+        protein: estimated.protein,
+        carbs: estimated.carbs,
+        fats: estimated.fats,
+        fiber: estimated.fiber,
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        timestamp: new Date().toISOString(),
+        source: 'voice_ai',
+        aiEstimated: true  // Mark as AI-estimated
+      })
+      
+      return {
+        isCommand: true,
+        action: 'save_meal',
+        message: `✅ Logged meal: "${description}" (estimated ~${estimated.calories} cal, ~${estimated.protein}g protein, ~${estimated.carbs}g carbs, ~${estimated.fats}g fat, ~${estimated.fiber}g fiber) in Nutrition domain`
+      }
     }
   }
   
