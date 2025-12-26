@@ -3218,6 +3218,35 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // STEP 0.5: Check for MIXED INTENT messages (e.g., "pull up my driver docs and log 20oz water")
+    // This handles compound requests that contain BOTH retrieval AND data logging
+    console.log('🧠 Step 0.5: Checking for MIXED INTENT message...')
+    const mixedResult = detectMixedIntents(message)
+    if (mixedResult.isMulti) {
+      console.log('🎯 Detected MIXED INTENTS - handling compound request')
+      console.log('🎯 Intent types found:', mixedResult.intents.map(i => `${i.type}:"${i.segment}"`).join(', '))
+      
+      try {
+        const multiResult = await handleMultipleVoiceCommands(message, user.id, supabase)
+        
+        if (multiResult.isCommand) {
+          console.log(`✅ Mixed intent processed! Action: ${multiResult.action}`)
+          return NextResponse.json({
+            response: multiResult.message,
+            action: multiResult.action,
+            multiResults: multiResult.results,
+            queryResults: multiResult.queryResults,
+            saved: multiResult.results && multiResult.results.length > 0,
+            triggerReload: multiResult.results && multiResult.results.length > 0
+          })
+        }
+        console.log('⚠️ Mixed intent handler did not match, continuing to individual handlers...')
+      } catch (mixedError: any) {
+        console.error('❌ Mixed intent handler error:', mixedError.message)
+        // Continue to individual handlers
+      }
+    }
+
     // STEP 1: Check if it's a QUERY (read operation)
     console.log('🧠 Step 1: Checking if message is a QUERY...')
     console.log('👤 User ID:', user.id)
@@ -6701,11 +6730,62 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
 // ============================================
 // MULTI-COMMAND HANDLER (Split & Process Multiple Commands)
 // ============================================
+
+/**
+ * Detects if a message segment is a RETRIEVAL query (vs data logging)
+ * Retrieval queries ask for data to be shown/retrieved
+ */
+function isRetrievalQuerySegment(segment: string): boolean {
+  const lowerSegment = segment.toLowerCase().trim()
+  
+  // Retrieval patterns - asking to see/get/show data
+  const retrievalPatterns = [
+    /^(?:pull\s*up|show\s*me|get\s*my|retrieve|find|display|open|bring\s*up|let\s*me\s*see)/i,
+    /^(?:can\s+(?:i|you)\s+(?:get|show|pull|see|find|retrieve))/i,
+    /^(?:where\s*(?:is|are|'s))/i,
+    /^(?:what\s*(?:is|are|'s)\s+my)/i,
+    /\b(?:license|registration|insurance\s*card|document|passport|certificate|id\s*card|driver'?s?\s*(?:license|docs?|documents?))\b/i,
+  ]
+  
+  return retrievalPatterns.some(pattern => pattern.test(lowerSegment))
+}
+
+/**
+ * Detects if a message segment is a DATA LOGGING command
+ * Data logging adds/records information
+ */
+function isDataLoggingSegment(segment: string): boolean {
+  const lowerSegment = segment.toLowerCase().trim()
+  
+  // Data logging patterns - recording/logging data
+  const dataLogPatterns = [
+    // Water/hydration
+    /\b(?:log(?:ged)?|drank|drink|had)\s*\d+\s*(?:oz|ounces?|ml|liters?|cups?|glasses?)/i,
+    /\b\d+\s*(?:oz|ounces?)\s*(?:of\s*)?water\b/i,
+    // Weight
+    /\b(?:i\s+)?weigh\s*\d+/i,
+    /\bweight\s*(?:is|was)?\s*\d+/i,
+    // Blood pressure
+    /\b(?:blood\s*pressure|bp)\s*\d+[\/\-]\d+/i,
+    // Exercise/fitness
+    /\b(?:ran|walked|cycled|swam|worked\s*out|exercised|jogged|hiked|biked)\b/i,
+    /\b(?:did|completed)\s+\d+\s*(?:minute|min|hour|hr)/i,
+    // Financial
+    /\b(?:spent|paid|bought|purchased)\s+\$?\d+/i,
+    // Food/nutrition
+    /\b(?:ate|eat|had)\s+.+\d+\s*(?:cal|calories?)/i,
+    // Sleep
+    /\b(?:slept|sleep)\s+\d+/i,
+  ]
+  
+  return dataLogPatterns.some(pattern => pattern.test(lowerSegment))
+}
+
 async function handleMultipleVoiceCommands(
   message: string, 
   userId: string, 
   supabase: any
-): Promise<{ isCommand: boolean; action: string; message: string; results?: any[] }> {
+): Promise<{ isCommand: boolean; action: string; message: string; results?: any[]; queryResults?: any[] }> {
   // Split message by common separators (comma, "and", "also", "plus", semicolon)
   // Be careful not to split "blood pressure 120/80" or "120 and 80"
   const segments = message
@@ -6727,44 +6807,119 @@ async function handleMultipleVoiceCommands(
     }
   }
 
-  // Process each segment
+  // Process each segment - detect type and route appropriately
   const results: any[] = []
+  const queryResults: any[] = []
   const messages: string[] = []
 
   for (const segment of segments) {
     console.log(`🔄 [MULTI-COMMAND] Processing segment: "${segment}"`)
+    
+    // Detect segment type
+    const isRetrieval = isRetrievalQuerySegment(segment)
+    const isDataLog = isDataLoggingSegment(segment)
+    
+    console.log(`🔍 [MULTI-COMMAND] Segment type: retrieval=${isRetrieval}, dataLog=${isDataLog}`)
+    
     try {
-      const result = await handleVoiceCommand(segment.trim(), userId, supabase)
-      if (result.isCommand) {
-        results.push({
-          segment,
-          action: result.action,
-          message: result.message,
-          success: true
-        })
-        messages.push(result.message)
-        console.log(`✅ [MULTI-COMMAND] Segment processed successfully: ${result.action}`)
+      if (isRetrieval) {
+        // Route to query handler for retrieval requests
+        console.log(`📖 [MULTI-COMMAND] Routing to query handler: "${segment}"`)
+        const queryResult = await intelligentQueryHandler(segment, userId, supabase)
+        
+        if (queryResult.isQuery) {
+          queryResults.push({
+            segment,
+            type: 'retrieval',
+            message: queryResult.message,
+            data: queryResult.data,
+            visualization: queryResult.visualization,
+            success: true
+          })
+          messages.push(queryResult.message)
+          console.log(`✅ [MULTI-COMMAND] Query segment processed successfully`)
+        } else {
+          console.log(`⚠️ [MULTI-COMMAND] Query handler didn't match, trying voice command: "${segment}"`)
+          // Fallback to voice command if query handler didn't match
+          const result = await handleVoiceCommand(segment.trim(), userId, supabase)
+          if (result.isCommand) {
+            results.push({
+              segment,
+              action: result.action,
+              message: result.message,
+              success: true
+            })
+            messages.push(result.message)
+          }
+        }
+      } else if (isDataLog) {
+        // Route to voice command handler for data logging
+        console.log(`📝 [MULTI-COMMAND] Routing to data log handler: "${segment}"`)
+        const result = await handleVoiceCommand(segment.trim(), userId, supabase)
+        if (result.isCommand) {
+          results.push({
+            segment,
+            action: result.action,
+            message: result.message,
+            success: true
+          })
+          messages.push(result.message)
+          console.log(`✅ [MULTI-COMMAND] Data log segment processed successfully: ${result.action}`)
+        } else {
+          console.log(`⚠️ [MULTI-COMMAND] Data log segment did not match any pattern: "${segment}"`)
+        }
       } else {
-        console.log(`⚠️ [MULTI-COMMAND] Segment did not match any pattern: "${segment}"`)
+        // Unknown type - try voice command handler first
+        console.log(`❓ [MULTI-COMMAND] Unknown segment type, trying voice command: "${segment}"`)
+        const result = await handleVoiceCommand(segment.trim(), userId, supabase)
+        if (result.isCommand) {
+          results.push({
+            segment,
+            action: result.action,
+            message: result.message,
+            success: true
+          })
+          messages.push(result.message)
+          console.log(`✅ [MULTI-COMMAND] Segment processed successfully: ${result.action}`)
+        } else {
+          // Try query handler as fallback
+          console.log(`⚠️ [MULTI-COMMAND] Voice command didn't match, trying query handler: "${segment}"`)
+          const queryResult = await intelligentQueryHandler(segment, userId, supabase)
+          if (queryResult.isQuery) {
+            queryResults.push({
+              segment,
+              type: 'retrieval',
+              message: queryResult.message,
+              data: queryResult.data,
+              visualization: queryResult.visualization,
+              success: true
+            })
+            messages.push(queryResult.message)
+          } else {
+            console.log(`⚠️ [MULTI-COMMAND] Segment did not match any pattern: "${segment}"`)
+          }
+        }
       }
     } catch (error: any) {
       console.error(`❌ [MULTI-COMMAND] Error processing segment "${segment}":`, error.message)
     }
   }
 
-  // If at least one command was processed successfully
-  if (results.length > 0) {
-    const combinedMessage = results.length === 1 
+  // If at least one command or query was processed successfully
+  const totalProcessed = results.length + queryResults.length
+  if (totalProcessed > 0) {
+    const combinedMessage = totalProcessed === 1 
       ? messages[0] 
-      : `✅ Successfully logged ${results.length} entries:\n${messages.join('\n')}`
+      : `✅ Successfully processed ${totalProcessed} requests:\n${messages.join('\n')}`
     
-    console.log(`✅ [MULTI-COMMAND] Processed ${results.length} of ${segments.length} segments`)
+    console.log(`✅ [MULTI-COMMAND] Processed ${totalProcessed} of ${segments.length} segments (${results.length} commands, ${queryResults.length} queries)`)
     
     return {
       isCommand: true,
-      action: 'multi_command',
+      action: queryResults.length > 0 && results.length > 0 ? 'mixed_intent' : (queryResults.length > 0 ? 'multi_query' : 'multi_command'),
       message: combinedMessage,
-      results
+      results: results.length > 0 ? results : undefined,
+      queryResults: queryResults.length > 0 ? queryResults : undefined
     }
   }
 

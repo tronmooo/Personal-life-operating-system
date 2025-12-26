@@ -366,6 +366,7 @@ export const DOMAIN_CONFIGS: Record<Domain, DomainConfig> = {
       { name: 'protein', label: 'Protein (g)', type: 'number' },
       { name: 'carbs', label: 'Carbs (g)', type: 'number' },
       { name: 'fat', label: 'Fat (g)', type: 'number' },
+      { name: 'sugar', label: 'Sugar (g)', type: 'number' },
     ],
   },
   services: {

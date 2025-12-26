@@ -27,6 +27,7 @@ interface NutritionGoals {
   carbs: number
   fats: number
   fiber: number
+  sugar: number
   water: number
 }
 
@@ -39,10 +40,12 @@ interface DayData {
   carbs: number
   fats: number
   fiber: number
+  sugar: number
   water: number
   calorieGoal: number
   proteinGoal: number
   carbsGoal: number
+  sugarGoal: number
   waterGoal: number
   hasData: boolean
 }
@@ -93,10 +96,11 @@ export function DashboardView() {
         carbs: Number(goalsItem.metadata.carbsGoal) || 250,
         fats: Number(goalsItem.metadata.fatsGoal) || 65,
         fiber: Number(goalsItem.metadata.fiberGoal) || 30,
+        sugar: Number(goalsItem.metadata.sugarGoal) || 50,
         water: Number(goalsItem.metadata.waterGoal) || 64,
       }
     }
-    return { calories: 2000, protein: 150, carbs: 250, fats: 65, fiber: 30, water: 64 }
+    return { calories: 2000, protein: 150, carbs: 250, fats: 65, fiber: 30, sugar: 50, water: 64 }
   }, [nutritionData])
 
   // Calculate today's totals
@@ -146,10 +150,11 @@ export function DashboardView() {
         carbs: totals.carbs + (Number(metadata.carbs) || 0),
         fats: totals.fats + (Number(metadata.fats) || 0),
         fiber: totals.fiber + (Number(metadata.fiber) || 0),
+        sugar: totals.sugar + (Number(metadata.sugar) || 0),
         water: totals.water + waterAmount,
         meals: totals.meals + (isMealEntry ? 1 : 0)
       }
-    }, { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, water: 0, meals: 0 })
+    }, { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, water: 0, meals: 0 })
   }, [nutritionData])
 
   // Generate historical data for charts based on period
@@ -199,9 +204,10 @@ export function DashboardView() {
           carbs: totals.carbs + (Number(metadata.carbs) || 0),
           fats: totals.fats + (Number(metadata.fats) || 0),
           fiber: totals.fiber + (Number(metadata.fiber) || 0),
+          sugar: totals.sugar + (Number(metadata.sugar) || 0),
           water: totals.water + waterAmount,
         }
-      }, { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, water: 0 })
+      }, { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, water: 0 })
 
       data.push({
         date: dateStr,
@@ -213,6 +219,7 @@ export function DashboardView() {
         calorieGoal: goals.calories,
         proteinGoal: goals.protein,
         carbsGoal: goals.carbs,
+        sugarGoal: goals.sugar,
         waterGoal: goals.water,
         hasData: dayTotals.calories > 0 || dayTotals.water > 0,
       })
@@ -232,8 +239,9 @@ export function DashboardView() {
       carbs: acc.carbs + day.carbs,
       fats: acc.fats + day.fats,
       fiber: acc.fiber + day.fiber,
+      sugar: acc.sugar + day.sugar,
       water: acc.water + day.water,
-    }), { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, water: 0 })
+    }), { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, water: 0 })
 
     // Calculate streak
     let streak = 0
@@ -245,6 +253,7 @@ export function DashboardView() {
     // Count goal achievements
     const calorieGoalDays = daysWithData.filter(d => d.calories >= goals.calories * 0.8 && d.calories <= goals.calories * 1.2).length
     const proteinGoalDays = daysWithData.filter(d => d.protein >= goals.protein * 0.9).length
+    const sugarGoalDays = daysWithData.filter(d => d.sugar <= goals.sugar).length
     const waterGoalDays = daysWithData.filter(d => d.water >= goals.water * 0.9).length
 
     return {
@@ -253,14 +262,17 @@ export function DashboardView() {
       avgCarbs: Math.round(totals.carbs / count),
       avgFats: Math.round(totals.fats / count),
       avgFiber: Math.round(totals.fiber / count),
+      avgSugar: Math.round(totals.sugar / count),
       avgWater: Math.round(totals.water / count),
       totalCalories: totals.calories,
+      totalSugar: totals.sugar,
       totalWater: totals.water,
       daysTracked: daysWithData.length,
       totalDays: periodData.length,
       streak,
       calorieGoalDays,
       proteinGoalDays,
+      sugarGoalDays,
       waterGoalDays,
       bestDay: daysWithData.reduce((best, day) =>
         day.protein > (best?.protein || 0) ? day : best, daysWithData[0]),

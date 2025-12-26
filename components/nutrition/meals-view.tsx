@@ -23,6 +23,7 @@ interface Meal {
   carbs: number
   fats: number
   fiber: number
+  sugar: number
   photo?: string | null
   createdAt: string
 }
@@ -74,7 +75,8 @@ export function MealsView() {
     protein: '',
     carbs: '',
     fats: '',
-    fiber: ''
+    fiber: '',
+    sugar: ''
   })
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -83,7 +85,8 @@ export function MealsView() {
     protein: '',
     carbs: '',
     fats: '',
-    fiber: ''
+    fiber: '',
+    sugar: ''
   })
 
   // Parse macros from arbitrary text (OCR from receipts/PDF)
@@ -98,6 +101,7 @@ export function MealsView() {
       carbs: findNum(/(\d+(?:\.\d+)?)\s*g\s*carb/i),
       fats: findNum(/(\d+(?:\.\d+)?)\s*g\s*(?:fat|fats)/i),
       fiber: findNum(/(\d+(?:\.\d+)?)\s*g\s*fiber/i),
+      sugar: findNum(/(\d+(?:\.\d+)?)\s*g\s*sugar/i),
     }
   }
 
@@ -119,6 +123,7 @@ export function MealsView() {
         carbs: Number(item.metadata?.carbs || 0),
         fats: Number(item.metadata?.fats || 0),
         fiber: Number(item.metadata?.fiber || 0),
+        sugar: Number(item.metadata?.sugar || 0),
         photo: (item.metadata?.attachedDocument as any)?.url || item.metadata?.imageUrl || null,
         createdAt: item.createdAt
       }))
@@ -203,8 +208,9 @@ export function MealsView() {
       carbs: acc.carbs + meal.carbs,
       fats: acc.fats + meal.fats,
       fiber: acc.fiber + meal.fiber,
+      sugar: acc.sugar + meal.sugar,
       count: acc.count + 1
-    }), { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, count: 0 })
+    }), { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, count: 0 })
   }, [filteredMeals])
 
   const toggleDayExpansion = (dateKey: string) => {
@@ -229,8 +235,9 @@ export function MealsView() {
     const carbs = parseFloat(formData.carbs)
     const fats = parseFloat(formData.fats)
     const fiber = parseFloat(formData.fiber)
+    const sugar = parseFloat(formData.sugar)
 
-    const nonNegative = [calories, protein, carbs, fats, fiber].every(v => (
+    const nonNegative = [calories, protein, carbs, fats, fiber, sugar].every(v => (
       isNaN(v) || v >= 0
     ))
     if (!nonNegative) {
@@ -248,13 +255,14 @@ export function MealsView() {
       carbs: isNaN(carbs) ? 0 : carbs,
       fats: isNaN(fats) ? 0 : fats,
       fiber: isNaN(fiber) ? 0 : fiber,
+      sugar: isNaN(sugar) ? 0 : sugar,
       createdAt: new Date().toISOString()
     }
 
     try {
       await addData('nutrition', {
         title: `${newMeal.mealType}: ${newMeal.name}`,
-        description: `${newMeal.calories} cal | P ${newMeal.protein} / C ${newMeal.carbs} / F ${newMeal.fats}`,
+        description: `${newMeal.calories} cal | P ${newMeal.protein} / C ${newMeal.carbs} / F ${newMeal.fats} / S ${newMeal.sugar}`,
         metadata: {
           type: 'meal',
           mealType: newMeal.mealType,
@@ -265,10 +273,11 @@ export function MealsView() {
           carbs: newMeal.carbs,
           fats: newMeal.fats,
           fiber: newMeal.fiber,
+          sugar: newMeal.sugar,
           logType: 'meal'
         }
       })
-      setFormData({ name: '', mealType: 'Lunch', calories: '', protein: '', carbs: '', fats: '', fiber: '' })
+      setFormData({ name: '', mealType: 'Lunch', calories: '', protein: '', carbs: '', fats: '', fiber: '', sugar: '' })
       setShowAddDialog(false)
       setShowMethodDialog(false)
     } catch (error) {
@@ -303,7 +312,8 @@ export function MealsView() {
       protein: String(meal.protein),
       carbs: String(meal.carbs),
       fats: String(meal.fats),
-      fiber: String(meal.fiber)
+      fiber: String(meal.fiber),
+      sugar: String(meal.sugar)
     })
     setShowEditDialog(true)
   }
@@ -325,7 +335,8 @@ export function MealsView() {
           protein: Number(editFormData.protein) || 0,
           carbs: Number(editFormData.carbs) || 0,
           fats: Number(editFormData.fats) || 0,
-          fiber: Number(editFormData.fiber) || 0
+          fiber: Number(editFormData.fiber) || 0,
+          sugar: Number(editFormData.sugar) || 0
         }
       })
       setShowEditDialog(false)
@@ -344,20 +355,21 @@ export function MealsView() {
     const carbs = ai?.nutrition?.carbs ?? parsed.carbs ?? 0
     const fats = ai?.nutrition?.fat ?? parsed.fats ?? 0
     const fiber = ai?.nutrition?.fiber ?? parsed.fiber ?? 0
+    const sugar = ai?.nutrition?.sugar ?? parsed.sugar ?? 0
     const foods = Array.isArray(ai?.foods) && ai.foods.length > 0
       ? ai.foods.map((f: any) => f.name).join(', ')
       : (doc.extractedText?.split('\n')[0] || doc.name)
 
     await addData('nutrition', {
       title: `Meal from ${doc.name}`,
-      description: `${calories} cal | P ${protein} / C ${carbs} / F ${fats}`,
+      description: `${calories} cal | P ${protein} / C ${carbs} / F ${fats} / S ${sugar}`,
       metadata: {
         type: 'meal',
         logType: 'meal',
         mealType: 'Other',
         name: foods,
         time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        calories, protein, carbs, fats, fiber,
+        calories, protein, carbs, fats, fiber, sugar,
         attachedDocument: {
           id: doc.id,
           name: doc.name,
@@ -430,7 +442,7 @@ export function MealsView() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-4 gap-2 ${compact ? 'text-sm' : ''}`}>
+      <div className={`grid grid-cols-5 gap-2 ${compact ? 'text-sm' : ''}`}>
         <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
           <p className={`font-bold text-blue-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.protein}g</p>
           <p className="text-xs text-muted-foreground">Protein</p>
@@ -447,12 +459,16 @@ export function MealsView() {
           <p className={`font-bold text-purple-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.fiber}g</p>
           <p className="text-xs text-muted-foreground">Fiber</p>
         </div>
+        <div className="text-center p-2 bg-pink-50 dark:bg-pink-900/30 rounded-lg">
+          <p className={`font-bold text-pink-600 ${compact ? 'text-lg' : 'text-xl'}`}>{meal.sugar}g</p>
+          <p className="text-xs text-muted-foreground">Sugar</p>
+        </div>
       </div>
     </Card>
   )
 
   const renderTableView = () => (
-    <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-md">
+    <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-md overflow-x-auto">
       <table className="w-full">
         <thead className="bg-slate-100 dark:bg-slate-700">
           <tr>
@@ -463,6 +479,7 @@ export function MealsView() {
             <th className="text-right p-4 font-semibold">Carbs</th>
             <th className="text-right p-4 font-semibold">Fats</th>
             <th className="text-right p-4 font-semibold">Fiber</th>
+            <th className="text-right p-4 font-semibold">Sugar</th>
             <th className="text-center p-4 font-semibold">Actions</th>
           </tr>
         </thead>
@@ -490,6 +507,7 @@ export function MealsView() {
               <td className="p-4 text-right text-green-600">{meal.carbs}g</td>
               <td className="p-4 text-right text-orange-600">{meal.fats}g</td>
               <td className="p-4 text-right text-purple-600">{meal.fiber}g</td>
+              <td className="p-4 text-right text-pink-600">{meal.sugar}g</td>
               <td className="p-4 text-center">
                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(meal)} className="text-blue-600">
                   <Edit className="h-4 w-4" />
@@ -509,6 +527,7 @@ export function MealsView() {
             <td className="p-4 text-right text-green-600">{totals.carbs}g</td>
             <td className="p-4 text-right text-orange-600">{totals.fats}g</td>
             <td className="p-4 text-right text-purple-600">{totals.fiber}g</td>
+            <td className="p-4 text-right text-pink-600">{totals.sugar}g</td>
             <td></td>
           </tr>
         </tfoot>
@@ -718,6 +737,16 @@ export function MealsView() {
                   placeholder="8"
                 />
               </div>
+
+              <div>
+                <Label>Sugar (g)</Label>
+                <Input
+                  type="number"
+                  value={formData.sugar}
+                  onChange={(e) => setFormData({ ...formData, sugar: e.target.value })}
+                  placeholder="12"
+                />
+              </div>
             </div>
 
             <Button type="submit" className="w-full bg-gradient-to-r from-green-600 to-teal-600">
@@ -810,6 +839,16 @@ export function MealsView() {
                   value={editFormData.fiber}
                   onChange={(e) => setEditFormData({ ...editFormData, fiber: e.target.value })}
                   placeholder="8"
+                />
+              </div>
+
+              <div>
+                <Label>Sugar (g)</Label>
+                <Input
+                  type="number"
+                  value={editFormData.sugar}
+                  onChange={(e) => setEditFormData({ ...editFormData, sugar: e.target.value })}
+                  placeholder="12"
                 />
               </div>
             </div>
@@ -979,7 +1018,7 @@ export function MealsView() {
               </h3>
               <p className="text-3xl font-bold">{totals.count} meal{totals.count !== 1 ? 's' : ''}</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
               <div className="bg-white/20 rounded-lg p-3">
                 <p className="text-2xl font-bold">{totals.calories}</p>
                 <p className="text-xs opacity-80">Calories</p>
@@ -995,6 +1034,10 @@ export function MealsView() {
               <div className="bg-white/20 rounded-lg p-3">
                 <p className="text-2xl font-bold">{totals.fats}g</p>
                 <p className="text-xs opacity-80">Fats</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-3">
+                <p className="text-2xl font-bold">{totals.sugar}g</p>
+                <p className="text-xs opacity-80">Sugar</p>
               </div>
             </div>
           </div>

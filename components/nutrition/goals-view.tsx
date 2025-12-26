@@ -30,6 +30,7 @@ export function GoalsView() {
         carbsGoal: Number(meta.carbsGoal ?? 250),
         fatsGoal: Number(meta.fatsGoal ?? 65),
         fiberGoal: Number(meta.fiberGoal ?? 30),
+        sugarGoal: Number(meta.sugarGoal ?? 50),
         waterGoal: Number(meta.waterGoal ?? 64),
       }
     }
@@ -41,6 +42,7 @@ export function GoalsView() {
       carbsGoal: 250,
       fatsGoal: 65,
       fiberGoal: 30,
+      sugarGoal: 50,
       waterGoal: 64,
     }
   }, [nutritionData])
@@ -56,7 +58,7 @@ export function GoalsView() {
     try {
       const goalData = {
         title: 'Nutrition Goals',
-        description: `Daily targets: ${formData.caloriesGoal} cal, ${formData.proteinGoal}g protein, ${formData.waterGoal}oz water`,
+        description: `Daily targets: ${formData.caloriesGoal} cal, ${formData.proteinGoal}g protein, <${formData.sugarGoal}g sugar, ${formData.waterGoal}oz water`,
         metadata: {
           itemType: 'nutrition-goals',
           type: 'nutrition-goals',
@@ -65,6 +67,7 @@ export function GoalsView() {
           carbsGoal: formData.carbsGoal,
           fatsGoal: formData.fatsGoal,
           fiberGoal: formData.fiberGoal,
+          sugarGoal: formData.sugarGoal,
           waterGoal: formData.waterGoal,
         }
       }
@@ -224,6 +227,28 @@ export function GoalsView() {
                 <div className="h-12 px-4 flex items-center bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                   <span className="text-2xl font-bold text-purple-600">{formData.fiberGoal}</span>
                   <span className="ml-2 text-muted-foreground">g/day</span>
+                </div>
+              )}
+            </div>
+
+            {/* Sugar */}
+            <div>
+              <Label htmlFor="sugar" className="text-lg font-semibold mb-2 block">
+                Sugar (g) - Max
+              </Label>
+              {isEditing ? (
+                <Input
+                  id="sugar"
+                  type="number"
+                  value={formData.sugarGoal}
+                  onChange={(e) => setFormData({ ...formData, sugarGoal: parseInt(e.target.value) || 0 })}
+                  className="h-12 text-lg"
+                  min="0"
+                />
+              ) : (
+                <div className="h-12 px-4 flex items-center bg-pink-50 dark:bg-pink-900/20 rounded-lg">
+                  <span className="text-2xl font-bold text-pink-600">{formData.sugarGoal}</span>
+                  <span className="ml-2 text-muted-foreground">g/day max</span>
                 </div>
               )}
             </div>

@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, User, Settings as SettingsIcon, LogOut, Camera, Trash2, Check, ArrowLeft, LayoutGrid, Palette, Bell, Database } from 'lucide-react'
+import { Users, User, Settings as SettingsIcon, LogOut, Camera, Trash2, Check, ArrowLeft, LayoutGrid, Palette, Bell, Database, Shield, Fingerprint } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DashboardTab } from '@/components/settings/dashboard-tab'
 import { AppearanceTab } from '@/components/settings/appearance-tab'
 import { NotificationsTab } from '@/components/settings/notifications-tab'
 import { DataTab } from '@/components/settings/data-tab'
+import { PasskeySettings } from '@/components/auth/passkey-settings'
 import { getUserSettings, updateUserSettings } from '@/lib/supabase/user-settings'
 
 interface Person {
@@ -163,10 +164,14 @@ export default function SettingsPage() {
 
       <div className="max-w-7xl mx-auto p-6">
         <Tabs defaultValue="profiles" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
             <TabsTrigger value="profiles" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Profiles</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Fingerprint className="w-4 h-4" />
+              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutGrid className="w-4 h-4" />
@@ -380,6 +385,46 @@ export default function SettingsPage() {
 
             <div className="text-center text-sm text-muted-foreground py-4">
               <p>{people.length} person{people.length !== 1 ? 's' : ''}</p>
+            </div>
+          </TabsContent>
+
+          {/* Security Tab - Face ID / Touch ID */}
+          <TabsContent value="security" className="space-y-6">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Shield className="w-6 h-6 text-green-600" />
+                  Security
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  Manage your security settings including Face ID and Touch ID
+                </p>
+              </div>
+              
+              {/* Passkey / Face ID Settings */}
+              <PasskeySettings />
+              
+              {/* Additional security info */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="text-lg">About Passkeys</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Passkeys are a more secure and convenient way to sign in. They use your device's 
+                    built-in biometrics like Face ID on iPhone or Touch ID on Mac.
+                  </p>
+                  <p>
+                    Once set up, you can sign in instantly without typing your password.
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 mt-3">
+                    <li><strong>iPhone/iPad:</strong> Uses Face ID or Touch ID</li>
+                    <li><strong>Mac:</strong> Uses Touch ID</li>
+                    <li><strong>Windows:</strong> Uses Windows Hello</li>
+                    <li><strong>Android:</strong> Uses fingerprint or face unlock</li>
+                  </ul>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 

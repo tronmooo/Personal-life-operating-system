@@ -225,10 +225,18 @@ export interface NutritionDomainMetadata {
   date?: string
   calories?: number | string
   protein?: number | string
+  carbs?: number | string
+  fats?: number | string
+  fiber?: number | string
+  sugar?: number | string
   water?: number | string
   goals?: {
     caloriesGoal?: number | string
     proteinGoal?: number | string
+    carbsGoal?: number | string
+    fatsGoal?: number | string
+    fiberGoal?: number | string
+    sugarGoal?: number | string
     waterGoal?: number | string
     [key: string]: unknown
   }
