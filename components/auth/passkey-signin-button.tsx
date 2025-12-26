@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import { usePasskeys } from '@/lib/hooks/use-passkeys'
 import { Button } from '@/components/ui/button'
-import { Fingerprint, Loader2 } from 'lucide-react'
+import { Fingerprint, Loader2, AlertCircle } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface PasskeySignInButtonProps {
   className?: string
   email?: string
   onError?: (error: string) => void
   onSuccess?: () => void
+  showAlways?: boolean // Show button even if device doesn't support Face ID
 }
 
 export function PasskeySignInButton({ 
@@ -19,6 +21,7 @@ export function PasskeySignInButton({
   email,
   onError,
   onSuccess,
+  showAlways = true, // Default to always showing the button
 }: PasskeySignInButtonProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -31,9 +34,10 @@ export function PasskeySignInButton({
   } = usePasskeys()
 
   const [completing, setCompleting] = useState(false)
+  const isBiometricsAvailable = isSupported && isPlatformAuthenticatorAvailable
 
-  // Only show if device supports passkeys
-  if (!isSupported || !isPlatformAuthenticatorAvailable) {
+  // Hide if device doesn't support passkeys (unless showAlways is true)
+  if (!showAlways && !isBiometricsAvailable) {
     return null
   }
 
@@ -73,6 +77,35 @@ export function PasskeySignInButton({
   }
 
   const isLoading = authenticating || completing
+
+  // If biometrics not available, show disabled button with tooltip
+  if (!isBiometricsAvailable) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={className}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full opacity-50 cursor-not-allowed"
+                disabled
+              >
+                <Fingerprint className="mr-2 h-4 w-4" />
+                Sign in with Face ID
+              </Button>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Face ID is only available on supported devices (iPhone, Mac with Touch ID)
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
 
   return (
     <Button
