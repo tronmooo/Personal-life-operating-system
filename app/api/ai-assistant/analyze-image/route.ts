@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { createServerClient, getSupabaseAdmin } from '@/lib/supabase/server'
 import * as AI from '@/lib/services/ai-service'
 import { randomUUID } from 'crypto'
 import { GoogleDriveService } from '@/lib/integrations/google-drive'
-import { getGoogleTokens, getValidGoogleToken } from '@/lib/google-auth'
+import { getGoogleTokens } from '@/lib/auth/get-google-tokens'
+import { getValidGoogleToken } from '@/lib/auth/refresh-google-token'
 
 export async function POST(request: NextRequest) {
   try {
