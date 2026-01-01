@@ -172,6 +172,69 @@ async function createGoogleCalendarEvent(
 }
 
 /**
+ * FULL NUTRITION ESTIMATION - Estimates calories AND macros from food description
+ * Used when user doesn't provide any nutritional info
+ */
+async function estimateFullNutrition(mealName: string): Promise<{
+  calories: number
+  protein: number
+  carbs: number
+  fats: number
+  fiber: number
+}> {
+  const openAIKey = process.env.OPENAI_API_KEY
+  
+  if (!openAIKey) {
+    // Fallback: estimate based on common foods
+    return { calories: 400, protein: 25, carbs: 40, fats: 15, fiber: 5 }
+  }
+
+  try {
+    console.log(`🥗 [MULTI-ENTRY] Estimating FULL nutrition for: ${mealName}`)
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a nutrition expert. Estimate calories and macronutrients for meals.
+Return ONLY a JSON object: {"calories": <number>, "protein": <g>, "carbs": <g>, "fats": <g>, "fiber": <g>}
+Use typical restaurant portion sizes. Be accurate based on the food description.
+Return ONLY valid JSON, no explanations.`
+          },
+          { role: 'user', content: `Estimate nutrition for: ${mealName}` }
+        ],
+        temperature: 0.3,
+        max_tokens: 150,
+      }),
+    })
+
+    if (!response.ok) throw new Error('API failed')
+
+    const data = await response.json()
+    const nutrition = JSON.parse(data.choices[0]?.message?.content?.trim() || '{}')
+    console.log(`✅ [MULTI-ENTRY] Full nutrition estimated:`, nutrition)
+    
+    return {
+      calories: Math.round(Number(nutrition.calories) || 400),
+      protein: Math.round(Number(nutrition.protein) || 25),
+      carbs: Math.round(Number(nutrition.carbs) || 40),
+      fats: Math.round(Number(nutrition.fats) || 15),
+      fiber: Math.round(Number(nutrition.fiber) || 5)
+    }
+  } catch (error) {
+    console.error('❌ [MULTI-ENTRY] Full nutrition estimation failed:', error)
+    return { calories: 400, protein: 25, carbs: 40, fats: 15, fiber: 5 }
+  }
+}
+
+/**
  * Estimate macros (protein, carbs, fats, fiber) for a meal using AI
  */
 async function estimateMealMacros(mealName: string, calories: number): Promise<{
@@ -265,13 +328,25 @@ Return ONLY valid JSON, no explanations.`
   }
 }
 
+// User time info from client for accurate meal type detection
+interface UserTimeInfo {
+  localTime?: string
+  localHour?: number
+  timezone?: string
+  timestamp?: string
+}
+
 /**
  * Multi-Entity Data Entry API
  * Extracts and saves multiple data points from natural language input
  */
 export async function POST(request: NextRequest) {
   try {
-    const { message, userContext } = await request.json()
+    const { message, userContext, userTime } = await request.json() as { 
+      message: string
+      userContext?: any
+      userTime?: UserTimeInfo 
+    }
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -402,31 +477,62 @@ export async function POST(request: NextRequest) {
         // Normalize entity data to match what the UI expects
         const normalizedData: Record<string, any> = { ...entity.data }
         
-        // NUTRITION MEALS: Ensure proper type and logType fields + estimate macros
-        if (entity.domain === 'nutrition' && (normalizedData.itemType === 'meal' || normalizedData.mealType)) {
+        // NUTRITION MEALS: Ensure proper type and logType fields + estimate nutrition
+        if (entity.domain === 'nutrition' && (normalizedData.itemType === 'meal' || normalizedData.mealType || normalizedData.food || normalizedData.description)) {
           normalizedData.type = 'meal'
           normalizedData.logType = 'meal'
-          normalizedData.name = normalizedData.name || normalizedData.description || entity.title?.replace(/\s*\(.*?\)\s*$/, '') || 'Meal'
-          normalizedData.calories = Number(normalizedData.calories) || 0
-          normalizedData.time = normalizedData.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-          delete normalizedData.itemType  // Remove non-standard field
+          const mealName = normalizedData.name || normalizedData.food || normalizedData.description || entity.title?.replace(/\s*\(.*?\)\s*$/, '') || 'Meal'
+          normalizedData.name = mealName
           
-          // AI-estimate macros if not provided or all zeros
+          // Use client-provided time if available, otherwise fallback to server time
+          const userLocalTime = userTime?.localTime || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          const userHour = userTime?.localHour ?? new Date().getHours()
+          normalizedData.time = normalizedData.time || userLocalTime
+          
+          console.log(`🕐 [MULTI-ENTRY] Using hour: ${userHour} (user timezone: ${userTime?.timezone || 'server default'})`)
+          
+          // Auto-detect meal type based on USER's local time (if provided)
+          if (!normalizedData.mealType) {
+            if (userHour >= 5 && userHour < 11) normalizedData.mealType = 'Breakfast'
+            else if (userHour >= 11 && userHour < 15) normalizedData.mealType = 'Lunch'
+            else if (userHour >= 15 && userHour < 22) normalizedData.mealType = 'Dinner'
+            else normalizedData.mealType = 'Snack'
+            console.log(`🍽️ [MULTI-ENTRY] Auto-detected meal type: ${normalizedData.mealType} (based on user hour ${userHour})`)
+          }
+          
+          delete normalizedData.itemType  // Remove non-standard field
+          delete normalizedData.food  // Clean up extraction field
+          
+          // Check if any nutrition info was provided
+          let calories = Number(normalizedData.calories) || 0
           const hasMacros = (Number(normalizedData.protein) > 0 || 
                            Number(normalizedData.carbs) > 0 || 
                            Number(normalizedData.fats) > 0)
           
-          if (!hasMacros && normalizedData.calories > 0) {
-            console.log(`🧠 [MULTI-ENTRY] No macros provided, estimating with AI...`)
-            const estimatedMacros = await estimateMealMacros(
-              String(normalizedData.name), 
-              normalizedData.calories
-            )
+          // 🔧 FIX: If NO calories AND NO macros provided, estimate FULL nutrition from food name
+          if (calories === 0 && !hasMacros && mealName !== 'Meal') {
+            console.log(`🧠 [MULTI-ENTRY] No nutrition provided, estimating FULL nutrition for "${mealName}"...`)
+            const estimated = await estimateFullNutrition(mealName)
+            normalizedData.calories = estimated.calories
+            normalizedData.protein = estimated.protein
+            normalizedData.carbs = estimated.carbs
+            normalizedData.fats = estimated.fats
+            normalizedData.fiber = estimated.fiber
+            console.log(`✅ [MULTI-ENTRY] Estimated: ${estimated.calories} cal, ${estimated.protein}g P, ${estimated.carbs}g C, ${estimated.fats}g F`)
+          } 
+          // If calories provided but no macros, estimate macros only
+          else if (!hasMacros && calories > 0) {
+            console.log(`🧠 [MULTI-ENTRY] Estimating macros for ${mealName} (${calories} cal)...`)
+            const estimatedMacros = await estimateMealMacros(mealName, calories)
+            normalizedData.calories = calories
             normalizedData.protein = estimatedMacros.protein
             normalizedData.carbs = estimatedMacros.carbs
             normalizedData.fats = estimatedMacros.fats
             normalizedData.fiber = estimatedMacros.fiber
-          } else {
+          } 
+          // User provided macros, use them
+          else {
+            normalizedData.calories = calories
             normalizedData.protein = Number(normalizedData.protein) || 0
             normalizedData.carbs = Number(normalizedData.carbs) || 0
             normalizedData.fats = Number(normalizedData.fats) || 0

@@ -230,6 +230,15 @@ export function AIChatInterfaceEnhanced() {
     try {
       console.log('🤖 Sending message to AI Assistant:', userInput)
       
+      // Get user's local time and timezone for accurate meal type detection
+      const now = new Date()
+      const userTimeInfo = {
+        localTime: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        localHour: now.getHours(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timestamp: now.toISOString()
+      }
+      
       // Send to AI Assistant API
       const response = await fetch('/api/ai-assistant/chat', {
         method: 'POST',
@@ -240,7 +249,8 @@ export function AIChatInterfaceEnhanced() {
           conversationHistory: messages.map(m => ({
             role: m.role,
             content: m.content
-          }))
+          })),
+          userTime: userTimeInfo
         })
       })
 

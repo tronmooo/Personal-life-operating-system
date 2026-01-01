@@ -1749,26 +1749,42 @@ export default function DomainsPage() {
   }, [isLoading, isLoaded, data, activeDomains, refreshKey])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <main className="min-h-screen bg-mesh-gradient">
       <div className="container mx-auto p-4 md:p-8 space-y-8">
+        {/* Page Header */}
+        <div className="text-center space-y-4 animate-fade-in-up">
+          <h1 className="text-4xl md:text-5xl font-display font-bold gradient-text">
+            Your Life Domains
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Track and manage all aspects of your life in one place. Each domain helps you stay organized and informed.
+          </p>
+        </div>
+        
         {/* Loading state indicator */}
         {isLoading && (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-3 text-muted-foreground">Loading your data...</span>
+            <div className="relative">
+              <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-transparent border-t-accent/50 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+            </div>
+            <span className="ml-4 text-muted-foreground font-medium">Loading your data...</span>
           </div>
         )}
         
         {/* Filter & View Mode */}
-        <div className="flex justify-center items-center gap-4 pt-4">
-          <div className="flex gap-2">
+        <div className="flex justify-center items-center gap-4 pt-4 animate-fade-in-up animate-delay-100">
+          <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border/50">
             {FILTER_OPTIONS.map((f) => (
               <Button
                 key={f}
-                variant={filter === f ? 'default' : 'outline'}
+                variant={filter === f ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setFilter(f)}
-                className="capitalize"
+                className={cn(
+                  "capitalize rounded-lg transition-all duration-300",
+                  filter === f && "shadow-sm"
+                )}
               >
                 {f}
               </Button>
@@ -1776,12 +1792,12 @@ export default function DomainsPage() {
           </div>
           
           {/* View Mode Toggle */}
-          <div className="flex gap-1 border rounded-md p-1">
+          <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border/50">
             <Button
               variant={viewMode === 'table' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => { setViewMode('table'); setHasUserChosenView(true) }}
-              className="h-8 px-3 text-xs"
+              className="h-8 px-3 text-xs rounded-lg"
             >
               <List className="h-4 w-4 mr-1" />
               Table
@@ -1790,7 +1806,7 @@ export default function DomainsPage() {
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => { setViewMode('grid'); setHasUserChosenView(true) }}
-              className="h-8 px-3 text-xs"
+              className="h-8 px-3 text-xs rounded-lg"
             >
               <Grid3x3 className="h-4 w-4 mr-1" />
               Cards
@@ -1962,65 +1978,77 @@ export default function DomainsPage() {
           </>
         )}
 
-        {/* Grid View (existing) */}
+        {/* Grid View (enhanced) */}
         {viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredDomains.map(domain => {
+            {filteredDomains.map((domain, index) => {
               const Icon = domain.icon
               const isActive = domain.itemCount > 0
               
               return (
                 <Link key={domain.id} href={domain.id === 'financial' ? '/finance' : domain.id === 'health' ? '/health' : `/domains/${domain.id}`}>
-                  <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer border-2 ${
-                    isActive ? 'border-transparent' : 'border-dashed'
-                  }`}>
-                    <div className={`absolute inset-0 bg-gradient-to-br ${domain.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+                  <Card 
+                    variant="interactive"
+                    className={cn(
+                      "group relative overflow-hidden cursor-pointer animate-stagger animate-fade-in-up",
+                      !isActive && "border-dashed opacity-75 hover:opacity-100"
+                    )}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    {/* Gradient overlay on hover */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${domain.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
                     
-                    <CardHeader className="relative">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${domain.gradient} shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
+                    {/* Glow effect on hover */}
+                    <div className={`absolute -inset-1 bg-gradient-to-br ${domain.gradient} opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10`} />
+                    
+                    <CardHeader className="relative pb-3">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`relative p-3 rounded-2xl bg-gradient-to-br ${domain.gradient} shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
                           <Icon className="h-6 w-6 text-white" />
+                          {isActive && (
+                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-400 rounded-full border-2 border-card" />
+                          )}
                         </div>
                         {domain.hasEnhancedView && (
-                          <Badge variant="secondary" className="gap-1">
-                            <BarChart3 className="h-3 w-3" />
-                            Enhanced
+                          <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-primary/20">
+                            <Sparkles className="h-3 w-3" />
+                            Pro
                           </Badge>
                         )}
                       </div>
                       
-                      <CardTitle className="text-xl">{domain.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <CardTitle className="text-xl font-display group-hover:gradient-text transition-all duration-300">{domain.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                         {domain.description}
                       </p>
                     </CardHeader>
 
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pt-0">
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-xs text-muted-foreground">{domain.kpis.kpi1.label}</div>
-                          <div className="font-bold">{domain.kpis.kpi1.value}</div>
+                        <div className="group/kpi text-center p-3 bg-muted/50 rounded-xl border border-border/50 hover:bg-muted/70 transition-colors">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{domain.kpis.kpi1.label}</div>
+                          <div className="font-bold text-lg font-display">{domain.kpis.kpi1.value}</div>
                         </div>
-                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-xs text-muted-foreground">{domain.kpis.kpi2.label}</div>
-                          <div className="font-bold">{domain.kpis.kpi2.value}</div>
+                        <div className="group/kpi text-center p-3 bg-muted/50 rounded-xl border border-border/50 hover:bg-muted/70 transition-colors">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{domain.kpis.kpi2.label}</div>
+                          <div className="font-bold text-lg font-display">{domain.kpis.kpi2.value}</div>
                         </div>
-                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-xs text-muted-foreground">{domain.kpis.kpi3.label}</div>
-                          <div className="font-bold">{domain.kpis.kpi3.value}</div>
+                        <div className="group/kpi text-center p-3 bg-muted/50 rounded-xl border border-border/50 hover:bg-muted/70 transition-colors">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{domain.kpis.kpi3.label}</div>
+                          <div className="font-bold text-lg font-display">{domain.kpis.kpi3.value}</div>
                         </div>
-                        <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="text-xs text-muted-foreground">{domain.kpis.kpi4.label}</div>
-                          <div className="font-bold">{domain.kpis.kpi4.value}</div>
+                        <div className="group/kpi text-center p-3 bg-muted/50 rounded-xl border border-border/50 hover:bg-muted/70 transition-colors">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{domain.kpis.kpi4.label}</div>
+                          <div className="font-bold text-lg font-display">{domain.kpis.kpi4.value}</div>
                         </div>
                       </div>
 
                       <Button 
-                        className={`w-full bg-gradient-to-r ${domain.gradient} hover:opacity-90 text-white border-0 group-hover:shadow-lg transition-shadow`}
+                        className={`w-full bg-gradient-to-r ${domain.gradient} hover:opacity-90 text-white border-0 shadow-md group-hover:shadow-xl group-hover:shadow-${domain.gradient.split('-')[1]}/25 transition-all duration-500`}
                         size="sm"
                       >
                         {isActive ? 'View Details' : 'Get Started'}
-                        <Eye className="h-4 w-4 ml-2" />
+                        <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </CardContent>
                   </Card>
@@ -2032,15 +2060,24 @@ export default function DomainsPage() {
 
         {/* Empty State */}
         {filteredDomains.length === 0 && (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
-              <Activity className="h-8 w-8 text-muted-foreground" />
+          <div className="text-center py-20 animate-fade-in-up">
+            <div className="relative inline-flex items-center justify-center mb-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-2xl" />
+              <div className="relative p-6 bg-muted/50 rounded-2xl border border-border/50">
+                <Activity className="h-10 w-10 text-muted-foreground" />
+              </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2">No domains found</h3>
-            <p className="text-muted-foreground mb-4">
-              {filter === 'active' ? 'Start tracking data in a domain to see it here' : 'No inactive domains'}
+            <h3 className="text-2xl font-display font-semibold mb-3">No domains found</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              {filter === 'active' ? 'Start tracking data in a domain to see it here' : 'No inactive domains to display'}
             </p>
-            <Button onClick={() => setFilter('all')}>View All Domains</Button>
+            <Button 
+              onClick={() => setFilter('all')}
+              variant="gradient"
+              size="lg"
+            >
+              View All Domains
+            </Button>
           </div>
         )}
       </div>

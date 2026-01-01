@@ -1,0 +1,648 @@
+🚀 Starting Edge Case Testing Suite
+📋 Testing 100 commands across 8 categories
+================================================================================
+
+🧪 Test #1: ""
+   Category: Edge Case Parsing
+   Expected: Error handling
+   Security checks: {}
+   ✅ PASS (103ms)
+
+🧪 Test #2: "   "
+   Category: Edge Case Parsing
+   Expected: Graceful rejection
+   Security checks: {}
+   ✅ PASS (23ms)
+
+🧪 Test #3: "spent $-50 on groceries"
+   Category: Edge Case Parsing
+   Expected: Reject negative expense
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2975ms)
+
+🧪 Test #4: "weigh 0 pounds"
+   Category: Edge Case Parsing
+   Expected: Reject invalid weight
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2657ms)
+
+🧪 Test #5: "walked 99999999 miles"
+   Category: Edge Case Parsing
+   Expected: Reject unreasonable value
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Check if unreasonable value was flagged
+
+🧪 Test #6: "drank 0.5 oz water"
+   Category: Edge Case Parsing
+   Expected: Handle decimal
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2829ms)
+
+🧪 Test #7: "blood pressure 500/20"
+   Category: Edge Case Parsing
+   Expected: Validate medical ranges
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (4464ms)
+
+🧪 Test #8: "spent $0.001 on coffee"
+   Category: Edge Case Parsing
+   Expected: Handle fractional cents
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #9: "weigh 175pounds"
+   Category: Edge Case Parsing
+   Expected: Parse anyway
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #10: "spent$50on groceries"
+   Category: Edge Case Parsing
+   Expected: Parse anyway
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #11: "I weigh one hundred seventy five pounds"
+   Category: Edge Case Parsing
+   Expected: Word-to-number
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #12: "spent fifty dollars on lunch"
+   Category: Edge Case Parsing
+   Expected: Word-to-number
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #13: "ate 2.5 chicken sandwiches 450cal each"
+   Category: Edge Case Parsing
+   Expected: Multi-item calculation
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #14: "ran 3.14159 miles in 31:41.59"
+   Category: Edge Case Parsing
+   Expected: Precision handling
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #15: ""log water""
+   Category: Edge Case Parsing
+   Expected: Handle quoted text
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Review parsed output for correctness
+
+🧪 Test #16: "weigh 175, ran 3 miles, spent $50, and blood press..."
+   Category: Multi-Intent
+   Expected: 4 entries
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 4 actions, detected ~0
+
+🧪 Test #17: "pull up my license AND log 20oz water"
+   Category: Multi-Intent
+   Expected: Retrieval + Data log
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #18: "add task call doctor and add habit drink water and..."
+   Category: Multi-Intent
+   Expected: 3 different actions
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 3 actions, detected ~0
+
+🧪 Test #19: "interview at Google tomorrow at 2pm and meeting wi..."
+   Category: Multi-Intent
+   Expected: 2 calendar events
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #20: "I weigh 175 lbs, blood pressure 120/80, heart rate..."
+   Category: Multi-Intent
+   Expected: 4 health entries
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 4 actions, detected ~0
+
+🧪 Test #21: "spent $30 at Starbucks and $25 at Target and $15 o..."
+   Category: Multi-Intent
+   Expected: 3 expenses
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 3 actions, detected ~0
+
+🧪 Test #22: "retrieve my insurance, show my vehicle registratio..."
+   Category: Multi-Intent
+   Expected: 3 retrievals
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 3 actions, detected ~0
+
+🧪 Test #23: "delete my last expense and add new expense $50 gro..."
+   Category: Multi-Intent
+   Expected: Delete + Add
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #24: "update my weight to 170 and delete old weight entr..."
+   Category: Multi-Intent
+   Expected: Update + Delete
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #25: "create chart of expenses AND export financial data..."
+   Category: Multi-Intent
+   Expected: Chart + Export
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #26: "go to health page and log weight 175 and show my f..."
+   Category: Multi-Intent
+   Expected: Nav + Log + Query
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 3 actions, detected ~0
+
+🧪 Test #27: "add bill Netflix $15 AND mark Netflix bill as paid"
+   Category: Multi-Intent
+   Expected: Create + Update
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #28: "schedule dentist appointment tomorrow at 10am and ..."
+   Category: Multi-Intent
+   Expected: Event + Task
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #29: "log breakfast eggs 300cal, lunch salad 400cal, din..."
+   Category: Multi-Intent
+   Expected: 3 meals
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 3 actions, detected ~0
+
+🧪 Test #30: "pull up my auto insurance for my toyota and my hea..."
+   Category: Multi-Intent
+   Expected: Multi-doc search
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Expected 2 actions, detected ~0
+
+🧪 Test #31: "add something"
+   Category: Ambiguous
+   Expected: Ask for clarification
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: What would you like to add? Please specify the item or category.
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #32: "log it"
+   Category: Ambiguous
+   Expected: Ask what to log
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: What would you like to log? Please specify the type of data (e.g., health, fitness, nutrition, etc.).
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #33: "175"
+   Category: Ambiguous
+   Expected: Ask for context
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #34: "did a thing"
+   Category: Ambiguous
+   Expected: Ask for details
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: Could you please specify what action you would like to take?
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #35: "spent money"
+   Category: Ambiguous
+   Expected: Ask for amount
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: Could you specify the amount spent and the category of the expense?
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #36: "meeting"
+   Category: Ambiguous
+   Expected: Ask who/when
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #37: "fix my data"
+   Category: Ambiguous
+   Expected: Ask what data
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: What specific data would you like to fix?
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #38: "show me everything"
+   Category: Ambiguous
+   Expected: Too broad
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: Could you specify what you would like to see? (e.g., health data, fitness stats, financial overview)
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #39: "delete all"
+   Category: Ambiguous
+   Expected: Require confirmation
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #40: "update weight"
+   Category: Ambiguous
+   Expected: Ask for value
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: What is the new weight value?
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #41: "more"
+   Category: Ambiguous
+   Expected: Ask for context
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: Could you please specify what you would like to do more of?
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #42: "yes"
+   Category: Ambiguous
+   Expected: Ask what for
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #43: "cancel"
+   Category: Ambiguous
+   Expected: Ignore gracefully
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #44: "undo"
+   Category: Ambiguous
+   Expected: Should undo last action
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #45: "what did I just say"
+   Category: Ambiguous
+   Expected: Recall last command
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Did not ask for clarification (review response)
+
+🧪 Test #46: "paid vet $150 for Buddy's checkup"
+   Category: Domain Routing
+   Expected: → pets domain
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #47: "paid rent $2000"
+   Category: Domain Routing
+   Expected: → home domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #48: "oil change $80"
+   Category: Domain Routing
+   Expected: → vehicles domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: Please specify if you want to log this expense, add it to a budget, or another action.
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #49: "gym membership $50/month"
+   Category: Domain Routing
+   Expected: → fitness? financial?
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #50: "Netflix subscription $15"
+   Category: Domain Routing
+   Expected: → digital domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #51: "bought dog food $40"
+   Category: Domain Routing
+   Expected: → pets domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #52: "health insurance premium $500"
+   Category: Domain Routing
+   Expected: → insurance domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #53: "property tax $3000"
+   Category: Domain Routing
+   Expected: → property/home domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #54: "car registration $150"
+   Category: Domain Routing
+   Expected: → vehicles domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #55: "tutor for math $100/hour"
+   Category: Domain Routing
+   Expected: → education domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #56: "therapy session $200"
+   Category: Domain Routing
+   Expected: → health domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #57: "lawyer consultation $300"
+   Category: Domain Routing
+   Expected: → legal domain
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #58: "meditation app subscription"
+   Category: Domain Routing
+   Expected: → mindfulness? digital?
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: What action would you like to take regarding the meditation app subscription? (e.g., add, update, delete, query)
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #59: "bought wedding ring $5000"
+   Category: Domain Routing
+   Expected: → relationships? miscellaneous?
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #60: "paid brother back $50"
+   Category: Domain Routing
+   Expected: → relationships? financial?
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Domain routing unclear: none detected
+
+🧪 Test #61: "interview at Amazon on 12/25/2025"
+   Category: Date/Time
+   Expected: Parse date correctly
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1674ms)
+
+🧪 Test #62: "meeting tomorrow at noon"
+   Category: Date/Time
+   Expected: 12:00 PM
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1388ms)
+
+🧪 Test #63: "appointment next Tuesday at 3"
+   Category: Date/Time
+   Expected: 3 PM assumed
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2303ms)
+
+🧪 Test #64: "event on Feb 30th"
+   Category: Date/Time
+   Expected: Invalid date error
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1555ms)
+
+🧪 Test #65: "meeting at 25:00"
+   Category: Date/Time
+   Expected: Invalid time error
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   Needs clarification: The time '25:00' is invalid. Please provide a valid time.
+   ✅ PASS (1700ms)
+
+🧪 Test #66: "log weight yesterday"
+   Category: Date/Time
+   Expected: Previous day's date
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2575ms)
+
+🧪 Test #67: "spent $50 last Thursday"
+   Category: Date/Time
+   Expected: Calculate correct date
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2007ms)
+
+🧪 Test #68: "log steps for past week"
+   Category: Date/Time
+   Expected: 7 entries? Query?
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2518ms)
+
+🧪 Test #69: "schedule recurring meeting every Monday at 9am"
+   Category: Date/Time
+   Expected: Recurring event
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1344ms)
+
+🧪 Test #70: "bill due on the 15th of every month"
+   Category: Date/Time
+   Expected: Recurring bill
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1956ms)
+
+🧪 Test #71: "reminder in 2 hours"
+   Category: Date/Time
+   Expected: Relative time handling
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1956ms)
+
+🧪 Test #72: "meeting from 2pm to 4pm"
+   Category: Date/Time
+   Expected: Duration = 2 hours
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1852ms)
+
+🧪 Test #73: "event December 25 2025 at 6:30pm PST"
+   Category: Date/Time
+   Expected: Timezone handling
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2925ms)
+
+🧪 Test #74: "appointment on 2025-12-25"
+   Category: Date/Time
+   Expected: ISO date format
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1405ms)
+
+🧪 Test #75: "something happening in 3 days"
+   Category: Date/Time
+   Expected: Calculate future date
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1658ms)
+
+🧪 Test #76: "delete all my financial data"
+   Category: Destructive
+   Expected: Strong confirmation
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #77: "remove every expense from this year"
+   Category: Destructive
+   Expected: Confirmation + count
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #78: "bulk delete completed tasks older than 30 days"
+   Category: Destructive
+   Expected: Soft delete / archive
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #79: "clear all habits"
+   Category: Destructive
+   Expected: Confirmation required
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #80: "update all expenses to $0"
+   Category: Destructive
+   Expected: Reject dangerous bulk update
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #81: "archive everything in health domain"
+   Category: Destructive
+   Expected: Should work
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #82: "restore archived entries"
+   Category: Destructive
+   Expected: Should list and restore
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #83: "find and merge duplicate expenses"
+   Category: Destructive
+   Expected: Identify + confirm
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #84: "delete the expense I just added"
+   Category: Destructive
+   Expected: Reference "last" entry
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #85: "undo my last delete"
+   Category: Destructive
+   Expected: Restore deleted item
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   🟡 NEEDS REVIEW: Verify destructive operation handling
+
+🧪 Test #86: "log expense <script>alert('xss')</script>"
+   Category: Security
+   Expected: Sanitize HTML
+   ✅ XSS detected and sanitized
+   Security checks: {"hasScript":true,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2004ms)
+
+🧪 Test #87: "add task '; DROP TABLE domain_entries; --"
+   Category: Security
+   Expected: Sanitize SQL
+   ✅ SQL injection pattern detected
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1814ms)
+
+🧪 Test #88: "spent ${{constructor.constructor('return this')()}..."
+   Category: Security
+   Expected: Reject prototype pollution
+   ✅ Prototype pollution pattern detected
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":true,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1132ms)
+
+🧪 Test #89: "log weight ${process.env.SUPABASE_KEY}"
+   Category: Security
+   Expected: Never expose env vars
+   ✅ Env var pattern detected
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":true,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1416ms)
+
+🧪 Test #90: "retrieve ../../../etc/passwd"
+   Category: Security
+   Expected: Path traversal protection
+   ✅ Path traversal pattern detected
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":true,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1718ms)
+
+🧪 Test #91: "navigate to javascript:alert(1)"
+   Category: Security
+   Expected: Reject malicious URL
+   ✅ JavaScript URL detected and sanitized
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":true,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1401ms)
+
+🧪 Test #92: "create entry with very long title aaaaaaaaaaaaaaaa..."
+   Category: Security
+   Expected: Limit input length
+   ✅ Long input handled correctly
+   Security checks: {}
+   ✅ PASS (50ms)
+
+🧪 Test #93: "add task café meeting ☕"
+   Category: Unicode
+   Expected: Handle Unicode
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":true,"hasEmoji":false}
+   ✅ PASS (2967ms)
+
+🧪 Test #94: "spent ¥500 on sushi"
+   Category: Unicode
+   Expected: Currency handling
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":true,"hasEmoji":false}
+   ✅ PASS (2534ms)
+
+🧪 Test #95: "weigh 79.5kg"
+   Category: Unicode
+   Expected: Metric conversion
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (2261ms)
+
+🧪 Test #96: "log meal: 🍕🍕🍕"
+   Category: Unicode
+   Expected: Handle emoji
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":true,"hasEmoji":true}
+   ✅ PASS (2192ms)
+
+🧪 Test #97: "note: "quotes" and 'apostrophes' & ampersands"
+   Category: Unicode
+   Expected: Escape special chars
+   Security checks: {"hasScript":false,"hasSqlInjection":true,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1244ms)
+
+🧪 Test #98: "add habit: ¿Hablar español?"
+   Category: Unicode
+   Expected: Non-ASCII chars
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":true,"hasEmoji":false}
+   ✅ PASS (2411ms)
+
+🧪 Test #99: "log: line1
+line2
+line3"
+   Category: Unicode
+   Expected: Multi-line content
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (3211ms)
+
+🧪 Test #100: "spent $1,000.50 on furniture"
+   Category: Unicode
+   Expected: Handle comma in number
+   Security checks: {"hasScript":false,"hasSqlInjection":false,"hasPrototypePollution":false,"hasEnvVar":false,"hasPathTraversal":false,"hasJavascriptUrl":false,"hasUnicode":false,"hasEmoji":false}
+   ✅ PASS (1952ms)
+
+================================================================================
+📊 TEST SUMMARY
+================================================================================
+
+Total Tests: 100
+✅ Passed: 36 (36.0%)
+❌ Failed: 0 (0.0%)
+⚠️ Errors: 0 (0.0%)
+🟡 Needs Review: 64 (64.0%)
+
+📋 RESULTS BY CATEGORY:
+
+🟡 Edge Case Parsing: 6 pass, 0 fail, 0 error, 9 review
+🟡 Multi-Intent: 0 pass, 0 fail, 0 error, 15 review
+🟡 Ambiguous: 0 pass, 0 fail, 0 error, 15 review
+🟡 Domain Routing: 0 pass, 0 fail, 0 error, 15 review
+✅ Date/Time: 15 pass, 0 fail, 0 error, 0 review
+🟡 Destructive: 0 pass, 0 fail, 0 error, 10 review
+✅ Security: 7 pass, 0 fail, 0 error, 0 review
+✅ Unicode: 8 pass, 0 fail, 0 error, 0 review
+
+⏱️ Average execution time: 2473ms
+
+💾 Full results saved to: EDGE_CASE_TEST_RESULTS.json

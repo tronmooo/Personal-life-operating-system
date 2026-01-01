@@ -132,13 +132,13 @@ export function DomainDataCharts() {
                 return (
                   <div
                     key={date}
-                    className="flex-1 relative group"
+                    className="flex-1 h-full relative group flex items-end"
                   >
-                    {totalCount > 0 && (
+                    {totalCount > 0 ? (
                       <>
                         <div
                           className="w-full bg-gradient-to-t from-blue-500 to-purple-500 rounded-t hover:opacity-80 transition-all cursor-pointer"
-                          style={{ height: `${height}%` }}
+                          style={{ height: `${Math.max(height, 4)}%` }}
                         />
                         {/* Tooltip */}
                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
@@ -155,6 +155,8 @@ export function DomainDataCharts() {
                           )}
                         </div>
                       </>
+                    ) : (
+                      <div className="w-full bg-muted/20 rounded-t" style={{ height: '2%' }} />
                     )}
                   </div>
                 )

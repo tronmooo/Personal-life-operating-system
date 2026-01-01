@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit, DM_Sans } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { MainNav } from '@/components/navigation/main-nav'
@@ -15,7 +15,18 @@ import { BackButtonGuard } from '@/components/ui/back-button-guard'
 import { GuestAwareLayout } from '@/components/layout/guest-aware-layout'
 import { initDevGeolocationStub } from '@/lib/utils/dev-geolocation-stub'
 
-const inter = Inter({ subsets: ['latin'] })
+// Distinctive fonts for a premium feel
+const outfit = Outfit({ 
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
+})
+
+const dmSans = DM_Sans({ 
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'LifeHub - Personal Life Operating System',
@@ -53,8 +64,8 @@ export default function RootLayout({
     }
   }
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} overflow-x-hidden`}>
+    <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${dmSans.variable}`}>
+      <body className={`${dmSans.className} overflow-x-hidden antialiased`}>
         <Providers>
           <div className="min-h-screen flex flex-col overflow-x-hidden max-w-[100vw]">
             <MainNav />

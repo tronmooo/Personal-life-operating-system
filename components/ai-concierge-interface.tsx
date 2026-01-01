@@ -867,6 +867,9 @@ export function AIConciergeInterface({
         addToCallHistory(errorTask)
       }
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ai-concierge-interface.tsx:executeCall_catch',message:'executeCall caught error',data:{errorMessage:error?.message,errorName:error?.name,errorStack:error?.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       toast.error('Error initiating call: ' + error.message)
     }
 

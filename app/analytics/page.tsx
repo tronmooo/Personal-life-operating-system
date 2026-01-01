@@ -318,24 +318,33 @@ export default function AnalyticsPage() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto p-6 space-y-6 animate-fade-in">
+      <div className="container mx-auto px-4 py-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-8 w-8 text-purple-600" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
             Analytics Dashboard
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Comprehensive insights into your life data and usage patterns
           </p>
         </div>
 
         {/* Tabs for different analytics views */}
-        <Tabs defaultValue="comprehensive" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
-            <TabsTrigger value="comprehensive">Comprehensive</TabsTrigger>
-            <TabsTrigger value="domain-data">Domain Overview</TabsTrigger>
-            <TabsTrigger value="usage">Usage Analytics</TabsTrigger>
+        <Tabs defaultValue="comprehensive" className="space-y-4 sm:space-y-6">
+          <TabsList className="flex flex-col sm:flex-row w-full sm:w-auto sm:max-w-2xl gap-1 h-auto p-1">
+            <TabsTrigger value="comprehensive" className="w-full sm:w-auto justify-center px-4 py-2">
+              <span className="sm:hidden">Overview</span>
+              <span className="hidden sm:inline">Comprehensive</span>
+            </TabsTrigger>
+            <TabsTrigger value="domain-data" className="w-full sm:w-auto justify-center px-4 py-2">
+              <span className="sm:hidden">Domains</span>
+              <span className="hidden sm:inline">Domain Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="w-full sm:w-auto justify-center px-4 py-2">
+              <span className="sm:hidden">Usage</span>
+              <span className="hidden sm:inline">Usage Analytics</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Comprehensive Analytics */}

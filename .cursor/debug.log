@@ -1,6 +1,32 @@
-{"location":"ai-concierge-interface.tsx:mount","message":"AIConciergeInterface mounted","data":{"activeTab":"chat","showCallConfirmation":false,"showBusinessPicker":false,"callHistoryLength":0},"timestamp":1766269833924,"sessionId":"debug-session","hypothesisId":"H2"}
-{"location":"ai-concierge-interface.tsx:mount","message":"AIConciergeInterface mounted","data":{"activeTab":"chat","showCallConfirmation":false,"showBusinessPicker":false,"callHistoryLength":0},"timestamp":1766269833934,"sessionId":"debug-session","hypothesisId":"H2"}
-{"location":"ai-concierge-interface.tsx:mount","message":"AIConciergeInterface mounted","data":{"activeTab":"chat","showCallConfirmation":false,"showBusinessPicker":false,"callHistoryLength":0},"timestamp":1766269845083,"sessionId":"debug-session","hypothesisId":"H2"}
-{"location":"ai-concierge-interface.tsx:mount","message":"AIConciergeInterface mounted","data":{"activeTab":"chat","showCallConfirmation":false,"showBusinessPicker":false,"callHistoryLength":0},"timestamp":1766269845089,"sessionId":"debug-session","hypothesisId":"H2"}
-{"location":"initiate-calls/route.ts:91","message":"Calling voice API","data":{"internalBaseUrl":"http://localhost:3000","tunnelUrl":"http://localhost:3002","xfHost":"localhost:3002","business":"Pizza Hut"},"timestamp":1766269904508,"sessionId":"debug-session","hypothesisId":"A"}
-{"location":"initiate-call/route.ts:76","message":"Creating Twilio service","data":{"tunnelUrl":"http://localhost:3002","publicBaseUrl":"http://localhost:3002","hasTunnelHeader":true},"timestamp":1766269906278,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767222458984,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767222458984,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767222463042,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767222463043,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767222472040,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767222472041,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767222472739,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767222472739,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767222513730,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767222513730,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767223422106,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767223422107,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767223539927,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767223539928,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767223931584,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767223931585,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767224158436,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767224158436,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767224163073,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767224163073,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767224271227,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767224271228,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767225503636,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767225503637,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767225526977,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767225526980,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767225811264,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767225811266,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767225857495,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767225857495,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_START","message":"Module initialization starting","data":{},"timestamp":1767225907289,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"browser-client.ts:MODULE_INIT_COMPLETE","message":"Module imports successful","data":{"hasCreateBrowserClient":true},"timestamp":1767225907290,"sessionId":"debug-session","hypothesisId":"B"}

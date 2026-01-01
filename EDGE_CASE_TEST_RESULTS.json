@@ -1,0 +1,656 @@
+{
+  "timestamp": "2025-12-27T02:53:59.241Z",
+  "summary": {
+    "total": 15,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "needsReview": 15
+  },
+  "results": [
+    {
+      "id": 46,
+      "category": "Domain Routing",
+      "command": "paid vet $150 for Buddy's checkup",
+      "expected": "→ pets domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 2346,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"pets\",\"data\":{\"type\":\"expense\",\"amount\":150,\"description\":\"Buddy's checkup\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "paid vet $150 for Buddy's checkup",
+          "sanitized": "paid vet $150 for Buddy's checkup",
+          "length": 33,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": true,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "pets",
+          "data": {
+            "type": "expense",
+            "amount": 150,
+            "description": "Buddy's checkup"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:28.696Z"
+      }
+    },
+    {
+      "id": 47,
+      "category": "Domain Routing",
+      "command": "paid rent $2000",
+      "expected": "→ home domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1508,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"home\",\"data\":{\"type\":\"expense\",\"amount\":2000,\"description\":\"paid rent\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "paid rent $2000",
+          "sanitized": "paid rent $2000",
+          "length": 15,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "home",
+          "data": {
+            "type": "expense",
+            "amount": 2000,
+            "description": "paid rent"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:30.712Z"
+      }
+    },
+    {
+      "id": 48,
+      "category": "Domain Routing",
+      "command": "oil change $80",
+      "expected": "→ vehicles domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1445,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"vehicles\",\"data\":{\"type\":\"maintenance\",\"amount\":80,\"description\":\"oil change\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "oil change $80",
+          "sanitized": "oil change $80",
+          "length": 14,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "vehicles",
+          "data": {
+            "type": "maintenance",
+            "amount": 80,
+            "description": "oil change"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:32.655Z"
+      }
+    },
+    {
+      "id": 49,
+      "category": "Domain Routing",
+      "command": "gym membership $50/month",
+      "expected": "→ fitness? financial?",
+      "potentialBreak": "Ambiguous routing",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1933,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"fitness\",\"data\":{\"type\":\"expense\",\"amount\":50,\"description\":\"gym membership\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "gym membership $50/month",
+          "sanitized": "gym membership $50/month",
+          "length": 24,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "fitness",
+          "data": {
+            "type": "expense",
+            "amount": 50,
+            "description": "gym membership"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:35.091Z"
+      }
+    },
+    {
+      "id": 50,
+      "category": "Domain Routing",
+      "command": "Netflix subscription $15",
+      "expected": "→ digital domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1942,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"digital-life\",\"data\":{\"type\":\"expense\",\"amount\":15,\"description\":\"Netflix subscription\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "Netflix subscription $15",
+          "sanitized": "Netflix subscription $15",
+          "length": 24,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "digital-life",
+          "data": {
+            "type": "expense",
+            "amount": 15,
+            "description": "Netflix subscription"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:37.533Z"
+      }
+    },
+    {
+      "id": 51,
+      "category": "Domain Routing",
+      "command": "bought dog food $40",
+      "expected": "→ pets domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1480,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"pets\",\"data\":{\"type\":\"expense\",\"amount\":40,\"description\":\"dog food\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "bought dog food $40",
+          "sanitized": "bought dog food $40",
+          "length": 19,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "pets",
+          "data": {
+            "type": "expense",
+            "amount": 40,
+            "description": "dog food"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:39.512Z"
+      }
+    },
+    {
+      "id": 52,
+      "category": "Domain Routing",
+      "command": "health insurance premium $500",
+      "expected": "→ insurance domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1704,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"insurance\",\"data\":{\"type\":\"expense\",\"amount\":500,\"description\":\"health insurance premium\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "health insurance premium $500",
+          "sanitized": "health insurance premium $500",
+          "length": 29,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "insurance",
+          "data": {
+            "type": "expense",
+            "amount": 500,
+            "description": "health insurance premium"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:41.716Z"
+      }
+    },
+    {
+      "id": 53,
+      "category": "Domain Routing",
+      "command": "property tax $3000",
+      "expected": "→ property/home domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1465,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"property\",\"data\":{\"type\":\"expense\",\"amount\":3000,\"description\":\"property tax\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "property tax $3000",
+          "sanitized": "property tax $3000",
+          "length": 18,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "property",
+          "data": {
+            "type": "expense",
+            "amount": 3000,
+            "description": "property tax"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:43.682Z"
+      }
+    },
+    {
+      "id": 54,
+      "category": "Domain Routing",
+      "command": "car registration $150",
+      "expected": "→ vehicles domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1648,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"vehicles\",\"data\":{\"type\":\"expense\",\"amount\":150,\"description\":\"car registration\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "car registration $150",
+          "sanitized": "car registration $150",
+          "length": 21,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "vehicles",
+          "data": {
+            "type": "expense",
+            "amount": 150,
+            "description": "car registration"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:45.831Z"
+      }
+    },
+    {
+      "id": 55,
+      "category": "Domain Routing",
+      "command": "tutor for math $100/hour",
+      "expected": "→ education domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1461,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"education\",\"data\":{\"type\":\"expense\",\"amount\":100,\"description\":\"tutor for math\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "tutor for math $100/hour",
+          "sanitized": "tutor for math $100/hour",
+          "length": 24,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "education",
+          "data": {
+            "type": "expense",
+            "amount": 100,
+            "description": "tutor for math"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:47.796Z"
+      }
+    },
+    {
+      "id": 56,
+      "category": "Domain Routing",
+      "command": "therapy session $200",
+      "expected": "→ health domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1467,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"health\",\"data\":{\"type\":\"expense\",\"amount\":200,\"description\":\"therapy session\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "therapy session $200",
+          "sanitized": "therapy session $200",
+          "length": 20,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "health",
+          "data": {
+            "type": "expense",
+            "amount": 200,
+            "description": "therapy session"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:49.763Z"
+      }
+    },
+    {
+      "id": 57,
+      "category": "Domain Routing",
+      "command": "lawyer consultation $300",
+      "expected": "→ legal domain",
+      "potentialBreak": "→ financial domain",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 2657,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"legal\",\"data\":{\"type\":\"expense\",\"amount\":300,\"description\":\"lawyer consultation\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "lawyer consultation $300",
+          "sanitized": "lawyer consultation $300",
+          "length": 24,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "legal",
+          "data": {
+            "type": "expense",
+            "amount": 300,
+            "description": "lawyer consultation"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:52.921Z"
+      }
+    },
+    {
+      "id": 58,
+      "category": "Domain Routing",
+      "command": "meditation app subscription",
+      "expected": "→ mindfulness? digital?",
+      "potentialBreak": "Ambiguous",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1310,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"digital-life\",\"data\":{\"type\":\"subscription\",\"description\":\"meditation app subscription\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "meditation app subscription",
+          "sanitized": "meditation app subscription",
+          "length": 27,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "digital-life",
+          "data": {
+            "type": "subscription",
+            "description": "meditation app subscription"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:54.732Z"
+      }
+    },
+    {
+      "id": 59,
+      "category": "Domain Routing",
+      "command": "bought wedding ring $5000",
+      "expected": "→ relationships? miscellaneous?",
+      "potentialBreak": "Unclear",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1689,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"relationships\",\"data\":{\"type\":\"expense\",\"amount\":5000,\"description\":\"bought wedding ring\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "bought wedding ring $5000",
+          "sanitized": "bought wedding ring $5000",
+          "length": 25,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "relationships",
+          "data": {
+            "type": "expense",
+            "amount": 5000,
+            "description": "bought wedding ring"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:56.921Z"
+      }
+    },
+    {
+      "id": 60,
+      "category": "Domain Routing",
+      "command": "paid brother back $50",
+      "expected": "→ relationships? financial?",
+      "potentialBreak": "Ambiguous",
+      "passed": false,
+      "status": "NEEDS_REVIEW",
+      "issues": [
+        "Domain routing unclear: none detected"
+      ],
+      "executionTime": 1314,
+      "aiResponse": "{\"isCommand\":true,\"domain\":\"relationships\",\"data\":{\"type\":\"expense\",\"amount\":50,\"description\":\"paid brother back\"},\"confirmationMessage\":\"✅ What was logged\"}",
+      "parsedData": {
+        "input": {
+          "original": "paid brother back $50",
+          "sanitized": "paid brother back $50",
+          "length": 21,
+          "wasSanitized": false
+        },
+        "securityChecks": {
+          "hasScript": false,
+          "hasSqlInjection": false,
+          "hasPrototypePollution": false,
+          "hasEnvVar": false,
+          "hasPathTraversal": false,
+          "hasJavascriptUrl": false,
+          "hasUnicode": false,
+          "hasEmoji": false
+        },
+        "parseResult": {
+          "isCommand": true,
+          "domain": "relationships",
+          "data": {
+            "type": "expense",
+            "amount": 50,
+            "description": "paid brother back"
+          },
+          "confirmationMessage": "✅ What was logged"
+        },
+        "timestamp": "2025-12-27T02:53:58.734Z"
+      }
+    }
+  ]
+}

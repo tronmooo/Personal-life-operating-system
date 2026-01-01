@@ -5,9 +5,27 @@
  * but doesn't throw during static build time when env vars aren't available
  */
 
+// #region agent log
+let _moduleInitialized = false
+try {
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'browser-client.ts:MODULE_INIT_START',message:'Module initialization starting',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  }
+} catch(e) {}
+// #endregion
+
 import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { debugIngest } from '@/lib/utils/debug-ingest'
+
+// #region agent log
+try {
+  if (typeof window !== 'undefined') {
+    _moduleInitialized = true
+    fetch('http://127.0.0.1:7242/ingest/a1f84030-0acf-4814-b44c-5f5df66c7ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'browser-client.ts:MODULE_INIT_COMPLETE',message:'Module imports successful',data:{hasCreateBrowserClient: typeof createSupabaseBrowserClient === 'function'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  }
+} catch(e) {}
+// #endregion
 
 let _browserClient: SupabaseClient | null = null
 let _initializationAttempted = false

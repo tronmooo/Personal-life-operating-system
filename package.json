@@ -37,6 +37,7 @@
     "setup:push": "node scripts/setup-push-notifications.js",
     "setup:plaid": "bash scripts/setup-plaid.sh",
     "test:ai-commands": "tsx scripts/test-ai-commands.ts",
+    "test:assistant:smoke": "jest tests/ai/assistant-commands.smoke.test.ts --verbose --detectOpenHandles",
     "test:ai-quick": "bash scripts/quick-test.sh",
     "validate": "npm run type-check && npm run lint && npm run test"
   },

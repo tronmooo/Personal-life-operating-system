@@ -3,84 +3,158 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Trash2, TrendingUp, Sparkles, RefreshCw, Loader2 } from 'lucide-react'
-// eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
-import { useData } from '@/lib/providers/data-provider'
-import { useAutoFillData, formatCurrency } from '@/lib/tools/auto-fill'
+import { Plus, Trash2, TrendingUp, Sparkles, RefreshCw, Loader2, Save } from 'lucide-react'
+import { useDomainTools } from '@/lib/hooks/use-domain-tools'
+import { DomainDataBanner } from './domain-data-banner'
+import { SaveToDomain } from './save-to-domain'
 import { getAISuggestions, AISuggestion } from '@/lib/tools/ai-suggestions'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 interface Item {
   id: string
   name: string
   value: number
+  source?: string // Track which domain it came from
+}
+
+// Format currency helper
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount)
 }
 
 export function NetWorthCalculator() {
-  const { data } = useData()
-  const autoFillData = useAutoFillData()
+  // Domain Integration
+  const { 
+    autoFillData, 
+    saveResult, 
+    isAutoFilled, 
+    loading: domainLoading,
+    refreshData,
+    domainItems,
+    relevantDomains,
+    hasRelevantData
+  } = useDomainTools('net-worth-calculator')
   
   const [assets, setAssets] = useState<Item[]>([])
   const [liabilities, setLiabilities] = useState<Item[]>([])
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([])
   const [isLoadingAI, setIsLoadingAI] = useState(false)
-  const [isAutoFilled, setIsAutoFilled] = useState(false)
 
-  // Auto-fill from user data
-  const handleAutoFill = () => {
-    const autoAssets: Item[] = []
-    const autoLiabilities: Item[] = []
-    
-    // Add assets from breakdown
-    autoFillData.assets.breakdown.forEach((item, idx) => {
-      if (item.value > 0) {
-        autoAssets.push({
-          id: `auto-asset-${idx}`,
-          name: item.category,
-          value: item.value
-        })
-      }
-    })
-    
-    // Add liabilities from breakdown
-    autoFillData.liabilities.breakdown.forEach((item, idx) => {
-      if (item.balance > 0) {
-        autoLiabilities.push({
-          id: `auto-liability-${idx}`,
-          name: item.type,
-          value: item.balance
-        })
-      }
-    })
-    
-    // If no auto-fill data, add default placeholders
-    if (autoAssets.length === 0) {
-      autoAssets.push(
-        { id: '1', name: 'Checking Account', value: 0 },
-        { id: '2', name: 'Savings Account', value: 0 },
-        { id: '3', name: 'Home Value', value: 0 }
-      )
-    }
-    
-    if (autoLiabilities.length === 0) {
-      autoLiabilities.push(
-        { id: '1', name: 'Mortgage', value: 0 },
-        { id: '2', name: 'Car Loan', value: 0 }
-      )
-    }
-    
-    setAssets(autoAssets)
-    setLiabilities(autoLiabilities)
-    setIsAutoFilled(true)
-  }
-  
-  // Auto-fill on mount
+  // Auto-fill from domain data
   useEffect(() => {
-    handleAutoFill()
-  }, [])
+    if (!domainLoading && hasRelevantData) {
+      const autoAssets: Item[] = []
+      const autoLiabilities: Item[] = []
+      
+      // Financial accounts (cash, investments)
+      const financial = autoFillData.financial
+      if (financial.accounts && financial.accounts.length > 0) {
+        financial.accounts.forEach((acc, idx) => {
+          if (acc.balance > 0) {
+            autoAssets.push({
+              id: `fin-acc-${idx}`,
+              name: acc.name || `${acc.type} Account`,
+              value: acc.balance,
+              source: 'financial'
+            })
+          }
+        })
+      }
+      
+      // Loans as liabilities
+      if (financial.loans && financial.loans.length > 0) {
+        financial.loans.forEach((loan, idx) => {
+          if (loan.balance > 0) {
+            autoLiabilities.push({
+              id: `fin-loan-${idx}`,
+              name: loan.name || 'Loan',
+              value: loan.balance,
+              source: 'financial'
+            })
+          }
+        })
+      }
+      
+      // Home/Property values
+      const home = autoFillData.home
+      if (home.properties && home.properties.length > 0) {
+        home.properties.forEach((prop, idx) => {
+          if (prop.value > 0) {
+            autoAssets.push({
+              id: `home-${idx}`,
+              name: prop.address || 'Property',
+              value: prop.value,
+              source: 'home'
+            })
+          }
+        })
+      }
+      
+      // Mortgage as liability
+      if (home.mortgageBalance && home.mortgageBalance > 0) {
+        autoLiabilities.push({
+          id: 'mortgage',
+          name: 'Mortgage',
+          value: home.mortgageBalance,
+          source: 'home'
+        })
+      }
+      
+      // Vehicles
+      const vehicles = autoFillData.vehicles
+      if (vehicles.vehicles && vehicles.vehicles.length > 0) {
+        vehicles.vehicles.forEach((v, idx) => {
+          if (v.value > 0) {
+            autoAssets.push({
+              id: `vehicle-${idx}`,
+              name: `${v.year} ${v.make} ${v.model}`.trim() || 'Vehicle',
+              value: v.value,
+              source: 'vehicles'
+            })
+          }
+          if (v.loanBalance && v.loanBalance > 0) {
+            autoLiabilities.push({
+              id: `vehicle-loan-${idx}`,
+              name: `${v.make} ${v.model} Loan`.trim() || 'Auto Loan',
+              value: v.loanBalance,
+              source: 'vehicles'
+            })
+          }
+        })
+      }
+      
+      // Default placeholders if no data
+      if (autoAssets.length === 0) {
+        autoAssets.push(
+          { id: '1', name: 'Checking Account', value: 0 },
+          { id: '2', name: 'Savings Account', value: 0 },
+          { id: '3', name: 'Home Value', value: 0 }
+        )
+      }
+      
+      if (autoLiabilities.length === 0) {
+        autoLiabilities.push(
+          { id: '1', name: 'Mortgage', value: 0 },
+          { id: '2', name: 'Car Loan', value: 0 }
+        )
+      }
+      
+      setAssets(autoAssets)
+      setLiabilities(autoLiabilities)
+    }
+  }, [domainLoading, hasRelevantData, autoFillData])
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    await refreshData()
+  }
 
   const addAsset = () => {
     setAssets([...assets, { id: Date.now().toString(), name: '', value: 0 }])
@@ -113,9 +187,9 @@ export function NetWorthCalculator() {
         netWorth,
         assets: totalAssets,
         liabilities: totalLiabilities,
-        income: autoFillData.income.monthly,
-        expenses: autoFillData.expenses.monthly,
-        age: autoFillData.profile.age || undefined
+        income: autoFillData.financial.monthlyIncome || 0,
+        expenses: autoFillData.financial.monthlyExpenses || 0,
+        age: autoFillData.health.age || autoFillData.profile.age || undefined
       })
       setAiSuggestions(suggestions)
     } catch (error) {
@@ -130,10 +204,6 @@ export function NetWorthCalculator() {
     .filter(a => a.value > 0)
     .map(a => ({ name: a.name, value: a.value }))
   
-  const liabilityBreakdown = liabilities
-    .filter(l => l.value > 0)
-    .map(l => ({ name: l.name, value: l.value }))
-
   const comparisonData = [
     { category: 'Assets', amount: totalAssets },
     { category: 'Liabilities', amount: totalLiabilities },
@@ -142,10 +212,31 @@ export function NetWorthCalculator() {
 
   const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899']
 
+  // Result data for saving
+  const getResultData = () => ({
+    type: 'net-worth-snapshot',
+    netWorth,
+    totalAssets,
+    totalLiabilities,
+    assets: assets.map(a => ({ name: a.name, value: a.value })),
+    liabilities: liabilities.map(l => ({ name: l.name, value: l.value })),
+    debtToAssetRatio: totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0,
+    date: new Date().toISOString(),
+  })
+
   return (
     <div className="space-y-6">
-      {/* Header with Auto-Fill Button */}
-      <div className="flex items-center justify-between">
+      {/* Domain Data Banner */}
+      <DomainDataBanner
+        isAutoFilled={isAutoFilled}
+        relevantDomains={relevantDomains}
+        domainItems={domainItems}
+        loading={domainLoading}
+        onRefresh={handleRefresh}
+      />
+
+      {/* Header with Actions */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-green-500" />
@@ -161,10 +252,22 @@ export function NetWorthCalculator() {
             Calculate your total net worth by tracking assets and liabilities
           </p>
         </div>
-        <Button onClick={handleAutoFill} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reload My Data
-        </Button>
+        <div className="flex items-center gap-2">
+          {totalAssets > 0 && (
+            <SaveToDomain
+              toolType="net-worth-calculator"
+              suggestedTitle={`Net Worth: ${formatCurrency(netWorth)}`}
+              resultData={getResultData()}
+              description={`Net worth snapshot: ${formatCurrency(totalAssets)} assets - ${formatCurrency(totalLiabilities)} liabilities = ${formatCurrency(netWorth)}`}
+              resultType="net-worth"
+              onSave={saveResult}
+            />
+          )}
+          <Button onClick={handleRefresh} variant="outline" size="sm" disabled={domainLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${domainLoading ? 'animate-spin' : ''}`} />
+            Reload Data
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -258,12 +361,12 @@ export function NetWorthCalculator() {
         </CardHeader>
         <CardContent className="space-y-3">
           {assets.map((asset) => (
-            <div key={asset.id} className="grid grid-cols-12 gap-2">
+            <div key={asset.id} className="grid grid-cols-12 gap-2 items-center">
               <Input
                 placeholder="Asset name"
                 value={asset.name}
                 onChange={(e) => updateAsset(asset.id, 'name', e.target.value)}
-                className="col-span-7"
+                className="col-span-6"
               />
               <Input
                 type="number"
@@ -272,14 +375,20 @@ export function NetWorthCalculator() {
                 onChange={(e) => updateAsset(asset.id, 'value', parseFloat(e.target.value) || 0)}
                 className="col-span-4"
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeAsset(asset.id)}
-                className="col-span-1"
-              >
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
+              <div className="col-span-2 flex items-center justify-end gap-1">
+                {asset.source && (
+                  <Badge variant="outline" className="text-xs hidden sm:inline-flex">
+                    {asset.source}
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeAsset(asset.id)}
+                >
+                  <Trash2 className="h-4 w-4 text-red-600" />
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>
@@ -298,12 +407,12 @@ export function NetWorthCalculator() {
         </CardHeader>
         <CardContent className="space-y-3">
           {liabilities.map((liability) => (
-            <div key={liability.id} className="grid grid-cols-12 gap-2">
+            <div key={liability.id} className="grid grid-cols-12 gap-2 items-center">
               <Input
                 placeholder="Liability name"
                 value={liability.name}
                 onChange={(e) => updateLiability(liability.id, 'name', e.target.value)}
-                className="col-span-7"
+                className="col-span-6"
               />
               <Input
                 type="number"
@@ -312,14 +421,20 @@ export function NetWorthCalculator() {
                 onChange={(e) => updateLiability(liability.id, 'value', parseFloat(e.target.value) || 0)}
                 className="col-span-4"
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeLiability(liability.id)}
-                className="col-span-1"
-              >
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
+              <div className="col-span-2 flex items-center justify-end gap-1">
+                {liability.source && (
+                  <Badge variant="outline" className="text-xs hidden sm:inline-flex">
+                    {liability.source}
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeLiability(liability.id)}
+                >
+                  <Trash2 className="h-4 w-4 text-red-600" />
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>
@@ -345,18 +460,47 @@ export function NetWorthCalculator() {
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground mb-1">Liquid Assets</p>
-              <p className="font-bold text-lg">{formatCurrency(autoFillData.assets.cash)}</p>
+              <p className="text-muted-foreground mb-1">Monthly Income</p>
+              <p className="font-bold text-lg">{formatCurrency(autoFillData.financial.monthlyIncome || 0)}</p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Monthly Surplus</p>
               <p className="font-bold text-lg">
-                {formatCurrency(autoFillData.income.monthly - autoFillData.expenses.monthly)}
+                {formatCurrency((autoFillData.financial.monthlyIncome || 0) - (autoFillData.financial.monthlyExpenses || 0))}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Save Result Card */}
+      {totalAssets > 0 && (
+        <Card className="border-2 border-dashed border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-950/20">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Save className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-lg mb-2">Save This Net Worth Snapshot</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Track your financial progress by saving periodic snapshots to your Financial domain.
+              </p>
+              <SaveToDomain
+                toolType="net-worth-calculator"
+                suggestedTitle={`Net Worth: ${formatCurrency(netWorth)} (${new Date().toLocaleDateString()})`}
+                resultData={getResultData()}
+                description={`Net worth snapshot: ${formatCurrency(totalAssets)} assets - ${formatCurrency(totalLiabilities)} liabilities = ${formatCurrency(netWorth)}`}
+                resultType="net-worth"
+                onSave={saveResult}
+                trigger={
+                  <Button size="lg" className="bg-green-600 hover:bg-green-700">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Net Worth Snapshot
+                  </Button>
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Suggestions */}
       <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">

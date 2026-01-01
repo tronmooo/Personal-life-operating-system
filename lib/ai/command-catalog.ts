@@ -24,12 +24,20 @@ export const AI_ASSISTANT_ACTIONS = [
   'create_bill',
   'create_event',
 
-  // Analysis / reporting
+  // Analysis / reporting (ENHANCED)
   'analyze',
+  'analyze_patterns',
+  'analyze_spending',
+  'analyze_health',
+  'analyze_correlations',
+  'analyze_trends',
+  'detect_anomalies',
   'predict',
   'correlate',
   'generate_report',
   'custom_chart',
+  'compare_data',
+  'goal_progress',
 
   // Export
   'export',
@@ -89,6 +97,13 @@ export const VOICE_EXAMPLE_COMMANDS = [
   'Show my appointments',
   'Open dashboard',
   'My weight is 175 pounds and log 10000 steps',
+  // Analysis queries
+  'Analyze patterns in my data',
+  'What correlations do you see?',
+  'Analyze my spending habits',
+  'How is my health progress?',
+  'Find trends in my fitness data',
+  'What insights can you give me?',
 ] as const
 
 export const COMMAND_CATALOG = {
@@ -112,6 +127,17 @@ export const COMMAND_CATALOG = {
 export const COMMAND_CATALOG_PROMPT = `\n\nLIFEHUB CAPABILITIES (authoritative):\n- Allowed AI actions: ${AI_ASSISTANT_ACTIONS.join(
   ', '
 )}\n- Voice actions: ${VOICE_ACTIONS.join(', ')}\n- If user asks to "do" something, respond by either (1) calling execute_ai_action with an appropriate action + parameters, or (2) asking a brief clarifying question if required fields are missing.\n- Never invent actions outside the allowed list.\n`
+
+
+
+
+
+
+
+
+
+
+
 
 
 

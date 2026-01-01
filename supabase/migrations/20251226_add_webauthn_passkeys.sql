@@ -92,3 +92,16 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 COMMENT ON TABLE public.webauthn_credentials IS 'Stores WebAuthn/Passkey credentials for biometric authentication (Face ID, Touch ID, etc.)';
 COMMENT ON TABLE public.webauthn_challenges IS 'Temporary storage for WebAuthn registration/authentication challenges';
 
+
+
+
+
+
+
+
+
+
+
+
+
+

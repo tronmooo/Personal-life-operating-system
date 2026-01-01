@@ -4,24 +4,29 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
-        default: 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-500',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md',
         destructive:
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm',
         outline:
-          'border border-slate-600 bg-slate-800 text-white hover:bg-slate-700 hover:text-white',
+          'border border-border bg-background hover:bg-muted hover:border-muted-foreground/30 text-foreground',
         secondary:
-          'bg-slate-700 text-white hover:bg-slate-600 border border-slate-600',
-        ghost: 'hover:bg-slate-800 hover:text-white text-slate-300',
-        link: 'text-blue-400 underline-offset-4 hover:underline',
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border',
+        ghost: 'hover:bg-muted hover:text-foreground text-muted-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+        gradient: 'gradient-primary text-white shadow-md hover:shadow-lg hover:shadow-primary/25 border-0',
+        glow: 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 glow-pulse',
+        glass: 'glass text-foreground hover:bg-background/80',
+        premium: 'btn-premium bg-gradient-to-r from-primary via-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl border-0',
       },
       size: {
         default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
+        sm: 'h-9 rounded-lg px-3',
+        lg: 'h-12 rounded-xl px-8 text-base',
+        xl: 'h-14 rounded-2xl px-10 text-lg',
         icon: 'h-10 w-10',
       },
     },

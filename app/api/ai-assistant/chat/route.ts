@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { randomUUID } from 'crypto'
 import { COMMAND_CATALOG_PROMPT, AI_ASSISTANT_ACTIONS } from '@/lib/ai/command-catalog'
+import { 
+  performIntelligentAnalysis, 
+  detectAnalysisType,
+  fetchUserDataForAnalysis,
+  analyzeDataWithAI
+} from '@/lib/ai/intelligent-analysis'
 
 // ============================================
 // AI SETTINGS INTERFACE AND HELPER
@@ -882,13 +888,22 @@ Only respond with valid JSON.`
   }
 }
 
+// User time info from client for accurate meal type detection
+interface UserTimeInfo {
+  localTime?: string
+  localHour?: number
+  timezone?: string
+  timestamp?: string
+}
+
 // Intelligent AI-powered command parser
 async function intelligentCommandParser(
   message: string,
   userId: string,
   supabase: any,
   baseUrl: string,
-  cookieHeader: string
+  cookieHeader: string,
+  userTime?: UserTimeInfo
 ) {
   const openAIKey = process.env.OPENAI_API_KEY
   const geminiKey = process.env.GEMINI_API_KEY
@@ -900,10 +915,113 @@ async function intelligentCommandParser(
 
   console.log('🧠 Calling AI to parse command...')
   
+  // ============================================
+  // FETCH USER'S EXISTING ITEMS FOR CONTEXT
+  // ============================================
+  console.log('📦 Fetching user inventory for smart CRUD...')
+  
+  // Fetch vehicles
+  const { data: vehicles } = await supabase
+    .from('domain_entries')
+    .select('id, title, metadata')
+    .eq('user_id', userId)
+    .eq('domain', 'vehicles')
+    .order('created_at', { ascending: false })
+    .limit(10)
+  
+  // Fetch pets
+  const { data: pets } = await supabase
+    .from('domain_entries')
+    .select('id, title, metadata')
+    .eq('user_id', userId)
+    .eq('domain', 'pets')
+    .order('created_at', { ascending: false })
+    .limit(10)
+  
+  // Fetch appliances
+  const { data: appliances } = await supabase
+    .from('domain_entries')
+    .select('id, title, metadata')
+    .eq('user_id', userId)
+    .eq('domain', 'appliances')
+    .order('created_at', { ascending: false })
+    .limit(10)
+  
+  // Build user inventory context
+  const userInventory = {
+    vehicles: (vehicles || []).map((v: any) => ({
+      id: v.id,
+      name: v.title,
+      make: v.metadata?.make,
+      model: v.metadata?.model,
+      year: v.metadata?.year,
+      mileage: v.metadata?.mileage || v.metadata?.currentMileage
+    })),
+    pets: (pets || []).map((p: any) => ({
+      id: p.id,
+      name: p.title || p.metadata?.petName || p.metadata?.name,
+      type: p.metadata?.type || p.metadata?.species
+    })),
+    appliances: (appliances || []).map((a: any) => ({
+      id: a.id,
+      name: a.title,
+      brand: a.metadata?.brand,
+      model: a.metadata?.model
+    }))
+  }
+  
+  console.log('📦 User inventory:', JSON.stringify(userInventory, null, 2))
+  
+  // Build inventory context string for AI
+  const inventoryContext = `
+🚗 USER'S EXISTING VEHICLES:
+${userInventory.vehicles.length > 0 ? userInventory.vehicles.map((v: any) => `- "${v.name}" (${v.make || ''} ${v.model || ''} ${v.year || ''}) - Mileage: ${v.mileage || 'unknown'} [ID: ${v.id}]`).join('\n') : '- No vehicles registered'}
+
+🐾 USER'S PETS:
+${userInventory.pets.length > 0 ? userInventory.pets.map((p: any) => `- "${p.name}" (${p.type || 'pet'}) [ID: ${p.id}]`).join('\n') : '- No pets registered'}
+
+🏠 USER'S APPLIANCES:
+${userInventory.appliances.length > 0 ? userInventory.appliances.map((a: any) => `- "${a.name}" (${a.brand || ''} ${a.model || ''}) [ID: ${a.id}]`).join('\n') : '- No appliances registered'}
+`
+  
   const systemPromptContent = `You are an INTELLIGENT ACTION-ORIENTED ASSISTANT for a life management app with 21 domains:
 health, fitness, nutrition, financial, tasks, habits, goals, mindfulness, relationships, 
 career, education, legal, insurance, travel, vehicles, property, home, appliances, pets, 
 hobbies, collectibles, digital-life.
+
+${inventoryContext}
+
+🚨🚨🚨 CRITICAL: SMART UPDATE vs CREATE RULES 🚨🚨🚨
+
+BEFORE creating ANY new entry for vehicles, pets, or appliances, CHECK THE USER'S INVENTORY ABOVE!
+
+**UPDATE EXISTING ITEMS (when item already exists):**
+- User says "update my Honda to 50000 miles" → Honda EXISTS in inventory → UPDATE action
+- User says "Buddy went to the vet" → Buddy EXISTS in pets → UPDATE/LOG to existing pet
+- User says "my car has 75000 miles now" → If ONE car exists → UPDATE that car
+
+**CREATE NEW ITEMS (when item doesn't exist):**
+- User says "add my new Tesla Model 3" → Tesla NOT in inventory → CREATE new vehicle
+- User says "I got a new puppy named Max" → Max NOT in pets → CREATE new pet
+
+**AMBIGUOUS CASES - ASK FOR CONFIRMATION:**
+- User mentions an item that MIGHT match existing → requiresConfirmation: true
+- User says "Honda Accord 50000 miles" but inventory has "Honda Civic" → ASK: "Did you mean to update your Honda Civic, or add a new Honda Accord?"
+
+For UPDATE operations, include:
+{
+  "action": "update_entry",
+  "existingItemId": "[ID from inventory]",
+  "existingItemName": "[name from inventory]",
+  "updates": { ...fields to update... }
+}
+
+For operations where you're NOT SURE, include:
+{
+  "requiresConfirmation": true,
+  "confirmationQuestion": "I found [item] in your [domain]. Did you want to update it, or add a new entry?",
+  "options": ["Update existing", "Create new"]
+}
 
 YOUR PRIMARY JOB: DETECT and EXECUTE data-logging commands. Be smart about detecting when users want to LOG DATA vs ASK QUESTIONS.
 
@@ -948,11 +1066,14 @@ YOUR PRIMARY JOB: DETECT and EXECUTE data-logging commands. Be smart about detec
 - Extract: name, icon (emoji if mentioned), frequency (daily/weekly/monthly)
 
 🥗 NUTRITION/MEAL RULES:
-- "I ate/eat [food] [calories] cal" → NUTRITION domain with type: "meal"
+- "I ate/eat [food]" → NUTRITION domain with type: "meal" (calories optional - will be estimated)
 - "had [food] for [calories] calories" → NUTRITION domain with type: "meal"
+- "ate a cheese burrito" → NUTRITION domain, { "type": "meal", "name": "cheese burrito" } (we estimate nutrition!)
 - "ate a chicken sandwich 360 cal" → NUTRITION domain with type: "meal"
-- MUST include in data: { "type": "meal", "name": "[food name]", "calories": [number], "mealType": "Breakfast|Lunch|Dinner|Snack" }
-- Extract: name (the food), calories, protein/carbs/fats if mentioned
+- MUST include in data: { "type": "meal", "name": "[food name]" }
+- Calories are OPTIONAL - system will auto-estimate if not provided!
+- Extract: name (the food - REQUIRED), calories (if mentioned), protein/carbs/fats if mentioned
+- If user just says what they ate without numbers, still log it as a meal with the food name!
 
 💳 BILL CREATION RULES:
 - "add bill [name] $[amount]" → action: "create_bill"
@@ -1101,6 +1222,17 @@ IMPORTANT RULES:
    - registration/DMV → { "type": "cost", "costType": "registration", "amount": <number>, "date": "YYYY-MM-DD" }
    - insurance premiums → { "type": "cost", "costType": "insurance", "amount": <number>, "date": "YYYY-MM-DD" }
    If the text mentions car/vehicle/auto, mileage, oil, gas/fuel, tires, brakes, service, or maintenance → prefer the "vehicles" domain.
+
+🚗 VEHICLE MILEAGE UPDATE RULES (action: "update_vehicle_mileage"):
+- "update my [vehicle name]'s mileage to [number]" → update_vehicle_mileage
+- "set [vehicle name] mileage to [number]" → update_vehicle_mileage
+- "change my [vehicle name]'s odometer to [number]" → update_vehicle_mileage
+- "[vehicle name] is at [number] miles" → update_vehicle_mileage
+- "my [vehicle name] has [number] miles now" → update_vehicle_mileage
+- Extract: vehicleName (the vehicle to update), mileage (the new mileage number), unit (miles/km)
+- IMPORTANT: These should UPDATE an existing vehicle entry, NOT create a new one!
+- Example: "update my honda's mileage to 50000" → { "isCommand": true, "action": "update_vehicle_mileage", "domain": "vehicles", "data": { "vehicleName": "honda", "mileage": 50000, "unit": "miles" }, "confirmationMessage": "✅ Updated Honda's mileage to 50,000 miles" }
+
 12. Exercises ALWAYS go to "fitness" domain
 
 🐾 PET EXPENSE RULES:
@@ -1305,10 +1437,59 @@ Return ONLY valid JSON, no markdown or code blocks.`
     if (!parsed.isCommand) {
       return { isCommand: false }
     }
+    
+    // ============================================
+    // SMART CRUD: Handle confirmation requests
+    // ============================================
+    if (parsed.requiresConfirmation) {
+      console.log('⚠️ AI requesting confirmation:', parsed.confirmationQuestion)
+      return {
+        isCommand: true,
+        action: 'requires_confirmation',
+        requiresConfirmation: true,
+        message: `🤔 **Quick question:**\n\n${parsed.confirmationQuestion}`,
+        options: parsed.options || ['Yes', 'No'],
+        pendingAction: parsed.pendingAction || parsed,
+        existingItemId: parsed.existingItemId,
+        existingItemName: parsed.existingItemName
+      }
+    }
+    
+    // ============================================
+    // SMART CRUD: Handle update_entry action
+    // ============================================
+    if (parsed.action === 'update_entry' && parsed.existingItemId) {
+      console.log(`🔄 Updating existing item: ${parsed.existingItemName} (${parsed.existingItemId})`)
+      
+      const { error } = await supabase
+        .from('domain_entries')
+        .update({
+          metadata: parsed.updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', parsed.existingItemId)
+        .eq('user_id', userId)
+      
+      if (error) {
+        console.error('❌ Update failed:', error)
+        return {
+          isCommand: true,
+          action: 'update_entry',
+          message: `❌ Failed to update ${parsed.existingItemName}: ${error.message}`
+        }
+      }
+      
+      return {
+        isCommand: true,
+        action: 'update_entry',
+        message: parsed.confirmationMessage || `✅ Updated ${parsed.existingItemName}`,
+        saved: true
+      }
+    }
 
-    // Check if this is a SPECIAL ACTION (habit, bill, event, google calendar, navigate, tool, chart, journal, task/habit completion)
+    // Check if this is a SPECIAL ACTION (habit, bill, event, google calendar, navigate, tool, chart, journal, task/habit completion, vehicle mileage update)
     const actionType = parsed.action
-    if (actionType && ['create_habit', 'create_bill', 'create_event', 'add_to_google_calendar', 'navigate', 'open_tool', 'custom_chart', 'create_journal', 'complete_task', 'complete_habit'].includes(actionType)) {
+    if (actionType && ['create_habit', 'create_bill', 'create_event', 'add_to_google_calendar', 'navigate', 'open_tool', 'custom_chart', 'create_journal', 'complete_task', 'complete_habit', 'update_vehicle_mileage'].includes(actionType)) {
       console.log(`🚀 Special ACTION detected: ${actionType}`)
       
       // Route to actions API
@@ -1854,6 +2035,81 @@ Return ONLY valid JSON, no markdown or code blocks.`
           triggerReload: true
         }
       }
+
+      // Handle update_vehicle_mileage - update an existing vehicle's mileage
+      if (actionType === 'update_vehicle_mileage') {
+        const { vehicleName, mileage, unit = 'miles' } = actionParams
+        if (!vehicleName || !mileage) {
+          return { 
+            isCommand: false,
+            message: '❌ Missing vehicle name or mileage value'
+          }
+        }
+        
+        console.log(`🚗 AI Parser: Updating vehicle "${vehicleName}" mileage to ${mileage}`)
+        
+        // Find existing vehicle by name/title
+        const { data: existingVehicles, error: findError } = await supabase
+          .from('domain_entries')
+          .select('id, title, metadata')
+          .eq('user_id', userId)
+          .eq('domain', 'vehicles')
+          .or(`title.ilike.%${vehicleName}%,metadata->>vehicleName.ilike.%${vehicleName}%,metadata->>make.ilike.%${vehicleName}%,metadata->>model.ilike.%${vehicleName}%`)
+          .order('created_at', { ascending: false })
+        
+        if (findError) {
+          console.error('❌ Error finding vehicle:', findError)
+          return {
+            isCommand: true,
+            action: 'update_vehicle_mileage',
+            message: `❌ Error searching for vehicle: ${findError.message}`
+          }
+        }
+        
+        if (existingVehicles && existingVehicles.length > 0) {
+          const vehicle = existingVehicles[0]
+          const existingMetadata = vehicle.metadata || {}
+          
+          console.log(`✅ Found vehicle "${vehicle.title}" - updating mileage to ${mileage}`)
+          
+          const { error: updateError } = await supabase
+            .from('domain_entries')
+            .update({
+              metadata: {
+                ...existingMetadata,
+                currentMileage: mileage,
+                mileage: mileage,
+                lastMileageUpdate: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', vehicle.id)
+            .eq('user_id', userId)
+          
+          if (updateError) {
+            console.error('❌ Error updating vehicle mileage:', updateError)
+            return {
+              isCommand: true,
+              action: 'update_vehicle_mileage',
+              message: `❌ Failed to update mileage for ${vehicle.title}`
+            }
+          }
+          
+          return {
+            isCommand: true,
+            action: 'update_vehicle_mileage',
+            message: parsed.confirmationMessage || `✅ Updated ${vehicle.title}'s mileage to ${Number(mileage).toLocaleString()} ${unit}`,
+            triggerReload: true
+          }
+        } else {
+          // No existing vehicle found
+          return {
+            isCommand: true,
+            action: 'update_vehicle_mileage',
+            message: `❌ No vehicle found matching "${vehicleName}". Please add the vehicle first or check the name.`
+          }
+        }
+      }
     }
 
     // AI detected a command! Now save it to the appropriate domain
@@ -2052,24 +2308,36 @@ Return ONLY valid JSON, no markdown or code blocks.`
     // Also trigger for meal descriptions without explicit calories
     const isMealEntry = !isWaterCommand && domain === 'nutrition' && (
       commandData.type === 'meal' || 
+      commandData.logType === 'meal' ||
       commandData.mealName || 
+      commandData.name ||  // Food name provided
       commandData.calories ||
       commandData.food ||
       (commandData.description && !commandData.itemType) // Meal with description only
     )
     
+    console.log(`🍽️ [CHAT] Meal entry check: domain=${domain}, type=${commandData.type}, name=${commandData.name}, food=${commandData.food}, desc=${commandData.description}, isMeal=${isMealEntry}`)
+    
     if (isMealEntry) {
-      // Determine meal type based on time of day if not provided
-      const hour = new Date().getHours()
+      // Use USER's local time for accurate meal type detection (if provided)
+      // Falls back to server time if client doesn't send timezone info
+      const userHour = userTime?.localHour ?? new Date().getHours()
+      const userLocalTime = userTime?.localTime || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      
+      console.log(`🕐 [CHAT] Using hour: ${userHour} (user timezone: ${userTime?.timezone || 'server default'}, localTime: ${userLocalTime})`)
+      
       let mealType = commandData.mealType || 'Other'
       if (!commandData.mealType) {
-        if (hour >= 5 && hour < 11) mealType = 'Breakfast'
-        else if (hour >= 11 && hour < 15) mealType = 'Lunch'
-        else if (hour >= 15 && hour < 22) mealType = 'Dinner'
+        // Use USER's local hour for meal type detection
+        if (userHour >= 5 && userHour < 11) mealType = 'Breakfast'
+        else if (userHour >= 11 && userHour < 15) mealType = 'Lunch'
+        else if (userHour >= 15 && userHour < 22) mealType = 'Dinner'
         else mealType = 'Snack'
+        console.log(`🍽️ [CHAT] Auto-detected meal type: ${mealType} (based on user hour ${userHour})`)
       }
       
       const mealName = commandData.name || commandData.mealName || commandData.description || commandData.food || 'Meal'
+      console.log(`🍽️ [CHAT] Meal name extracted: "${mealName}"`)
       let calories = Number(commandData.calories) || 0
       
       // Check if macros were provided
@@ -2115,8 +2383,9 @@ Return ONLY valid JSON, no markdown or code blocks.`
         carbs,
         fats,
         fiber,
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        timestamp: new Date().toISOString(),
+        // Use user's local time if provided, otherwise fall back to server time
+        time: userLocalTime,
+        timestamp: userTime?.timestamp || new Date().toISOString(),
         source: 'ai_assistant'
       })
 
@@ -2225,6 +2494,43 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
   const openAIKey = process.env.OPENAI_API_KEY
   if (!openAIKey) return { isQuery: false }
 
+  // ============================================
+  // PRE-PROCESSOR: Direct routing for insight tags
+  // ============================================
+  const insightTagMatch = message.match(/^\[(QUICK_INSIGHTS|TREND_ANALYSIS|RECOMMENDATIONS_ONLY)\]/)
+  if (insightTagMatch) {
+    const insightType = insightTagMatch[1]
+    const cleanMessage = message.replace(insightTagMatch[0], '').trim()
+    
+    console.log(`🎯 [INSIGHT-TAG] Detected insight type: ${insightType}`)
+    
+    // Map tags to specific analysis handlers
+    let analysisType: 'quick' | 'trends' | 'recommendations' = 'quick'
+    let dateRange: 'week' | 'month' | 'quarter' | 'year' | 'all' = 'month'
+    
+    if (insightType === 'QUICK_INSIGHTS') {
+      analysisType = 'quick'
+      dateRange = 'week' // Quick insights focus on recent data
+    } else if (insightType === 'TREND_ANALYSIS') {
+      analysisType = 'trends'
+      dateRange = 'month'
+    } else if (insightType === 'RECOMMENDATIONS_ONLY') {
+      analysisType = 'recommendations'
+      dateRange = 'month'
+    }
+    
+    // Execute specialized insight analysis
+    const insightResult = await executeInsightAnalysis(supabase, userId, cleanMessage, analysisType, dateRange)
+    
+    return {
+      isQuery: true,
+      data: insightResult.data,
+      message: insightResult.message,
+      visualization: insightResult.visualization,
+      queryType: `insight_${analysisType}`
+    }
+  }
+
   console.log('🔍 Analyzing if message is a QUERY...')
 
   try {
@@ -2277,6 +2583,9 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
 6. **visualization** - Generate charts/graphs
 7. **multi_domain** - Combine data from multiple domains
 8. **custom_visualization** - AI creates best chart for the data
+9. **analyze** - Deep AI analysis of patterns, correlations, and insights (e.g., "analyze my data", "find patterns", "what correlations do you see")
+10. **analyze_financial** - Specific spending/financial analysis (e.g., "analyze my spending", "where does my money go")
+11. **analyze_health** - Health and fitness analysis (e.g., "analyze my health progress", "how is my fitness")
 
 **MULTI-DOMAIN SUPPORT:**
 - User can request data across ALL domains
@@ -2451,6 +2760,30 @@ async function intelligentQueryHandler(message: string, userId: string, supabase
   }
 }
 
+"analyze patterns and trends in my data" / "what correlations do you see" / "find patterns"
+{
+  "isQuery": true,
+  "domain": "all",
+  "queryType": "analyze",
+  "filters": { "dateRange": "this_month" }
+}
+
+"analyze my spending" / "where does my money go" / "spending patterns"
+{
+  "isQuery": true,
+  "domain": "financial",
+  "queryType": "analyze_financial",
+  "filters": { "dateRange": "this_month" }
+}
+
+"analyze my health progress" / "how is my fitness doing" / "health insights"
+{
+  "isQuery": true,
+  "domain": "health",
+  "queryType": "analyze_health",
+  "filters": { "dateRange": "this_month" }
+}
+
 **🚨 CRITICAL RULES:**
 1. CONVERSATIONAL requests ARE queries! "can I get", "I need", "pull up", "retrieve", "find" = QUERY, not command
 2. Map casual domain names to correct domains (auto → vehicles, car insurance → insurance)
@@ -2491,8 +2824,8 @@ Only respond with valid JSON, nothing else.`
 
     console.log('✅ Detected QUERY:', parsed)
 
-    // Execute the query
-    const queryResult = await executeQuery(parsed, userId, supabase)
+    // Execute the query - pass original message for AI analysis
+    const queryResult = await executeQuery(parsed, userId, supabase, message)
     
     return {
       isQuery: true,
@@ -2508,15 +2841,235 @@ Only respond with valid JSON, nothing else.`
 }
 
 // ============================================
+// INSIGHT ANALYSIS - Specialized handlers for different insight types
+// ============================================
+async function executeInsightAnalysis(
+  supabase: any,
+  userId: string,
+  message: string,
+  analysisType: 'quick' | 'trends' | 'recommendations',
+  dateRange: 'week' | 'month' | 'quarter' | 'year' | 'all'
+): Promise<{ message: string; data: any; visualization: any }> {
+  console.log(`💡 [INSIGHT] Executing ${analysisType} analysis for dateRange: ${dateRange}`)
+  
+  const openAIKey = process.env.OPENAI_API_KEY
+  
+  // Fetch user data
+  const { fetchUserDataForAnalysis } = await import('@/lib/ai/intelligent-analysis')
+  const domainData = await fetchUserDataForAnalysis(supabase, userId, dateRange)
+  
+  console.log(`📦 [INSIGHT] Found ${domainData.length} domains with data`)
+  
+  if (domainData.length === 0 || domainData.every((d: any) => d.entries.length === 0)) {
+    return {
+      message: `📊 **No Recent Data**\n\nI don't have enough data to generate ${analysisType} insights. Start by adding some entries to your life domains!`,
+      data: null,
+      visualization: null
+    }
+  }
+  
+  // Calculate basic stats for context
+  const totalEntries = domainData.reduce((sum: number, d: any) => sum + d.entries.length, 0)
+  const domainSummary = domainData.map((d: any) => ({
+    domain: d.domain,
+    count: d.entries.length,
+    metrics: Object.keys(d.metrics),
+    latestEntry: d.entries[d.entries.length - 1]?.title || 'N/A'
+  }))
+  
+  // Generate specialized prompt based on analysis type
+  let systemPrompt = ''
+  
+  if (analysisType === 'quick') {
+    systemPrompt = `You are a life assistant providing QUICK, ACTIONABLE insights.
+    
+Generate a BRIEF summary (3-5 bullet points max) of the user's most important recent activities.
+
+Focus on:
+- What they've been actively tracking
+- Any urgent items needing attention today
+- Quick wins they can celebrate
+
+Keep it SHORT and SCANNABLE. Use emojis for visual appeal.
+Format as a friendly, quick update - not a full analysis.`
+  } else if (analysisType === 'trends') {
+    systemPrompt = `You are a data analyst identifying TRENDS and PATTERNS.
+
+Analyze the user's data and provide:
+1. **Trending Up 📈**: Metrics that are increasing
+2. **Trending Down 📉**: Metrics that are decreasing  
+3. **Correlations 🔗**: Interesting connections between different domains
+4. **Patterns 🔄**: Recurring behaviors or cycles
+
+Be SPECIFIC with percentages and numbers from the data.
+Show a visualization if trends are clear.`
+  } else if (analysisType === 'recommendations') {
+    systemPrompt = `You are a life coach providing ACTIONABLE RECOMMENDATIONS.
+
+Based on the user's data patterns, provide exactly 5 SPECIFIC, ACTIONABLE recommendations.
+
+Each recommendation should:
+- Be based on actual patterns in their data
+- Include a specific action they can take TODAY
+- Explain WHY this will help
+
+Format each as:
+**[Number]. [Action Title]**
+[Specific recommendation with data backing]
+
+Focus ONLY on recommendations - no analysis or data summaries.`
+  }
+  
+  // Call OpenAI for specialized insights
+  if (openAIKey) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openAIKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `
+User's Data Summary:
+- Total entries: ${totalEntries}
+- Active domains: ${domainSummary.map((d: any) => `${d.domain} (${d.count} entries)`).join(', ')}
+
+Domain Details:
+${JSON.stringify(domainSummary, null, 2)}
+
+Recent Metrics by Domain:
+${domainData.map((d: any) => `${d.domain}: ${JSON.stringify(d.metrics)}`).join('\n')}
+
+User Message: ${message}
+
+Generate ${analysisType === 'quick' ? 'quick insights' : analysisType === 'trends' ? 'trend analysis' : 'recommendations'} based on this data.`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const content = data.choices[0].message.content
+        
+        console.log(`✅ [INSIGHT] Generated ${analysisType} response`)
+        
+        // Generate visualization for trends
+        let visualization = null
+        if (analysisType === 'trends') {
+          // Find the domain with most numeric metrics for visualization
+          const domainWithMetrics = domainData.find((d: any) => Object.keys(d.metrics).length > 0)
+          if (domainWithMetrics && Object.keys(domainWithMetrics.metrics).length > 0) {
+            const metricName = Object.keys(domainWithMetrics.metrics)[0]
+            const metricValues = domainWithMetrics.metrics[metricName]
+            if (metricValues.length > 2) {
+              visualization = {
+                type: 'line',
+                title: `${metricName} Trend (${domainWithMetrics.domain})`,
+                data: metricValues.slice(-10).map((v: number, i: number) => ({
+                  name: `Day ${i + 1}`,
+                  value: v
+                }))
+              }
+            }
+          }
+        }
+        
+        return {
+          message: content,
+          data: { analysisType, domainSummary },
+          visualization
+        }
+      }
+    } catch (error) {
+      console.error(`❌ [INSIGHT] OpenAI error:`, error)
+    }
+  }
+  
+  // Fallback if OpenAI fails
+  return {
+    message: `📊 **${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} Summary**\n\nAnalyzed ${totalEntries} entries across ${domainData.length} domains.\n\n${domainSummary.map((d: any) => `• **${d.domain}**: ${d.count} entries`).join('\n')}`,
+    data: { domainSummary },
+    visualization: null
+  }
+}
+
+// ============================================
 // QUERY EXECUTOR - Fetch and format data
 // ============================================
-async function executeQuery(querySpec: any, userId: string, supabase: any) {
+async function executeQuery(querySpec: any, userId: string, supabase: any, originalMessage?: string) {
   const { domain, domains, queryType, filters, visualization, customVisualization, searchTerms } = querySpec
   
   console.log('📊 Executing query:', { domain, domains, queryType, filters, searchTerms })
   
   try {
-    // Handle multi-domain queries
+    // IMPORTANT: Handle analysis queries FIRST before multi-domain routing
+    // This ensures "analyze my spending" goes to AI analysis, not generic multi-domain
+    const analysisTypes = [
+      'analyze', 'analyze_financial', 'analyze_health',
+      'correlation', 'trend_analysis', 'goal_tracking', 
+      'spending_patterns', 'anomaly_detection', 'patterns'
+    ]
+    
+    if (analysisTypes.includes(queryType)) {
+      console.log('🧠 Routing to intelligent analysis system...')
+      
+      // Map date range
+      let dateRange: 'week' | 'month' | 'quarter' | 'year' | 'all' = 'month'
+      if (filters?.dateRange === 'this_week' || filters?.dateRange === 'last_week') {
+        dateRange = 'week'
+      } else if (filters?.dateRange === 'this_month' || filters?.dateRange === 'last_month') {
+        dateRange = 'month'
+      } else if (filters?.dateRange === 'this_year') {
+        dateRange = 'year'
+      } else if (filters?.dateRange === 'all') {
+        dateRange = 'all'
+      }
+      
+      // Determine analysis type based on queryType
+      let analysisType: 'general' | 'financial' | 'health' | 'correlations' | 'trends' = 'general'
+      if (queryType === 'analyze_financial' || queryType === 'spending_patterns') {
+        analysisType = 'financial'
+      } else if (queryType === 'analyze_health') {
+        analysisType = 'health'
+      } else if (queryType === 'correlation' || queryType === 'patterns') {
+        analysisType = 'correlations'
+      } else if (queryType === 'trend_analysis') {
+        analysisType = 'trends'
+      }
+      
+      console.log(`🎯 Analysis type: ${analysisType}, Date range: ${dateRange}`)
+      
+      const analysisResult = await performIntelligentAnalysis(
+        supabase,
+        userId,
+        originalMessage || 'Analyze my data',
+        analysisType,
+        dateRange
+      )
+      
+      console.log(`📊 Analysis Result:`, {
+        hasData: !!analysisResult.data,
+        responseLength: analysisResult.response?.length,
+        responsePreview: analysisResult.response?.substring(0, 200),
+        hasVisualization: !!analysisResult.visualization,
+        analysisType: analysisResult.analysisType
+      })
+      
+      return {
+        data: analysisResult.data,
+        message: analysisResult.response,
+        visualization: analysisResult.visualization
+      }
+    }
+    
+    // Handle multi-domain queries (AFTER analysis check)
     if (queryType === 'multi_domain' || domain === 'all' || domain === 'multiple') {
       return await executeMultiDomainQuery(querySpec, userId, supabase)
     }
@@ -3191,9 +3744,10 @@ function formatCompareResponse(data: any[], filters: any, domain: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, userData, conversationHistory } = await request.json()
+    const { message, userData, conversationHistory, userTime } = await request.json()
 
     console.log('🤖 AI Assistant received message:', message)
+    console.log('🕐 User time info:', userTime)
     
     // Initialize Supabase client
     const supabase = await createServerClient()
@@ -3370,7 +3924,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
             'Cookie': cookieHeader,
           },
-          body: JSON.stringify({ message })
+          body: JSON.stringify({ message, userTime })
         })
         
         if (multiEntryResponse.ok) {
@@ -3408,7 +3962,7 @@ export async function POST(request: NextRequest) {
     console.log('🧠 Step 2: Checking if message is a COMMAND...')
     
     try {
-      const commandResult = await intelligentCommandParser(message, user.id, supabase, baseUrl, cookieHeader)
+      const commandResult = await intelligentCommandParser(message, user.id, supabase, baseUrl, cookieHeader, userTime)
       
       if (commandResult.isCommand) {
         console.log('✅ AI detected command and executed:', commandResult.action)
@@ -3489,10 +4043,46 @@ export async function POST(request: NextRequest) {
     const mindfulnessContext = await fetchMindfulnessContext(supabase, user.id)
     console.log(`✅ Found ${mindfulnessContext.journalCount} journal entries`)
 
+    // Fetch comprehensive user data for personalized responses
+    console.log('📊 Fetching user data for personalized AI response...')
+    const { fetchUserDataForAnalysis } = await import('@/lib/ai/intelligent-analysis')
+    const userDomainData = await fetchUserDataForAnalysis(supabase, user.id, 'month')
+    
+    // Build rich user context
+    const userDataContext = userDomainData.length > 0 ? `
+**📊 USER'S ACTUAL DATA (use this to answer personal questions!):**
+${userDomainData.map((d: any) => `
+- **${d.domain.toUpperCase()}**: ${d.entries.length} entries
+  ${Object.entries(d.metrics).map(([k, v]: [string, any]) => `  • ${k}: latest=${v[v.length-1] || 'N/A'}, avg=${(v.reduce((a: number, b: number) => a+b, 0)/v.length).toFixed(1)}`).join('\n  ')}
+  Recent: ${d.entries.slice(-3).map((e: any) => e.title).join(', ')}
+`).join('')}
+
+**IMPORTANT**: When the user asks personal questions like:
+- "How am I doing with X?" → Reference their actual data above
+- "What's my average Y?" → Calculate from the metrics above
+- "Am I making progress?" → Compare recent vs older entries
+- "What should I focus on?" → Analyze patterns and give specific advice
+- "Tell me about my health/finances/etc" → Summarize their actual entries
+
+Always use SPECIFIC NUMBERS from their data, not generic advice!
+` : ''
+
     // Build base system prompt
-    const basePrompt = `You are a helpful, empathetic AI assistant for a life management app called LifeHub. You have access to the user's data across 21 life domains including health, fitness, financial, tasks, mindfulness, and more. 
-            
-You can reference the user's data to give personalized insights.`
+    const basePrompt = `You are LifeHub AI - a highly intelligent, personalized AI assistant with FULL ACCESS to the user's life data. You have deep knowledge of their patterns across 21 life domains.
+
+${userDataContext}
+
+Your capabilities:
+1. **Answer ANY question about their data** - Use the actual numbers and entries above
+2. **Provide personalized insights** - Connect patterns across domains
+3. **Give specific recommendations** - Based on their actual behavior
+4. **Be conversational** - You're their smart life assistant, not a generic chatbot
+
+When answering:
+- Always reference SPECIFIC data points (amounts, dates, metrics)
+- Connect insights across domains when relevant
+- Be proactive about suggesting improvements
+- Ask clarifying questions if needed`
 
     // Apply user's AI settings to the system prompt
     let systemPrompt = buildSystemPromptWithSettings(basePrompt, aiSettings)
@@ -5169,9 +5759,108 @@ async function handleVoiceCommand(message: string, userId: string, supabase: any
   // VEHICLES DOMAIN
   // ============================================
   
-  // Mileage Update
+  // UPDATE EXISTING VEHICLE MILEAGE (e.g., "update my honda's mileage to 50000")
+  // This pattern detects update commands for specific vehicles and updates the existing entry
+  const updateMileageMatch = lowerMessage.match(/(?:update|set|change)\s+(?:my\s+)?(.+?)(?:'s|s)?\s+(?:car(?:'s)?|vehicle(?:'s)?)?\s*(?:mileage|miles|odometer)\s+(?:to|at|is)?\s*(\d{1,6})(?:,\d{3})?(?:\s*(?:thousand|k))?\s*(?:miles?|mi|km|kilometers?)?/i)
+  if (updateMileageMatch || (lowerMessage.includes('update') && lowerMessage.includes('mileage'))) {
+    // Extract vehicle name and mileage from the message
+    let vehicleName = ''
+    let mileage = 0
+    
+    if (updateMileageMatch) {
+      vehicleName = updateMileageMatch[1].trim().toLowerCase()
+      mileage = parseInt(updateMileageMatch[2].replace(',', ''))
+    } else {
+      // Fallback pattern for variations like "update my hondas car's mileage to 50000"
+      const altMatch = lowerMessage.match(/update\s+(?:my\s+)?(\w+).*?(?:mileage|miles).*?(\d{1,6})/i)
+      if (altMatch) {
+        vehicleName = altMatch[1].trim().toLowerCase()
+        mileage = parseInt(altMatch[2])
+      }
+    }
+    
+    if (lowerMessage.includes('thousand') || lowerMessage.includes('k')) {
+      mileage = mileage * 1000
+    }
+    const unit = lowerMessage.includes('km') || lowerMessage.includes('kilometer') ? 'km' : 'miles'
+    
+    if (vehicleName && mileage > 0) {
+      console.log(`🚗 Looking for vehicle "${vehicleName}" to update mileage to ${mileage}...`)
+      
+      // Find existing vehicle by name/title in domain_entries
+      const { data: existingVehicles, error: findError } = await supabase
+        .from('domain_entries')
+        .select('id, title, metadata')
+        .eq('user_id', userId)
+        .eq('domain', 'vehicles')
+        .or(`title.ilike.%${vehicleName}%,metadata->>vehicleName.ilike.%${vehicleName}%,metadata->>make.ilike.%${vehicleName}%,metadata->>model.ilike.%${vehicleName}%`)
+        .order('created_at', { ascending: false })
+      
+      if (findError) {
+        console.error('❌ Error finding vehicle:', findError)
+      }
+      
+      if (existingVehicles && existingVehicles.length > 0) {
+        // Found existing vehicle - UPDATE it
+        const vehicle = existingVehicles[0]
+        const existingMetadata = vehicle.metadata || {}
+        
+        console.log(`✅ Found vehicle "${vehicle.title}" (id: ${vehicle.id}) - updating mileage to ${mileage}`)
+        
+        const { error: updateError } = await supabase
+          .from('domain_entries')
+          .update({
+            metadata: {
+              ...existingMetadata,
+              currentMileage: mileage,
+              mileage: mileage,
+              lastMileageUpdate: new Date().toISOString(),
+            },
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', vehicle.id)
+          .eq('user_id', userId)
+        
+        if (updateError) {
+          console.error('❌ Error updating vehicle mileage:', updateError)
+          return {
+            isCommand: true,
+            action: 'update_mileage_error',
+            message: `❌ Failed to update mileage for ${vehicle.title}`
+          }
+        }
+        
+        return {
+          isCommand: true,
+          action: 'update_vehicle_mileage',
+          message: `✅ Updated ${vehicle.title}'s mileage to ${mileage.toLocaleString()} ${unit}`,
+          triggerReload: true
+        }
+      } else {
+        console.log(`⚠️ No vehicle found matching "${vehicleName}" - creating new mileage log entry`)
+        // No existing vehicle found - create a new mileage log entry
+        await saveToSupabase(supabase, userId, 'vehicles', {
+          id: randomUUID(),
+          type: 'mileage_update',
+          vehicleName: vehicleName,
+          currentMileage: mileage,
+          unit,
+          timestamp: new Date().toISOString(),
+          source: 'voice_ai'
+        })
+        
+        return {
+          isCommand: true,
+          action: 'save_mileage',
+          message: `✅ Logged mileage update: ${mileage.toLocaleString()} ${unit} (no vehicle named "${vehicleName}" found - created new entry)`
+        }
+      }
+    }
+  }
+  
+  // Mileage Update (general - when no specific vehicle is mentioned)
   const mileageMatch = lowerMessage.match(/(?:car|vehicle|honda|toyota|ford|chevrolet|chevy|bmw|mercedes|audi|lexus|nissan|mazda|subaru|volkswagen|vw|jeep|dodge|ram|tesla)?\s*(?:has|at|is|reached|hit)?\s*(\d{1,6})(?:,\d{3})?\s*(?:thousand|k|miles?|mi|km|kilometers?)/)
-  if (mileageMatch && (lowerMessage.includes('mile') || lowerMessage.includes('km') || lowerMessage.includes('odometer'))) {
+  if (mileageMatch && (lowerMessage.includes('mile') || lowerMessage.includes('km') || lowerMessage.includes('odometer')) && !lowerMessage.includes('update')) {
     let mileage = parseInt(mileageMatch[1].replace(',', ''))
     if (lowerMessage.includes('thousand') || lowerMessage.includes('k')) {
       mileage = mileage * 1000

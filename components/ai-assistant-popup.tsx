@@ -8,7 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+// #region agent log
+// FIXED: Importing from local wrapper instead of deprecated @supabase/auth-helpers-nextjs
+// #endregion
+import { createClientComponentClient } from '@/lib/supabase/browser-client'
 import {
   Send, Mic, Sparkles, Brain, MessageSquare, Settings, TrendingUp,
   AlertCircle, Target, DollarSign, Heart, BarChart3, Lightbulb, Phone
@@ -47,19 +50,19 @@ type AIMessage = {
 }
 
 const SUGGESTED_QUESTIONS = [
+  "Analyze patterns and trends in my data",
+  "What correlations do you see in my life?",
+  "Analyze my spending habits",
+  "How is my health progress?",
+  "Find insights across all my domains",
   "What should I focus on this week?",
-  "Am I on track for my savings goal?",
-  "Show me my spending trends",
-  "When is my next maintenance due?",
-  "How's my health progress?",
-  "What goals am I behind on?",
 ]
 
 const QUICK_COMMANDS = [
-  { icon: DollarSign, label: "Financial Summary", color: "text-green-400" },
-  { icon: Heart, label: "Health Report", color: "text-red-400" },
-  { icon: BarChart3, label: "Progress Report", color: "text-purple-400" },
-  { icon: Target, label: "Goal Check-in", color: "text-pink-400" },
+  { icon: Sparkles, label: "Analyze My Data", color: "text-purple-400" },
+  { icon: DollarSign, label: "Spending Analysis", color: "text-green-400" },
+  { icon: Heart, label: "Health Insights", color: "text-red-400" },
+  { icon: TrendingUp, label: "Find Correlations", color: "text-blue-400" },
 ]
 
 const CHART_COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899']
@@ -271,6 +274,12 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
     setIsTyping(true)
 
     try {
+      // Get user's local time and timezone for accurate meal type detection
+      const now = new Date()
+      const userLocalTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      const userLocalHour = now.getHours()
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
       const response = await fetch('/api/ai-assistant/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -281,7 +290,14 @@ export function AIAssistantPopup({ open, onOpenChange }: AIAssistantPopupProps) 
           conversationHistory: messages.map(m => ({
             type: m.type,
             content: m.content
-          }))
+          })),
+          // Include user's local time info for accurate meal type detection
+          userTime: {
+            localTime: userLocalTime,
+            localHour: userLocalHour,
+            timezone: userTimezone,
+            timestamp: now.toISOString()
+          }
         })
       })
 
