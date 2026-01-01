@@ -25,49 +25,113 @@ export function DocumentExpirationCard() {
     const items: ExpiringDoc[] = []
     const now = new Date()
 
-    // Check domain entries with expiration dates from ALL domains
+    // Check domain entries with ACTUAL expiration dates from ALL domains
+    // 🔧 KEY FIX: Only show items with TRUE expiration dates, NOT billing/renewal dates
+    // Recurring bills/subscriptions with no end date should NEVER appear here
     Object.entries(data).forEach(([domain, entries]) => {
       if (!Array.isArray(entries)) return
       
       entries.forEach((entry: any) => {
-        // Check multiple possible expiration date fields
-        const expDate = 
-          entry.expirationDate ||
-          entry.expiration_date ||
-          entry.metadata?.expirationDate ||
-          entry.metadata?.expiration_date ||
-          entry.metadata?.expiryDate ||
-          entry.metadata?.expiry_date ||
-          entry.metadata?.renewalDate ||
-          entry.metadata?.registrationExpiry ||
-          entry.metadata?.licenseExpiry ||
-          entry.metadata?.certificationExpiry ||
-          entry.metadata?.warrantyExpiry ||
-          entry.metadata?.contractEnd ||
-          entry.metadata?.leaseEnd ||
-          entry.metadata?.subscriptionEnd
-
-        if (expDate) {
-          const expirationDate = new Date(expDate)
-          if (isNaN(expirationDate.getTime())) return // Skip invalid dates
-          
-          const daysUntil = differenceInDays(expirationDate, now)
-          
-          // Show items expiring in next 90 days or already expired (within last 30 days)
-          if (daysUntil <= 90 && daysUntil >= -30) {
-            let status: 'expired' | 'urgent' | 'warning' | 'ok' = 'ok'
-            if (daysUntil < 0) status = 'expired'
-            else if (daysUntil <= 14) status = 'urgent'
-            else if (daysUntil <= 30) status = 'warning'
-
-            items.push({
-              title: entry.title || entry.name || entry.metadata?.name || 'Untitled',
-              domain,
-              expirationDate,
-              daysUntil,
-              status
-            })
+        const meta = entry.metadata || {}
+        
+        // Check if this is a recurring item (bill, subscription, expense, etc.)
+        const isRecurring = Boolean(
+          meta.recurring ||
+          meta.isRecurring ||
+          meta.frequency ||
+          meta.billingCycle ||
+          meta.type === 'subscription' ||
+          meta.itemType === 'subscription' ||
+          meta.type === 'bill' ||
+          meta.itemType === 'bill' ||
+          meta.type === 'expense'
+        )
+        
+        // 🔧 IMPORTANT: These are BILLING dates, NOT expiration dates
+        // Items with ONLY these dates should NOT appear in "Expiring Soon"
+        const billingDates = [
+          'renewalDate', 'renewal_date',
+          'nextDueDate', 'next_due_date', 
+          'dueDate', 'due_date',
+          'nextBilling', 'next_billing',
+          'billingDate', 'billing_date',
+          'paymentDate', 'payment_date',
+          'nextPayment', 'next_payment'
+        ]
+        
+        // 🔧 These are TRUE expiration/end dates - items that actually expire
+        const trueExpirationDateFields = [
+          'expirationDate', 'expiration_date',
+          'expiryDate', 'expiry_date',
+          'contractEndDate', 'contract_end_date', 'contractEnd',
+          'cancellationDate', 'cancellation_date',
+          'subscriptionEnd', 'subscription_end',
+          'registrationExpiry', 'registration_expiry',  // Vehicle registration
+          'licenseExpiry', 'license_expiry',            // Licenses
+          'certificationExpiry', 'certification_expiry', // Certifications
+          'warrantyExpiry', 'warranty_expiry',          // Warranties
+          'leaseEnd', 'lease_end',                      // Leases
+          'policyEndDate', 'policy_end_date',           // Insurance policies
+          'validUntil', 'valid_until',                  // Validity dates
+          'expireDate', 'expire_date'
+        ]
+        
+        // Find actual expiration date (from entry or metadata)
+        let expDate: string | undefined
+        
+        // Check entry-level fields first
+        for (const field of trueExpirationDateFields) {
+          if (entry[field]) {
+            expDate = entry[field]
+            break
           }
+        }
+        
+        // Then check metadata fields
+        if (!expDate) {
+          for (const field of trueExpirationDateFields) {
+            if (meta[field]) {
+              expDate = meta[field]
+              break
+            }
+          }
+        }
+        
+        // 🔧 For NON-recurring items only, also check renewalDate as potential expiration
+        // (e.g., a one-time warranty, a contract with end date stored in renewalDate)
+        if (!expDate && !isRecurring) {
+          // Check if there's a billing-type date that might indicate expiration for non-recurring items
+          for (const field of billingDates) {
+            const val = entry[field] || meta[field]
+            if (val) {
+              expDate = val
+              break
+            }
+          }
+        }
+        
+        // Skip items with no true expiration date
+        if (!expDate) return
+
+        const expirationDate = new Date(expDate)
+        if (isNaN(expirationDate.getTime())) return // Skip invalid dates
+        
+        const daysUntil = differenceInDays(expirationDate, now)
+        
+        // Show items expiring in next 90 days or already expired (within last 30 days)
+        if (daysUntil <= 90 && daysUntil >= -30) {
+          let status: 'expired' | 'urgent' | 'warning' | 'ok' = 'ok'
+          if (daysUntil < 0) status = 'expired'
+          else if (daysUntil <= 14) status = 'urgent'
+          else if (daysUntil <= 30) status = 'warning'
+
+          items.push({
+            title: entry.title || entry.name || meta.name || 'Untitled',
+            domain,
+            expirationDate,
+            daysUntil,
+            status
+          })
         }
       })
     })

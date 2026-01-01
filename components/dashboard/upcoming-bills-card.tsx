@@ -2,15 +2,18 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CreditCard, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { CreditCard, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Check, Loader2 } from 'lucide-react'
 // eslint-disable-next-line no-restricted-imports -- Legacy component, migration to useDomainCRUD planned
 import { useData } from '@/lib/providers/data-provider'
 import { useServiceProviders } from '@/lib/hooks/use-service-providers'
-import { useMemo, useEffect, useState } from 'react'
-import { differenceInDays, parseISO, format } from 'date-fns'
+import { useMemo, useEffect, useState, useCallback } from 'react'
+import { differenceInDays, parseISO, format, addMonths, addYears, addWeeks } from 'date-fns'
 import { CollapsibleDashboardCard } from './collapsible-dashboard-card'
+import { useDomainEntries } from '@/lib/hooks/use-domain-entries'
+import { toast } from 'sonner'
 
 interface BillItem {
+  id?: string // Entry ID for updates
   title: string
   amount: number
   dueDate: string
@@ -20,13 +23,39 @@ interface BillItem {
   domain: string
   daysUntilDue?: number
   isUrgent?: boolean
+  billingCycle?: string // Monthly, Yearly, Quarterly, Weekly
+  metadata?: Record<string, any> // Full metadata for updates
+}
+
+// Helper function to calculate next renewal date based on billing cycle
+function getNextRenewalDate(currentDate: Date, billingCycle: string): Date {
+  const cycle = billingCycle?.toLowerCase() || 'monthly'
+  
+  switch (cycle) {
+    case 'yearly':
+    case 'annual':
+    case 'annually':
+      return addYears(currentDate, 1)
+    case 'quarterly':
+      return addMonths(currentDate, 3)
+    case 'weekly':
+      return addWeeks(currentDate, 1)
+    case 'biweekly':
+    case 'bi-weekly':
+      return addWeeks(currentDate, 2)
+    case 'monthly':
+    default:
+      return addMonths(currentDate, 1)
+  }
 }
 
 export function UpcomingBillsCard() {
   const { bills, data, isLoaded } = useData()
   const { payments: servicePayments, providers: serviceProviders } = useServiceProviders()
+  const { updateEntry } = useDomainEntries() // For updating subscriptions
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [showAllBills, setShowAllBills] = useState(false)
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null)
 
   const homeEntries = Array.isArray(data.home) ? data.home : []
   const homeEntriesLength = homeEntries.length
@@ -141,13 +170,16 @@ export function UpcomingBillsCard() {
         const billingDate = meta.nextBilling || meta.renewalDate || meta.billingDate || meta.nextDueDate
         if (billingDate) {
           billsList.push({
+            id: entry.id, // Store entry ID for updates
             title: entry.title || meta.name || meta.service || 'Subscription',
             amount: parseFloat(String(meta.monthlyCost || meta.cost || meta.price || meta.amount || meta.monthlyFee || 0)),
             dueDate: coerceDueDateString(billingDate),
             category: 'Subscription',
             isRecurring: true,
             source: 'subscriptions',
-            domain: 'digital'
+            domain: 'digital',
+            billingCycle: meta.billingCycle || 'Monthly', // Store billing cycle
+            metadata: meta // Store full metadata for updates
           })
         }
       }
@@ -424,6 +456,48 @@ export function UpcomingBillsCard() {
     return processedBills.reduce((sum, bill) => sum + (bill.amount || 0), 0)
   }, [processedBills])
 
+  // Handle marking a recurring subscription as paid - advances to next billing cycle
+  const handleMarkAsPaid = useCallback(async (bill: BillItem) => {
+    if (!bill.id || !bill.isRecurring) {
+      toast.error('This item cannot be marked as paid')
+      return
+    }
+    
+    setMarkingPaidId(bill.id)
+    
+    try {
+      // Calculate next renewal date based on billing cycle
+      const currentDueDate = parseISO(bill.dueDate)
+      const nextRenewalDate = getNextRenewalDate(currentDueDate, bill.billingCycle || 'Monthly')
+      const nextRenewalDateStr = format(nextRenewalDate, 'yyyy-MM-dd')
+      
+      // Update the entry with new renewal date
+      const updatedMetadata = {
+        ...bill.metadata,
+        renewalDate: nextRenewalDateStr,
+        nextBilling: nextRenewalDateStr,
+        lastPaidDate: format(new Date(), 'yyyy-MM-dd'),
+      }
+      
+      await updateEntry({
+        id: bill.id,
+        metadata: updatedMetadata
+      })
+      
+      // Trigger refresh
+      setRefreshTrigger(prev => prev + 1)
+      window.dispatchEvent(new CustomEvent('data-updated'))
+      window.dispatchEvent(new CustomEvent('digital-data-updated'))
+      
+      toast.success(`${bill.title} marked as paid! Next due: ${format(nextRenewalDate, 'MMM d, yyyy')}`)
+    } catch (error) {
+      console.error('Failed to mark as paid:', error)
+      toast.error('Failed to mark as paid. Please try again.')
+    } finally {
+      setMarkingPaidId(null)
+    }
+  }, [updateEntry])
+
   const getSourceIcon = (source: string) => {
     switch (source) {
       case 'subscriptions': return '🔄'
@@ -498,14 +572,36 @@ export function UpcomingBillsCard() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                <div className="text-sm font-bold">${bill.amount.toFixed(0)}</div>
-                <Badge
-                  variant={bill.isUrgent ? 'destructive' : 'outline'}
-                  className="text-xs"
-                >
-                  {bill.daysUntilDue}d
-                </Badge>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-sm font-bold">${bill.amount.toFixed(0)}</div>
+                  <Badge
+                    variant={bill.isUrgent ? 'destructive' : 'outline'}
+                    className="text-xs"
+                  >
+                    {bill.daysUntilDue}d
+                  </Badge>
+                </div>
+                {/* Mark as Paid button for recurring subscriptions */}
+                {bill.isRecurring && bill.id && bill.source === 'subscriptions' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleMarkAsPaid(bill)
+                    }}
+                    disabled={markingPaidId === bill.id}
+                    title="Mark as Paid - advances to next billing cycle"
+                  >
+                    {markingPaidId === bill.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           ))}
