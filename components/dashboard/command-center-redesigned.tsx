@@ -142,6 +142,8 @@ export function CommandCenterRedesigned() {
   const [expiringDocuments, setExpiringDocuments] = useState<any[]>([]) // Google Drive documents from Supabase
   const [isExpiringDocsLoading, setIsExpiringDocsLoading] = useState(true)
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set()) // Track dismissed alerts by unique ID
+  const [habitsExpanded, setHabitsExpanded] = useState(false) // Track if habits section is expanded
+  const [tasksExpanded, setTasksExpanded] = useState(false) // Track if tasks section is expanded
 
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskPriority, setNewTaskPriority] = useState<'low'|'medium'|'high'>('medium')
@@ -402,8 +404,10 @@ export function CommandCenterRedesigned() {
           .order('start_date', { ascending: true })
         
         if (error) {
-          // Travel bookings table might not exist - that's OK
-          console.log('⚠️ Travel bookings not accessible:', error.message)
+          // Travel bookings table might not exist yet - silently handle
+          if (!error.message.includes('schema cache') && !error.message.includes('does not exist')) {
+            console.log('⚠️ Travel bookings not accessible:', error.message)
+          }
           setTravelBookings([])
           return
         }
@@ -962,9 +966,25 @@ export function CommandCenterRedesigned() {
 
   const formatCurrencyK = (value: number | undefined | null, hasData = true) => {
     if (!hasData || value === undefined || value === null || Number.isNaN(value)) return '--'
-    if (Math.abs(value) >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`
+    const absValue = Math.abs(value)
+    const sign = value < 0 ? '-' : ''
+    
+    // Billions
+    if (absValue >= 1_000_000_000) {
+      const billions = absValue / 1_000_000_000
+      return `${sign}$${billions % 1 === 0 ? billions : billions.toFixed(1)}B`
     }
+    // Millions
+    if (absValue >= 1_000_000) {
+      const millions = absValue / 1_000_000
+      return `${sign}$${millions % 1 === 0 ? millions : millions.toFixed(1)}M`
+    }
+    // Thousands (only for values >= 10K to avoid awkward "$8.0K")
+    if (absValue >= 10_000) {
+      const thousands = absValue / 1_000
+      return `${sign}$${thousands % 1 === 0 ? thousands : thousands.toFixed(1)}K`
+    }
+    // Regular formatting for smaller values
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -2562,7 +2582,7 @@ export function CommandCenterRedesigned() {
                   <span className="text-lg">Tasks</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" suppressHydrationWarning>{isClient ? tasks.length : 0}</Badge>
+                  <Badge variant="secondary" suppressHydrationWarning>{tasks.length}</Badge>
                   <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAddTaskOpen(true)}>
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -2574,7 +2594,7 @@ export function CommandCenterRedesigned() {
                 <p className="text-sm text-gray-500 py-4">No tasks yet</p>
               ) : (
                 <div className="space-y-2">
-                  {tasks.slice(0, 3).map((task) => (
+                  {(tasksExpanded ? tasks : tasks.slice(0, 3)).map((task) => (
                     <div key={task.id} className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group">
                       <button 
                         type="button"
@@ -2604,9 +2624,18 @@ export function CommandCenterRedesigned() {
                     </div>
                   ))}
                   {tasks.length > 3 && (
-                    <p className="text-xs text-gray-500 text-center pt-2">
-                      +{tasks.length - 3} more tasks
-                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950"
+                      onClick={() => setTasksExpanded(!tasksExpanded)}
+                    >
+                      {tasksExpanded ? (
+                        <>▲ Show less</>
+                      ) : (
+                        <>▼ Show all {tasks.length} tasks</>
+                      )}
+                    </Button>
                   )}
                 </div>
               )}
@@ -2636,7 +2665,7 @@ export function CommandCenterRedesigned() {
                   <p className="text-sm text-gray-500 py-4">No habits tracked yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {habits.slice(0, 3).map((habit) => (
+                    {(habitsExpanded ? habits : habits.slice(0, 3)).map((habit) => (
                       <div key={habit.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg group">
                         <button 
                           type="button"
@@ -2664,6 +2693,20 @@ export function CommandCenterRedesigned() {
                         </div>
                       </div>
                     ))}
+                    {habits.length > 3 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950"
+                        onClick={() => setHabitsExpanded(!habitsExpanded)}
+                      >
+                        {habitsExpanded ? (
+                          <>▲ Show less</>
+                        ) : (
+                          <>▼ Show all {habits.length} habits</>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
