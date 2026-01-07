@@ -266,7 +266,12 @@ export function CommandCenterRedesigned() {
           const latestWarrantyExpiry = warranties.length > 0
             ? warranties.reduce((latest: any, w: any) => {
                 if (!latest) return w.expiry_date
-                return new Date(w.expiry_date) > new Date(latest) ? w.expiry_date : latest
+                const currentDate = new Date(w.expiry_date)
+                const latestDate = new Date(latest)
+                // Skip invalid dates
+                if (isNaN(currentDate.getTime())) return latest
+                if (isNaN(latestDate.getTime())) return w.expiry_date
+                return currentDate > latestDate ? w.expiry_date : latest
               }, null)
             : null
           
@@ -884,6 +889,11 @@ export function CommandCenterRedesigned() {
       const dateValue = meta?.date || item?.createdAt
       if (dateValue) {
         const costDate = new Date(String(dateValue))
+        // Skip if date is invalid
+        if (isNaN(costDate.getTime())) {
+          console.log(`🚗 [TRANSPORT] Skipping ${item.title}: invalid date value (${dateValue})`)
+          return
+        }
         const isInCurrentMonth = costDate >= startOfMonth
         const isInLast30Days = costDate >= thirtyDaysAgo
         
@@ -1260,7 +1270,9 @@ export function CommandCenterRedesigned() {
         const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
 
         const expiring = (docs || []).filter(doc => {
+          if (!doc.expiration_date) return false
           const expiryDate = new Date(doc.expiration_date)
+          if (isNaN(expiryDate.getTime())) return false
           return expiryDate >= today && expiryDate <= thirtyDaysFromNow
         }).map(doc => ({
           id: doc.id,
@@ -1750,7 +1762,9 @@ export function CommandCenterRedesigned() {
     const todayEntries = fitness.filter(f => {
       const meta = getMeta(f)
       const entryDate = meta?.date || f.createdAt || f.created_at
-      return entryDate && new Date(entryDate).toDateString() === today
+      if (!entryDate) return false
+      const parsed = new Date(entryDate)
+      return !isNaN(parsed.getTime()) && parsed.toDateString() === today
     })
     
     console.log('🏋️ Today entries:', todayEntries.length, todayEntries)
@@ -1760,7 +1774,9 @@ export function CommandCenterRedesigned() {
     const weekWorkouts = fitness.filter(f => {
       const meta = getMeta(f)
       const entryDate = meta?.date || f.createdAt || f.created_at
-      return entryDate && new Date(entryDate).getTime() >= thisWeek
+      if (!entryDate) return false
+      const parsed = new Date(entryDate)
+      return !isNaN(parsed.getTime()) && parsed.getTime() >= thisWeek
     }).length
     
     // Calculate calories burned today with estimation
@@ -1829,7 +1845,10 @@ export function CommandCenterRedesigned() {
     const todayMinutes = mindfulness
       .filter(m => {
         const meta = getMeta(m)
-        return new Date(meta?.date || m.createdAt).toDateString() === today
+        const dateValue = meta?.date || m.createdAt
+        if (!dateValue) return false
+        const parsed = new Date(dateValue)
+        return !isNaN(parsed.getTime()) && parsed.toDateString() === today
       })
       .reduce((sum, m) => {
         const meta = getMeta(m)
@@ -2038,6 +2057,7 @@ export function CommandCenterRedesigned() {
       warranties.forEach((warranty: any) => {
         if (warranty.expiry_date) {
           const expiryDate = new Date(warranty.expiry_date)
+          if (isNaN(expiryDate.getTime())) return
           const daysUntilExpiry = differenceInDays(expiryDate, today)
           if (daysUntilExpiry >= 0 && daysUntilExpiry <= 30) {
             const alertId = `warranty-${warranty.id}-${warranty.expiry_date}`
@@ -2058,6 +2078,7 @@ export function CommandCenterRedesigned() {
     tasks.forEach(task => {
       if (!task.completed && task.dueDate) {
         const dueDate = new Date(task.dueDate)
+        if (isNaN(dueDate.getTime())) return
         const daysUntilDue = differenceInDays(dueDate, today)
         if (daysUntilDue >= 0 && daysUntilDue <= 7) {
           const alertId = `task-${task.id}-${task.dueDate}`
